@@ -1,0 +1,28 @@
+{
+  "name": "signalk-ais-target-prioritizer",
+  "version": "0.0.1",
+  "description": "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria",
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-category-ais"
+  ],
+  "signalk-plugin-enabled-by-default": false,
+  "license": "ISC",
+  "author": "Jeremy Waters",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "sqlite3": "^5.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaffadog/signalk-ais-target-prioritizer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jaffadog/signalk-ais-target-prioritizer/issues"
+  },
+  "homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer"
+}
