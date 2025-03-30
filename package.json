@@ -1,28 +1,29 @@
 {
-  "name": "signalk-ais-target-prioritizer",
-  "version": "0.0.1",
-  "description": "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria",
-  "keywords": [
-    "signalk-node-server-plugin",
-    "signalk-category-ais"
-  ],
-  "signalk-plugin-enabled-by-default": false,
-  "license": "MIT",
-  "author": "Jeremy Waters",
-  "type": "commonjs",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "sqlite3": "^5.0.2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jaffadog/signalk-ais-target-prioritizer.git"
-  },
-  "bugs": {
-    "url": "https://github.com/jaffadog/signalk-ais-target-prioritizer/issues"
-  },
-  "homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer"
+	"name": "signalk-ais-target-prioritizer",
+	"version": "0.0.1",
+	"description": "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria - and emulates Vesper XB-8000, so that you can use the Vesper Watchmate iOS and AAndroid apps to see the results",
+	"keywords": [
+		"signalk-node-server-plugin",
+		"signalk-category-ais"
+	],
+	"signalk-plugin-enabled-by-default": false,
+	"license": "MIT",
+	"author": "Jeremy Waters",
+	"type": "commonjs",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"dependencies": {
+		"express": "^4.21.2",
+		"lodash": "^4.17.21"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jaffadog/signalk-ais-target-prioritizer.git"
+	},
+	"bugs": {
+		"url": "https://github.com/jaffadog/signalk-ais-target-prioritizer/issues"
+	},
+	"homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer"
 }

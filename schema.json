@@ -1,0 +1,508 @@
+{
+	"properties": {
+		"current": {
+			"type": "string",
+			"title": "Active Profile",
+			"description": "Select the active profile. See Warning, Danger, and Guard thresholdss for each profile below. (default is harbor)",
+			"enum": [
+				"anchor",
+				"harbor",
+				"coastal",
+				"offshore"
+			],
+			"default": "harbor"
+		},
+		"anchor": {
+			"type": "object",
+			"title": "Anchor Profile",
+			"description": "Configure the Warning, Danger, and Guard thresholds for the *Anchor* profile below",
+			"properties": {
+				"warning": {
+					"type": "object",
+					"title": "Collision Warning Alarm",
+					"required": [
+						"cpa",
+						"tcpa",
+						"range",
+						"speed"
+					],
+					"properties": {
+						"cpa": {
+							"title": "CPA Less Than",
+							"description": "Closest point of approach in NM (default 0 / disabled)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"multipleOf": 0.5,
+							"default": 0
+						},
+						"tcpa": {
+							"title": "TCPA Less Than",
+							"description": "Time to CPA in seconds (default 3600)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 3600,
+							"default": 3600
+						},
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 10)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 10
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"multipleOf": 0.1,
+							"default": 0
+						}
+					}
+				},
+				"danger": {
+					"type": "object",
+					"title": "Collision Danger Alarm",
+					"required": [
+						"cpa",
+						"tcpa",
+						"range",
+						"speed"
+					],
+					"properties": {
+						"cpa": {
+							"title": "CPA Less Than",
+							"description": "Closest point of approach in NM (default 0 / disabled)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						},
+						"tcpa": {
+							"title": "TCPA Less Than",
+							"description": "Time to CPA in seconds (default 3660)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 3660,
+							"default": 3600
+						},
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 10)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 10
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						}
+					}
+				},
+				"guard": {
+					"type": "object",
+					"title": "Guard Alarm",
+					"required": [
+						"range",
+						"speed"
+					],
+					"properties": {
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 0 / disabled)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						}
+					}
+				}
+			}
+		},
+		"harbor": {
+			"type": "object",
+			"title": "Harbor Profile",
+			"description": "Configure the Warning, Danger, and Guard thresholds for the *Harbor* profile below",
+			"properties": {
+				"warning": {
+					"type": "object",
+					"title": "Collision Warning Alarm",
+					"required": [
+						"cpa",
+						"tcpa",
+						"range",
+						"speed"
+					],
+					"properties": {
+						"cpa": {
+							"title": "CPA Less Than",
+							"description": "Closest point of approach in NM (default 0.5)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"multipleOf": 0.5,
+							"default": 0.5
+						},
+						"tcpa": {
+							"title": "TCPA Less Than",
+							"description": "Time to CPA in seconds (default 600)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 3660,
+							"default": 600
+						},
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 10)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 10
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0.5)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"multipleOf": 0.1,
+							"default": 0.5
+						}
+					}
+				},
+				"danger": {
+					"type": "object",
+					"title": "Collision Danger Alarm",
+					"required": [
+						"cpa",
+						"tcpa",
+						"range",
+						"speed"
+					],
+					"properties": {
+						"cpa": {
+							"title": "CPA Less Than",
+							"description": "Closest point of approach in NM (default 0.1)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0.1
+						},
+						"tcpa": {
+							"title": "TCPA Less Than",
+							"description": "Time to CPA in seconds (default 300)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 3600,
+							"default": 300
+						},
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 10)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 10
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 3)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 3
+						}
+					}
+				},
+				"guard": {
+					"type": "object",
+					"title": "Guard Alarm",
+					"required": [
+						"range",
+						"speed"
+					],
+					"properties": {
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 0 / disabled)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						}
+					}
+				}
+			}
+		},
+		"coastal": {
+			"type": "object",
+			"title": "Coastal Profile",
+			"description": "Configure the Warning, Danger, and Guard thresholds for the *Coastal* profile below",
+			"properties": {
+				"warning": {
+					"type": "object",
+					"title": "Collision Warning Alarm",
+					"required": [
+						"cpa",
+						"tcpa",
+						"range",
+						"speed"
+					],
+					"properties": {
+						"cpa": {
+							"title": "CPA Less Than",
+							"description": "Closest point of approach in NM (default 2)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"multipleOf": 0.5,
+							"default": 2
+						},
+						"tcpa": {
+							"title": "TCPA Less Than",
+							"description": "Time to CPA in seconds (default 1800)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 3600,
+							"default": 1800
+						},
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 10)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 10
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"multipleOf": 0.1,
+							"default": 0
+						}
+					}
+				},
+				"danger": {
+					"type": "object",
+					"title": "Collision Danger Alarm",
+					"required": [
+						"cpa",
+						"tcpa",
+						"range",
+						"speed"
+					],
+					"properties": {
+						"cpa": {
+							"title": "CPA Less Than",
+							"description": "Closest point of approach in NM (default 1)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 1
+						},
+						"tcpa": {
+							"title": "TCPA Less Than",
+							"description": "Time to CPA in seconds (default 450)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 3600,
+							"default": 450
+						},
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 10)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 10
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0.5)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0.5
+						}
+					}
+				},
+				"guard": {
+					"type": "object",
+					"title": "Guard Alarm",
+					"required": [
+						"range",
+						"speed"
+					],
+					"properties": {
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 0 / disabled)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						}
+					}
+				}
+			}
+		},
+		"offshore": {
+			"type": "object",
+			"title": "Offshore Profile",
+			"description": "Configure the Warning, Danger, and Guard thresholds for the *Offshore* profile below",
+			"properties": {
+				"warning": {
+					"type": "object",
+					"title": "Collision Warning Alarm",
+					"required": [
+						"cpa",
+						"tcpa",
+						"range",
+						"speed"
+					],
+					"properties": {
+						"cpa": {
+							"title": "CPA Less Than",
+							"description": "Closest point of approach in NM (default 4)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"multipleOf": 0.5,
+							"default": 4
+						},
+						"tcpa": {
+							"title": "TCPA Less Than",
+							"description": "Time to CPA in seconds (default 1800)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 3600,
+							"default": 1800
+						},
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 10)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 10
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"multipleOf": 0.1,
+							"default": 0
+						}
+					}
+				},
+				"danger": {
+					"type": "object",
+					"title": "Collision Danger Alarm",
+					"required": [
+						"cpa",
+						"tcpa",
+						"range",
+						"speed"
+					],
+					"properties": {
+						"cpa": {
+							"title": "CPA Less Than",
+							"description": "Closest point of approach in NM (default 2)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 2
+						},
+						"tcpa": {
+							"title": "TCPA Less Than",
+							"description": "Time to CPA in seconds (default 900)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 3600,
+							"default": 900
+						},
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 10)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 10
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						}
+					}
+				},
+				"guard": {
+					"type": "object",
+					"title": "Guard Alarm",
+					"required": [
+						"range",
+						"speed"
+					],
+					"properties": {
+						"range": {
+							"title": "Range Within",
+							"description": "Minimum target range in NM (default 0 / disabled)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						},
+						"speed": {
+							"title": "Speed Exceeds",
+							"description": "Minimum target speed in kt (default 0)",
+							"type": "number",
+							"minimum": 0,
+							"maximum": 10,
+							"default": 0
+						}
+					}
+				}
+			}
+		}
+	}
+}
