@@ -1,14 +1,14 @@
 {
 	"name": "signalk-ais-target-prioritizer",
 	"version": "0.0.1",
-	"description": "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria - and emulates Vesper XB-8000, so that you can use the Vesper Watchmate iOS and AAndroid apps to see the results",
+	"description": "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria - and emulates Vesper XB-8000, so that you can use the Vesper Watchmate iOS and Android apps to see the results",
 	"keywords": [
 		"signalk-node-server-plugin",
 		"signalk-category-ais"
 	],
 	"signalk-plugin-enabled-by-default": false,
 	"license": "MIT",
-	"author": "Jeremy Waters",
+	"author": "Jeremy Waters <jaffadog@gmail.com>",
 	"type": "commonjs",
 	"main": "index.js",
 	"scripts": {
@@ -16,7 +16,9 @@
 	},
 	"dependencies": {
 		"express": "^4.21.2",
-		"lodash": "^4.17.21"
+		"lodash": "^4.17.21",
+		"node-tcp-proxy": "^0.0.21",
+		"multicast-dns": "^7.2.3"
 	},
 	"repository": {
 		"type": "git",

@@ -6,17 +6,21 @@ A [SignalK](https://signalk.org/) plugin that prioritizes AIS targets according 
 
 ## What Does It Do?
 
-The SignalK AIS Target Prioritizer plugin processes SignalK AIS data and applies configurable collision risk criteria to each AIS target. It establishes a collision risk rating for each AIS target. This rating can be used to rank AIS targets and highlight those targets that represent the most present risk/danger. The plugin will also trigger warnings and alarms when AIS target vessels meet the collision risk criteria.
+The SignalK AIS Target Prioritizer plugin processes SignalK AIS data and applies configurable collision risk criteria to each AIS target. It establishes a collision risk rating for each AIS target. This rating can be used to rank AIS targets and highlight those targets that represent the most immediate risk/danger. The plugin will also trigger warnings and alarms when AIS target vessels meet the collision risk criteria.
 
-The plugin emits the following deltas on the AIS targets in the SignalK data model:
+The prioritized AIS target data can be viewed in The Vesper WatchMate iOS and Android mobile apps - thanks to Vesper XB-8000 AIS emulation performed by this plugin. See [Extras](#extras) below for more information.
+
+The plugin emits the following SignalK deltas on the AIS targets in the SignalK data model:
 
 | Data | Description | SignalK Path |
 | --- | --- | --- |
 | CPA | Closest point of approach | navigation.closestApproach<br/>Object value with property: **distance** (m)
 | TCPA | Time to closest point of approach | navigation.closestApproach<br/> Object value with property: **timeTo** (s)
-| Collision Risk Rating | A numerical rating of collision risk. A low number represents higher risk. | navigation.collisionRisk<br/>Object value with property: **rating**
-| Collision Alarm Type | "guard", "cpa" | navigation.collisionRisk<br/>Object value with property: **alarmType**
-| Collision Alarm State | "warn", "danger" | navigation.collisionRisk<br/>Object value with property: **alarmState**
+| Range | Current range to target | navigation.closestApproach<br/>Object value with property: **range** (m)
+| Bearing | Current bearing to target | navigation.closestApproach<br/>Object value with property: **bearing** (rad True)
+| Collision Risk Rating | A numerical rating of collision risk. A low number represents higher risk. | navigation.closestApproach<br/> Object value with property: **collisionRiskRating**
+| Collision Alarm Type | "guard", "cpa" | navigation.closestApproach<br>collisionRiskRating<br/>Object value with property: **collisionAlarmType**
+| Collision Alarm State | "warn", "danger" | navigation.closestApproach<br/>Object value with property: **collisionAlarmState**
 
 ## Configuration
 
@@ -37,7 +41,7 @@ You can manage this configuration either on the SignalK plugin configuration pag
 
 ## Extras
 
-This plugin also emulates the Vesper XB-8000 AIS - for the purpose of using the very nice Vesper WatchMate mobile apps for iOS and Android to get a nice visual representation of the AIS targets and their associated collision risk. Install the Watchmate app on your mobile device, point it at the IP of your SignalK server, and the app will merrily connect as if it were a Vesper AIS. The Watchmate app will display the live AIS data from your SignalK server with the target prioritization. The sample screenshot below is from my development using the SignalK team's sample NMEA/AIS data.
+This plugin emulates the Vesper XB-8000 AIS - for the purpose of using the very nice Vesper WatchMate mobile apps for iOS and Android to get a nice visual representation of the AIS targets and their associated collision risk. Install the Watchmate app on your mobile device, point it at the IP of your SignalK server, and the app will merrily connect as if it were a Vesper AIS. The Watchmate app will display the live AIS data from your SignalK server with the target prioritization. The sample screenshot below is from my development using the SignalK team's sample NMEA/AIS data.
 
 Note that not everything works in these apps when used this way. This is a work in progress. Stuff that works at this point:
 
