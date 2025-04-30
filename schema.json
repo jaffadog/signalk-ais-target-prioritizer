@@ -1,5 +1,17 @@
 {
 	"properties": {
+		"enableEmulator": {
+			"type": "boolean",
+			"title": "Enable Vesper XB-8000 Emulation",
+			"description": "Leave disabled unless using the Vesper WatchMate mobile app (the webapp does not need this)",
+			"default": false
+		},
+		"enableDataPublishing": {
+			"type": "boolean",
+			"title": "Publish AIS Target CPA, TCPA, Range, Bearing, Priority, and Alarm Status to SignalK",
+			"description": "Leave disabled unless you need this data in SignalK (the webapp does not need this)",
+			"default": false
+		},
 		"current": {
 			"type": "string",
 			"title": "Active Profile",
@@ -23,7 +35,6 @@
 					"required": [
 						"cpa",
 						"tcpa",
-						"range",
 						"speed"
 					],
 					"properties": {
@@ -44,14 +55,6 @@
 							"maximum": 3600,
 							"default": 3600
 						},
-						"range": {
-							"title": "Range Within",
-							"description": "Minimum target range in NM (default 10)",
-							"type": "number",
-							"minimum": 0,
-							"maximum": 10,
-							"default": 10
-						},
 						"speed": {
 							"title": "Speed Exceeds",
 							"description": "Minimum target speed in kt (default 0)",
@@ -69,7 +72,6 @@
 					"required": [
 						"cpa",
 						"tcpa",
-						"range",
 						"speed"
 					],
 					"properties": {
@@ -88,14 +90,6 @@
 							"minimum": 0,
 							"maximum": 3660,
 							"default": 3600
-						},
-						"range": {
-							"title": "Range Within",
-							"description": "Minimum target range in NM (default 10)",
-							"type": "number",
-							"minimum": 0,
-							"maximum": 10,
-							"default": 10
 						},
 						"speed": {
 							"title": "Speed Exceeds",
@@ -146,7 +140,6 @@
 					"required": [
 						"cpa",
 						"tcpa",
-						"range",
 						"speed"
 					],
 					"properties": {
@@ -167,14 +160,6 @@
 							"maximum": 3660,
 							"default": 600
 						},
-						"range": {
-							"title": "Range Within",
-							"description": "Minimum target range in NM (default 10)",
-							"type": "number",
-							"minimum": 0,
-							"maximum": 10,
-							"default": 10
-						},
 						"speed": {
 							"title": "Speed Exceeds",
 							"description": "Minimum target speed in kt (default 0.5)",
@@ -192,7 +177,6 @@
 					"required": [
 						"cpa",
 						"tcpa",
-						"range",
 						"speed"
 					],
 					"properties": {
@@ -211,14 +195,6 @@
 							"minimum": 0,
 							"maximum": 3600,
 							"default": 300
-						},
-						"range": {
-							"title": "Range Within",
-							"description": "Minimum target range in NM (default 10)",
-							"type": "number",
-							"minimum": 0,
-							"maximum": 10,
-							"default": 10
 						},
 						"speed": {
 							"title": "Speed Exceeds",
@@ -269,7 +245,6 @@
 					"required": [
 						"cpa",
 						"tcpa",
-						"range",
 						"speed"
 					],
 					"properties": {
@@ -290,14 +265,6 @@
 							"maximum": 3600,
 							"default": 1800
 						},
-						"range": {
-							"title": "Range Within",
-							"description": "Minimum target range in NM (default 10)",
-							"type": "number",
-							"minimum": 0,
-							"maximum": 10,
-							"default": 10
-						},
 						"speed": {
 							"title": "Speed Exceeds",
 							"description": "Minimum target speed in kt (default 0)",
@@ -315,7 +282,6 @@
 					"required": [
 						"cpa",
 						"tcpa",
-						"range",
 						"speed"
 					],
 					"properties": {
@@ -334,14 +300,6 @@
 							"minimum": 0,
 							"maximum": 3600,
 							"default": 450
-						},
-						"range": {
-							"title": "Range Within",
-							"description": "Minimum target range in NM (default 10)",
-							"type": "number",
-							"minimum": 0,
-							"maximum": 10,
-							"default": 10
 						},
 						"speed": {
 							"title": "Speed Exceeds",
@@ -392,7 +350,6 @@
 					"required": [
 						"cpa",
 						"tcpa",
-						"range",
 						"speed"
 					],
 					"properties": {
@@ -413,14 +370,6 @@
 							"maximum": 3600,
 							"default": 1800
 						},
-						"range": {
-							"title": "Range Within",
-							"description": "Minimum target range in NM (default 10)",
-							"type": "number",
-							"minimum": 0,
-							"maximum": 10,
-							"default": 10
-						},
 						"speed": {
 							"title": "Speed Exceeds",
 							"description": "Minimum target speed in kt (default 0)",
@@ -438,7 +387,6 @@
 					"required": [
 						"cpa",
 						"tcpa",
-						"range",
 						"speed"
 					],
 					"properties": {
@@ -457,14 +405,6 @@
 							"minimum": 0,
 							"maximum": 3600,
 							"default": 900
-						},
-						"range": {
-							"title": "Range Within",
-							"description": "Minimum target range in NM (default 10)",
-							"type": "number",
-							"minimum": 0,
-							"maximum": 10,
-							"default": 10
 						},
 						"speed": {
 							"title": "Speed Exceeds",
