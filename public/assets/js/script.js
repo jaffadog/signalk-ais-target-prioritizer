@@ -1,12 +1,7 @@
 
 // FIXME: need to look at better default data - remove impossible values like 450. remove range parameters that are not used.
-
-// FIXME: need to look at adding "restore defaults" option on config screen
-
 // FIXME: need map rotation option to toggle between north-up and cog-up
-
 // FIXME need to investigate node OOM issues - leak?
-
 // FIXME show popup alerts for alarms
 // FIXME allow alarms to be acked - store it as a flag on the target data model
 // FIXME report warnings/alarms to signalk
@@ -14,30 +9,19 @@
 // FIXME prevent screen from sleeping on ios
 
 const DEFAULT_MAP_ZOOM = 14; // 14 gives us 2+ NM
-
 const METERS_PER_NM = 1852;
 const KNOTS_PER_M_PER_S = 1.94384;
-
 const COURSE_PROJECTION_MINUTES = 10;
-
-// lost target warning in seconds - 10 minutes
-const LOST_TARGET_WARNING_AGE = 10 * 60;
+const LOST_TARGET_WARNING_AGE = 10 * 60; // lost target warning in seconds - 10 minutes
 const AGE_OUT_OLD_TARGETS = true;
-// max age in seconds - 30 minutes
-const TARGET_MAX_AGE = 30 * 60;
-
+const TARGET_MAX_AGE = 30 * 60; // max age in seconds - 30 minutes
 const PLUGIN_ID = 'signalk-ais-target-prioritizer';
+const PLUGIN_ID_WITH_LENGTH_LESS_THAN_30 = 'signalkAisTargetPrioritizer'; // we have to do this becasue signalK server insists on appid.length<30
 
 import { defaultConfiguration } from './default-configuration.js'
-console.log(defaultConfiguration);
+//import NoSleep from 'nosleep.js';
 
-// const schema = import('./default-configuration.js')
-// console.log(schema);
-
-
-// console.log('defaultConfiguration', defaultConfiguration);
-// saveConfiguration(defaultConfiguration);
-
+var noSleep = new NoSleep();
 var configuration;
 var selfMmsi;
 var selfPosition;
@@ -54,8 +38,6 @@ var selectedVesselMmsi;
 var blueBoxIcon;
 var blueCircle1;
 var blueCircle2;
-var blueProjectedCourseLine1;
-var blueProjectedCourseLine2;
 var tooltipList;
 var validTargetCount;
 var filteredTargetCount;
@@ -64,25 +46,39 @@ var alarmTargetCount;
 var blueLayerGroup = L.layerGroup();
 //blueLayerGroup.className = 'blueStuff';
 
-// FIXME if we get 401, redirect to ??? http://localhost:3000/admin/#/e/_signalk_vesselpositions
-// or check http://localhost:3000/skServer/loginStatus
-//              status: "notLoggedIn"
-// /admin/#/login
-
-// does not require a session: ??????
-// ws://localhost:3000/signalk/v1/stream?serverevents=all&subscribe=none&sendMeta=all
-
+const bsModalError = new bootstrap.Modal('#modalError');
+const bsModalClosebyBoats = new bootstrap.Modal('#modalClosebyBoats');
+const bsModalSelectedVesselProperties = new bootstrap.Modal('#modalSelectedVesselProperties');
+const bsOffcanvasSettings = new bootstrap.Offcanvas('#offcanvasSettings');
+const bsOffcanvasEditProfiles = new bootstrap.Offcanvas('#offcanvasEditProfiles');
+const bsOffcanvasTargetList = new bootstrap.Offcanvas('#offcanvasTargetList');
 
 // load configuration
 // /plugins/${plugin.id}/load-configuration
-response = await fetch(`/plugins/${PLUGIN_ID}/load-configuration`, { credentials: 'include' });
+// /signalk/v1/applicationData/global/${PLUGIN_ID_WITH_LENGTH_LESS_THAN_30}/1.0
+// response = await fetch(`/plugins/${PLUGIN_ID}/load-configuration`, {
+response = await fetch(`/signalk/v1/applicationData/global/${PLUGIN_ID_WITH_LENGTH_LESS_THAN_30}/1.0`, {
+    credentials: 'include'
+});
 if (response.status == 401) {
     location.href = "/admin/#/login";
 }
 configuration = await response.json();
-console.log(configuration);
-// configuration = defaultConfiguration;
+if (!configuration.current) {
+    console.log('using default configuration');
+    configuration = defaultConfiguration;
+    saveConfiguration();
+}
+
 document.getElementById("activeProfile").value = configuration.current;
+document.getElementById("checkNoSleep").checked = (localStorage.getItem("checkNoSleep") == "true");
+configureNoSleep();
+
+response = await fetch('/signalk/v1/api/resources/charts', { credentials: 'include' });
+if (response.status == 401) {
+    location.href = "/admin/#/login";
+}
+var charts = await response.json();
 
 response = await fetch('/signalk/v1/api/vessels/self', { credentials: 'include' });
 if (response.status == 401) {
@@ -93,11 +89,156 @@ selfMmsi = data.mmsi;
 console.log('data', data, selfMmsi);
 
 const map = L.map('map', {
-    //center: [0, 0],
     zoom: DEFAULT_MAP_ZOOM,
     minZoom: 9,
     maxZoom: 18,
 });
+
+var biCursorFill = `
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cursor-fill" viewBox="0 0 16 16">
+  <path d="M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z"/>
+</svg>`;
+
+L.easyButton(biCursorFill, function (btn, map) {
+    if (selfPosition) {
+        map.panTo([selfPosition.latitude, selfPosition.longitude]);
+        offsetLatitude = 0;
+        offsetLongitude = 0;
+    }
+}).addTo(map);
+
+let PAINT_RULES = [
+    {
+        dataLayer: "earth",
+        symbolizer: new protomapsL.PolygonSymbolizer({ fill: "lightgray" })
+    },
+    {
+        dataLayer: "water",
+        symbolizer: new protomapsL.LineSymbolizer({
+            color: "cadetblue",
+            opacity: 0.3
+        })
+    },
+    {
+        dataLayer: "roads",
+        symbolizer: new protomapsL.LineSymbolizer({
+            color: "gray",
+            opacity: 0.4
+        })
+    },
+    {
+        dataLayer: "places",
+        symbolizer: new protomapsL.PolygonSymbolizer({
+            fill: "orange"
+        })
+    },
+
+];
+
+// FIXME add basic labels - land masses, islands, countries, towns
+let LABEL_RULES = []; // ignore for now LabelSymbolizers 
+
+// Grab hold of the light theme configuration
+//let light_theme = protomapsL.light;
+// Create the actual paint and label rules. These decide how to render the map.
+//let my_paint_rules = protomapsL.paintRules(light_theme, "");
+//let my_label_rules = protomapsL.labelRules(light_theme, "");
+
+// http://localhost:3000/signalk/v1/api/resources/charts
+// http://localhost:3000/pmtiles/FP.pmtiles
+// var layer = protomapsL.leafletLayer({url:'FILE.pmtiles OR ENDPOINT/{z}/{x}/{y}.mvt',flavor:"light",lang:"en"})
+
+// url: 'https://demo-bucket.protomaps.com/v4.pmtiles',
+// url: 'http://localhost:8080/FP/{z}/{x}/{y}.mvt',
+
+// FIXME look at protomaps basemap project - which is apparently now a dependency for flavor/styles
+
+// var layer = protomapsL.leafletLayer({
+//     url: 'http://localhost:8080/FP/{z}/{x}/{y}.mvt',
+//     paintRules: PAINT_RULES,
+//     labelRules: LABEL_RULES,
+//     flavor: "light",
+//     lang: "en"
+// });
+// layer.addTo(map)
+
+var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+});
+
+var openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
+});
+
+var baseMaps = {
+    "Empty": L.tileLayer(''),
+    "OpenStreetMap": osm,
+    "OpenTopoMap": openTopoMap
+};
+
+for (let key in charts) {
+    var chart = charts[key];
+    var layer;
+    if (chart.format == "mvt") {
+        layer = protomapsL.leafletLayer({
+            url: chart.tilemapUrl,
+            paintRules: PAINT_RULES,
+            labelRules: LABEL_RULES,
+            //  flavor: "dark",
+            //  lang: "en"
+        });
+    } else {
+        layer = L.tileLayer(chart.tilemapUrl, {
+            maxZoom: chart.maxzoom,
+            attribution: ''
+        });
+    }
+    baseMaps[chart.name] = layer;
+}
+
+var OpenSeaMap = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: ''
+});
+
+var overlayMaps = {
+    "OpenSeaMap": OpenSeaMap
+};
+
+var layerControl = L.control.layers(baseMaps, overlayMaps, { position: 'topleft' }).addTo(map);
+
+var biListOl = `
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5"/>
+  <path d="M1.713 11.865v-.474H2c.217 0 .363-.137.363-.317 0-.185-.158-.31-.361-.31-.223 0-.367.152-.373.31h-.59c.016-.467.373-.787.986-.787.588-.002.954.291.957.703a.595.595 0 0 1-.492.594v.033a.615.615 0 0 1 .569.631c.003.533-.502.8-1.051.8-.656 0-1-.37-1.008-.794h.582c.008.178.186.306.422.309.254 0 .424-.145.422-.35-.002-.195-.155-.348-.414-.348h-.3zm-.004-4.699h-.604v-.035c0-.408.295-.844.958-.844.583 0 .96.326.96.756 0 .389-.257.617-.476.848l-.537.572v.03h1.054V9H1.143v-.395l.957-.99c.138-.142.293-.304.293-.508 0-.18-.147-.32-.342-.32a.33.33 0 0 0-.342.338zM2.564 5h-.635V2.924h-.031l-.598.42v-.567l.629-.443h.635z"/>
+</svg>`;
+
+L.easyButton(biListOl, function (btn, map) {
+    bsOffcanvasTargetList.show();
+}).addTo(map);
+
+var biGearFill = `
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear-fill" viewBox="0 0 16 16">
+  <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+</svg>`;
+
+// '<span data-bs-toggle="offcanvas" href="#offcanvasSettings">Settings</span>'
+L.easyButton(biGearFill, function (btn, map) {
+    bsOffcanvasSettings.show();
+}).addTo(map);
+
+// reload last used baselayer/overlay
+var baselayer = localStorage.getItem("baselayer");
+var overlay = localStorage.getItem("overlay");
+if (!baseMaps[baselayer]) {
+    baselayer = "Empty";
+}
+baseMaps[baselayer].addTo(map);
+if (overlay && overlayMaps[overlay]) {
+    overlayMaps[overlay].addTo(map);
+}
 
 blueBoxIcon = L.marker([], {
     icon: getBlueBoxIcon(),
@@ -126,75 +267,24 @@ blueCircle2 = L.circleMarker([], {
 blueLayerGroup.addLayer(blueBoxIcon);
 blueLayerGroup.addLayer(blueCircle1);
 blueLayerGroup.addLayer(blueCircle2);
-// blueLayerGroup.addLayer(blueProjectedCourseLine1);
-// blueLayerGroup.addLayer(blueProjectedCourseLine2);
 
-var biBullseye = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bullseye" viewBox="0 0 16 16">
-  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
-  <path d="M8 13A5 5 0 1 1 8 3a5 5 0 0 1 0 10m0 1A6 6 0 1 0 8 2a6 6 0 0 0 0 12"/>
-  <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8"/>
-  <path d="M9.5 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
-</svg>`;
-
-var biCrosshair = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cursor-fill" viewBox="0 0 16 16">
-  <path d="M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z"/>
-</svg>`;
-
-// ====================================
-
-var biCursorFill = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cursor-fill" viewBox="0 0 16 16">
-  <path d="M14.082 2.182a.5.5 0 0 1 .103.557L8.528 15.467a.5.5 0 0 1-.917-.007L5.57 10.694.803 8.652a.5.5 0 0 1-.006-.916l12.728-5.657a.5.5 0 0 1 .556.103z"/>
-</svg>`;
-
-L.easyButton(biCursorFill, function (btn, map) {
-    if (selfPosition) {
-        map.panTo([selfPosition.latitude, selfPosition.longitude]);
-        offsetLatitude = 0;
-        offsetLongitude = 0;
-    }
-}).addTo(map);
-
-var biListOl = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5"/>
-  <path d="M1.713 11.865v-.474H2c.217 0 .363-.137.363-.317 0-.185-.158-.31-.361-.31-.223 0-.367.152-.373.31h-.59c.016-.467.373-.787.986-.787.588-.002.954.291.957.703a.595.595 0 0 1-.492.594v.033a.615.615 0 0 1 .569.631c.003.533-.502.8-1.051.8-.656 0-1-.37-1.008-.794h.582c.008.178.186.306.422.309.254 0 .424-.145.422-.35-.002-.195-.155-.348-.414-.348h-.3zm-.004-4.699h-.604v-.035c0-.408.295-.844.958-.844.583 0 .96.326.96.756 0 .389-.257.617-.476.848l-.537.572v.03h1.054V9H1.143v-.395l.957-.99c.138-.142.293-.304.293-.508 0-.18-.147-.32-.342-.32a.33.33 0 0 0-.342.338zM2.564 5h-.635V2.924h-.031l-.598.42v-.567l.629-.443h.635z"/>
-</svg>`;
-
-const bsModalError = new bootstrap.Modal('#modalError');
-const bsModalClosebyBoats = new bootstrap.Modal('#modalClosebyBoats');
-const bsModalSelectedVesselProperties = new bootstrap.Modal('#modalSelectedVesselProperties');
-const bsOffcanvasSettings = new bootstrap.Offcanvas('#offcanvasSettings');
-const bsOffcanvasEditProfiles = new bootstrap.Offcanvas('#offcanvasEditProfiles');
-const bsOffcanvasTargetList = new bootstrap.Offcanvas('#offcanvasTargetList');
-
-L.easyButton(biListOl, function (btn, map) {
-    bsOffcanvasTargetList.show();
-}).addTo(map);
-
-// problem is padding-inline-start/end 12px applied to the button
-
-var biGearFill = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear-fill" viewBox="0 0 16 16">
-  <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
-</svg>`;
-
-// '<span data-bs-toggle="offcanvas" href="#offcanvasSettings">Settings</span>'
-L.easyButton(biGearFill, function (btn, map) {
-    bsOffcanvasSettings.show();
-}).addTo(map);
+// setup vessel label collision avoidance
+var hideLabel = function (label) { label.labelObject.style.opacity = 0; };
+var showLabel = function (label) { label.labelObject.style.opacity = 1; };
+var labelToCollisionController = new labelgun.default(hideLabel, showLabel);
 
 // *********************************************************************************************************
 // ** REGISTER EVENT LISTENERS
 
-document.getElementById("tableOfTargetsBody").addEventListener("click", processTableRowClick);
+map.on('baselayerchange', handleBaseLayerChange);
+map.on('overlayadd', handleOverlayAdd);
+map.on('overlayremove', handleOverlayRemove);
 
-document.getElementById("listOfClosebyBoats").addEventListener("click", processListOfClosebyBoatsClick);
+document.getElementById("tableOfTargetsBody").addEventListener("click", handleTableOfTargetsBodyClick);
+
+document.getElementById("listOfClosebyBoats").addEventListener("click", handleListOfClosebyBoatsClick);
 
 document.getElementById("activeProfile").addEventListener("input", (ev) => {
-    //console.log(ev, ev.target.value);
     configuration.current = ev.target.value;
     saveConfiguration();
 });
@@ -204,10 +294,19 @@ document.getElementById("editProfilesButton").addEventListener("click", () => {
     bsOffcanvasEditProfiles.show();
 });
 
+document.getElementById("checkNoSleep").addEventListener("change", (event) => {
+    configureNoSleep();
+});
+
+
 document.getElementById("profileToEdit").addEventListener("input", (ev) => {
-    //console.log(ev, ev.target.value);
-    //alert('click fired ' + ev.target.value);
     setupProfileEditView(ev.target.value);
+});
+
+document.getElementById("buttonRestoreDefaults").addEventListener("click", () => {
+    configuration = defaultConfiguration;
+    setupProfileEditView(profileToEdit.value);
+    saveConfiguration();
 });
 
 // save config when offcanvasEditProfiles is closed 
@@ -259,13 +358,37 @@ map.on("zoomend", function (e) {
     labelToCollisionController.update();
 });
 
-map.on('click', mapClicked);
+map.on('click', handleMapClick);
 
 // ** END REGISTER EVENT LISTENERS
 // *********************************************************************************************************
 
+function configureNoSleep() {
+    if (checkNoSleep.checked) {
+        noSleep.enable();
+    } else {
+        noSleep.disable();
+    }
+    localStorage.setItem("checkNoSleep", checkNoSleep.checked);
+}
+
+function handleBaseLayerChange(event) {
+    localStorage.setItem("baselayer", event.name);
+}
+
+function handleOverlayAdd(event) {
+    localStorage.setItem("overlay", event.name);
+}
+
+function handleOverlayRemove(event) {
+    localStorage.removeItem("overlay");
+}
+
 // initialize profile edit screen on startup
 setupProfileEditView('anchor');
+
+updateAllVessels();
+var updateInterval = setInterval(updateAllVessels, 1000);
 
 function setupProfileEditView(profile) {
     configWarningCpaRange.value = distanceToTick(configuration[profile].warning.cpa);
@@ -296,13 +419,26 @@ function setupProfileEditView(profile) {
 async function saveConfiguration() {
     console.log('*** save configuration to server', configuration);
 
-    // FIXME need to move this to a separate fonfiguration json - not the default 
+    // FIXME need to move this to a separate configuration json - not the default 
     // plugin configuration - so that we dont have this long list of settings in
     // server > plugin config
 
-    response = await fetch(`/plugins/${PLUGIN_ID}/save-configuration`, {
+    // response = await fetch(`/plugins/${PLUGIN_ID}/save-configuration`, {
+
+    // /signalk/v1/applicationData/global/${PLUGIN_ID}/1.0/
+
+    // this works. but hyphens in the appid does not :-(. humm its because of the length < 30 thing
+
+    // "signalk-ais-target-prioritizer" is 30 chars long
+
+    // function validateAppId(appid) {
+    //     return appid.length < 30 && appid.indexOf('/') === -1 ? appid : null
+    //   }
+
+    // response = await fetch(`/plugins/${PLUGIN_ID}/save-configuration`, {
+    response = await fetch(`/signalk/v1/applicationData/global/${PLUGIN_ID_WITH_LENGTH_LESS_THAN_30}/1.0`, {
         credentials: 'include',
-        method: 'PUT',
+        method: 'POST',
         body: JSON.stringify(configuration),
         headers: {
             "Content-Type": "application/json",
@@ -324,16 +460,11 @@ function showError(message) {
     bsModalError.show();
 }
 
-function processTableRowClick(ev) {
-    // console.log('ev', ev);
-
+function handleTableOfTargetsBodyClick(ev) {
     bsOffcanvasTargetList.hide();
-
     var mmsi = ev.target.parentNode.dataset.mmsi;
     var boatMarker = boatMarkers.get(mmsi);
-
     selectBoatMarker(boatMarker);
-
     map.fitBounds([
         boatMarker.getLatLng(),
         boatMarkers.get(selfMmsi).getLatLng()
@@ -349,7 +480,6 @@ function tickToDistance(tick) {
 }
 
 function processDistanceRangeControl(ev) {
-    //console.log(ev,ev.target.value);
     var tick = ev.target.value;
     var dataset = ev.target.dataset;
     var valueStorageElement = document.getElementById(dataset.target);
@@ -392,7 +522,6 @@ function tickToTime(tick) {
 }
 
 function processTcpaRangeControl(ev) {
-    //console.log('input', ev);
     var tick = ev.target.value;
     var dataset = ev.target.dataset;
     var valueStorageElement = document.getElementById(dataset.target);
@@ -444,90 +573,6 @@ function processSpeedRangeControl(ev) {
     valueStorageElement.textContent = speed;
     configuration[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = speed;
 }
-
-// setup vessel label collision avoidance
-var hideLabel = function (label) { label.labelObject.style.opacity = 0; };
-var showLabel = function (label) { label.labelObject.style.opacity = 1; };
-var labelToCollisionController = new labelgun.default(hideLabel, showLabel);
-
-// FIXME need to deal with online/offline status. look into signalk chart service and offline tiles.
-// const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-//     maxZoom: 19,
-//     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-// }).addTo(map);
-
-// const tiles = L.tileLayer('http://localhost:3000/signalk/v1/api/resources/charts/world-coastline/{z}/{x}/{y}', {
-//     maxZoom: 9,
-//     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-// }).addTo(map);
-
-let PAINT_RULES = [
-    {
-        dataLayer: "earth",
-        symbolizer: new protomapsL.PolygonSymbolizer({ fill: "lightgray" })
-    },
-    {
-        dataLayer: "water",
-        symbolizer: new protomapsL.LineSymbolizer({
-            color: "cadetblue",
-            opacity: 0.3
-        })
-    },
-    {
-        dataLayer: "roads",
-        symbolizer: new protomapsL.LineSymbolizer({
-            color: "gray",
-            opacity: 0.4
-        })
-    },
-    {
-        dataLayer: "places",
-        symbolizer: new protomapsL.PolygonSymbolizer({
-            fill: "orange"
-        })
-    },
-
-];
-
-let LABEL_RULES = []; // ignore for now LabelSymbolizers 
-
-// Grab hold of the light theme configuration
-//let light_theme = protomapsL.light;
-// Create the actual paint and label rules. These decide how to render the map.
-//let my_paint_rules = protomapsL.paintRules(light_theme, "");
-//let my_label_rules = protomapsL.labelRules(light_theme, "");
-
-// http://localhost:3000/signalk/v1/api/resources/charts
-// http://localhost:3000/pmtiles/FP.pmtiles
-// var layer = protomapsL.leafletLayer({url:'FILE.pmtiles OR ENDPOINT/{z}/{x}/{y}.mvt',flavor:"light",lang:"en"})
-
-var layer = protomapsL.leafletLayer({
-    url: '/pmtiles/FP.pmtiles',
-    paintRules: PAINT_RULES,
-    labelRules: LABEL_RULES,
-    //  flavor: "dark",
-    //  lang: "en"
-});
-layer.addTo(map)
-
-// url: 'https://demo-bucket.protomaps.com/v4.pmtiles',
-// url: 'http://localhost:8080/FP/{z}/{x}/{y}.mvt',
-
-// FIXME look at protomaps basemap project - which is apparently now a dependency for flavor/styles
-
-// var layer = protomapsL.leafletLayer({
-//     url: 'http://localhost:8080/FP/{z}/{x}/{y}.mvt',
-//     paintRules: PAINT_RULES,
-//     labelRules: LABEL_RULES,
-//     flavor: "light",
-//     lang: "en"
-// });
-// layer.addTo(map)
-
-//const marker = 
-// L.marker([position.latitude, position.longitude], {
-//     icon: getBoatIcon(self.navigation.courseOverGroundTrue.value),
-// }).addTo(map);
 
 function drawRangeRings() {
     if (!selfPosition) {
@@ -606,18 +651,10 @@ function drawRangeRings() {
     rangeRings.addTo(map)
 }
 
-updateAllVessels();
-
-var updateInterval = setInterval(updateAllVessels, 1000);
-
 async function updateAllVessels() {
     var startTime = new Date();
 
     // FIXME switch to the streaming api? does it send atons?
-
-    // FIXME if we get 401, redirect to ??? http://localhost:3000/admin/#/e/_signalk_vesselpositions
-    // or check http://localhost:3000/skServer/loginStatus
-    // /admin/#/login
 
     response = await fetch('/signalk/v1/api/vessels', { credentials: 'include' });
     if (response.status == 401) {
@@ -810,12 +847,13 @@ function updateSelectedVesselProperties(target) {
     // show/hide alert:
     var selectedVesselAlert = document.getElementById("selectedVesselAlert");
 
+    // FIXME change from "danger" to "alarm"?
     if (target.alarmState == 'danger') {
         selectedVesselAlert.classList.remove("alert-warning");
         selectedVesselAlert.classList.add("alert-danger");
         selectedVesselAlert.textContent = (target.alarmType + " alarm").toUpperCase();
         selectedVesselAlert.classList.remove("d-none");
-    } else if (target.alarmState == 'threat') {
+    } else if (target.alarmState == 'warning') {
         selectedVesselAlert.classList.remove("alert-danger");
         selectedVesselAlert.classList.add("alert-warning");
         selectedVesselAlert.textContent = (target.alarmType + " warning").toUpperCase();
@@ -894,16 +932,16 @@ function updateTableOfTargets() {
     for (var target of targetsArray) {
         if (target.mmsi != selfMmsi && target.isValid) {
             tableBody += `
-                <tr class="${target.alarmState == 'danger' ? 'table-danger' : target.alarmState == 'threat' ? 'table-warning' : ''}" data-mmsi="${target.mmsi}">
+                <tr class="${target.alarmState == 'danger' ? 'table-danger' : target.alarmState == 'warning' ? 'table-warning' : ''}" data-mmsi="${target.mmsi}">
                 <th scope="row">${target.name}</th>
                 <td>${target.bearingFormatted}</td>
                 <td>${target.rangeFormatted}</td>
                 <td>${target.sogFormatted}</td>
                 <td>${target.cpa ? target.cpaFormatted : ''}</td>
                 <td>${target.cpa ? target.tcpaFormatted : ''}</td>
-                <td>${target.order}</td>
                 </tr>`;
             rowCount++;
+            // <td>${target.order}</td>
         }
     }
 
@@ -966,7 +1004,7 @@ function updateSingleVesselUI(target) {
     } else if (target.alarmState == 'danger') {
         vesselIconColor = 'red';
         vesselIconIsLarge = true;
-    } else if (target.alarmState == 'threat') {
+    } else if (target.alarmState == 'warning') {
         vesselIconColor = 'orange';
         vesselIconIsLarge = true;
     } else {
@@ -1011,18 +1049,19 @@ function updateSingleVesselUI(target) {
         if (target.tcpa > 0 && target.tcpa < 3600) {
             tooltipText += target.tcpaFormatted;
         }
+        // ensure the tooltip is always 2 rows - to prevent onscreen jumpiness
+        tooltipText += "&nbsp";
         boatMarker.setTooltipContent(tooltipText);
         addLabelToCollisionController(boatMarker, target.mmsi, target.order);
     }
 
     // if this is our vessel and another vessel has been selected
     // draw a solid blue line to cpa point from our vessel
-    if (target.mmsi == selfMmsi && selectedVesselMmsi) {
+    if (target.mmsi == selfMmsi && selectedVesselMmsi & targets.has(selectedVesselMmsi)) {
         //console.log(selectedVesselMmsi, targets.get(selectedVesselMmsi));
         var projectedCpaLocation = projectedLocation([
             target.latitude, target.longitude],
             target.cog || 0,
-            // FIXME Cannot read properties of undefined (reading 'tcpa')
             (target.sog || 0) * (targets.get(selectedVesselMmsi).tcpa || 0));
 
         boatProjectedCourseLine.setLatLngs([
@@ -1143,6 +1182,7 @@ function ageOutOldTargets() {
                 blueBoxIcon.removeFrom(map);
                 blueCircle1.removeFrom(map);
                 blueCircle2.removeFrom(map);
+                bsModalSelectedVesselProperties.hide();
                 selectedVesselMmsi = null;
             }
 
@@ -1154,10 +1194,7 @@ function ageOutOldTargets() {
                 boatProjectedCourseLines.get(mmsi).remove();
                 boatProjectedCourseLines.delete(mmsi);
             }
-            //FIXME labelToCollisionController.has();
             labelToCollisionController.removeLabel(mmsi, null);
-
-            // FIXME close any modal/popup associated with the aging target
         }
     });
 }
@@ -1190,7 +1227,7 @@ function boatClicked(event) {
             }
             if (target.alarmState == "danger") {
                 a.classList.add("list-group-item-danger");
-            } else if (target.alarmState == "threat") {
+            } else if (target.alarmState == "warning") {
                 a.classList.add("list-group-item-warning");
             }
             a.appendChild(document.createTextNode(target.name));
@@ -1249,7 +1286,7 @@ function findClosebyBoats(latLng) {
     return closebyBoatMarkers;
 }
 
-function processListOfClosebyBoatsClick(event) {
+function handleListOfClosebyBoatsClick(event) {
     //console.log(event);
     var boatMarker = boatMarkers.get(event.target.dataset.mmsi);
     selectBoatMarker(boatMarker);
@@ -1295,10 +1332,7 @@ function selectBoatMarker(boatMarker) {
     // FIXME blueLayerGroup.addTo(map);
 }
 
-function mapClicked(event) {
-    //console.log('mapClicked', event);
-    //var closebyBoatMarkers = findClosebyBoats(event.latlng);
-
+function handleMapClick(event) {
     blueBoxIcon.removeFrom(map);
     blueCircle1.removeFrom(map);
     blueCircle2.removeFrom(map);
@@ -1821,22 +1855,23 @@ function evaluateAlarms(target) {
             || target.mobAlarm
             || target.epirbAlarm) {
             target.alarmState = 'danger';
-            target.filteredState = 'show';
-            target.order = 8190;
+            target.order = 10000;
         }
-        // threat
+        // FIXME stitch from "threat" to "warning" here, and translate to "threat" in the emulator
+        // warning
         else if (target.collisionWarning) {
-            // "warning" does not produce orange icons or alarms in the app, but
-            // "threat" does :)
-            target.alarmState = 'threat';
-            target.filteredState = 'show';
-            target.order = 16382;
+            target.alarmState = 'warning';
+            target.order = 20000;
         }
-        // none
+        // no alarm/warning - but has positive tcpa (closing)
+        else if (target.tcpa != null && target.tcpa > 0) {
+            target.alarmState = null;
+            target.order = 30000;
+        }
+        // no alarm/warning and moving away)
         else {
             target.alarmState = null;
-            target.filteredState = 'hide';
-            target.order = 36862;
+            target.order = 40000;
         }
 
         var alarms = [];
@@ -1878,8 +1913,8 @@ function evaluateAlarms(target) {
             target.order += Math.round(100 * target.range / METERS_PER_NM);
         }
 
-        // FIXME would be interesting to calculate rate of closure. if the target is 
-        // quickly moving away, then low priority
+        // FIXME might be interesting to calculate rate of closure
+        // high positive rate of close decreases order 
 
         // sort targets with no range to bottom
         if (target.range === undefined) {
@@ -1934,7 +1969,7 @@ function getRhumbLineBearing(lat1, lon1, lat2, lon2) {
     return (toDegrees(Math.atan2(diffLon, diffPhi)) + 360) % 360;
 };
 
-// latitudeText: 'N 39° 57.0689',
+// N 39° 57.0689
 function formatLat(dec) {
     var decAbs = Math.abs(dec);
     var deg = ('0' + Math.floor(decAbs)).slice(-2);
@@ -1942,7 +1977,7 @@ function formatLat(dec) {
     return (dec > 0 ? "N" : "S") + " " + deg + "° " + min;
 }
 
-// longitudeText: 'W 075° 08.3692',
+// W 075° 08.3692
 function formatLon(dec) {
     var decAbs = Math.abs(dec);
     var deg = ('00' + Math.floor(decAbs)).slice(-3);
@@ -1950,13 +1985,14 @@ function formatLon(dec) {
     return (dec > 0 ? "E" : "W") + " " + deg + "° " + min;
 }
 
+// 1.53 NM
 function formatCpa(cpa) {
     // if cpa is null it should be returned as blank. toFixed makes it '0.00'
     return cpa != null ? (cpa / METERS_PER_NM).toFixed(2) + ' NM' : '---';
 }
 
+// hh:mm:ss or mm:ss e.g. 01:15:23 or 51:37
 function formatTcpa(tcpa) {
-    // returns hh:mm:ss, e.g. 01:15:23
     if (tcpa == null || tcpa < 0) {
         return '---';
     }
@@ -1969,4 +2005,3 @@ function formatTcpa(tcpa) {
         return new Date(1000 * Math.abs(tcpa)).toISOString().substring(14, 19) // + ' mins'
     }
 }
-

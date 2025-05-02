@@ -642,7 +642,7 @@ module.exports = function (app) {
             else if (target.collisionWarning) {
                 // "warning" does not produce orange icons or alarms in the app, but
                 // "threat" does :)
-                target.dangerState = 'threat';
+                target.dangerState = 'warning';
                 target.filteredState = 'show';
                 target.order = 16382;
             }

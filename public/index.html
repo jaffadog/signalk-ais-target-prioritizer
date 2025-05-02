@@ -5,7 +5,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>SignalK AIS Target Prioritizer</title>
-    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/leaflet.css" />
+    <link rel="stylesheet" href="assets/css/easy-button.css" />
     <style>
         body {
             padding: 0;
@@ -31,14 +33,13 @@
             opacity: 0;
         }
 
-        /*
         .bi {
             width: 1em;
             height: 1em;
             vertical-align: -.125em;
             fill: currentcolor;
         }
-*/
+
         .bi::before,
         [class^="bi-"]::before,
         [class*=" bi-"]::before {
@@ -54,23 +55,37 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        .svg-button {
-            /* padding: 0px; */
-            width: 1em;
-            height: 1em;
-        }
-
         button.easy-button-button {
             padding-inline: 0;
             padding-block: 0;
+            font-size: 16px;
         }
 
-        #offcanvasTargetList {
-            width: 75%;
+        .leaflet-touch .leaflet-control-layers-toggle {
+            background-image: url(assets/icons/layers-fill.svg);
+            background-size: 16px;
+            width: 30px;
+            height: 30px;
         }
 
         #offcanvasEditProfiles {
-            width: 75%;
+            width: 100%;
+        }
+
+        @media screen and (min-width: 768px) {
+            #offcanvasEditProfiles {
+                width: 575px;
+            }
+        }
+
+        #offcanvasTargetList {
+            width: 100%;
+        }
+
+        @media screen and (min-width: 992px) {
+            #offcanvasTargetList {
+                width: 768px;
+            }
         }
 
         #tableOfTargetsBody {
@@ -93,8 +108,6 @@
             z-index: 500;
         }
     </style>
-    <link rel="stylesheet" href="assets/css/leaflet.css" />
-    <link rel="stylesheet" href="assets/css/easy-button.css" />
 </head>
 
 <body>
@@ -133,6 +146,21 @@
                         </div>
                         <hr>
                         <p class="mb-0" id="errorText"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" tabindex="-1" id="modalMapLayers">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                    <div class="list-group" id="listOfMapLayers">
+                        <a href="#" class="list-group-item list-group-item-action active">OpenStreetMap</a>
+                        <a href="#" class="list-group-item list-group-item-action">FP.tiles</a>
+                        <li class="list-group-item">
+                            <input class="form-check-input me-1" type="checkbox" value="" id="thirdCheckbox">
+                            <label class="form-check-label" for="thirdCheckbox">OpenSeaMap</label>
+                        </li>
                     </div>
                 </div>
             </div>
@@ -276,7 +304,7 @@
                             <th scope="col" class="text-end">SOG</th>
                             <th scope="col" class="text-end">CPA</th>
                             <th scope="col" class="text-end">TCPA</th>
-                            <th scope="col" class="text-end">ORDER</th>
+                            <!-- <th scope="col" class="text-end">ORDER</th> -->
                         </tr>
                     </thead>
                     <tbody id="tableOfTargetsBody" />
@@ -302,9 +330,15 @@
                                     <option value="offshore">Offshore</option>
                                 </select>
                             </div>
-                            <button type="button" class="btn btn-primary" id="editProfilesButton">
+                            <button type="button" class="btn btn-primary mb-3" id="editProfilesButton">
                                 Edit Profiles
                             </button>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="checkNoSleep">
+                                <label class="form-check-label" for="checkNoSleep">
+                                    Prevent screen sleeping in iOS and Android
+                                </label>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -328,7 +362,7 @@
                     </select>
                 </div>
 
-                <div class="card">
+                <div class="card mb-3">
                     <ul class="list-group list-group-flush">
 
                         <!--collision warning-->
@@ -507,6 +541,9 @@
                     </ul>
                 </div>
                 <!--end card-->
+                <button type="button" class="btn btn-warning" id="buttonRestoreDefaults">
+                    Restore Defaults
+                </button>
             </div>
             <!--end offcanvas-body-->
         </div>
@@ -521,6 +558,7 @@
     <script src="assets/js/easy-button.js"></script>
     <script src="assets/js/mmsi-mid-decoder.js"></script>
     <script src="assets/js/protomaps-leaflet.js"></script>
+    <script src="assets/js/NoSleep.min.js"></script>
     <script src="assets/js/script.js" type="module"></script>
 </body>
 
