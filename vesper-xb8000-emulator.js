@@ -1022,6 +1022,7 @@ function saveCollisionProfiles() {
 function muteAlarms() {
     for (let target of targets.values()) {
         if (target.dangerState === 'danger') {
+            // FIXME nothing is consuming alarmMuted
             target.alarmMuted = true;
         }
     }
@@ -1151,5 +1152,15 @@ exports.stop = function () {
 exports.update = function (_gps, _targets) {
     gps = _gps;
     targets = _targets;
+
+    if (target.dangerState == "warning") {
+        target.dangerState = "threat";
+    }
+
+    // target.dangerState: danger, threat
+    // target.alarmType: cpa, guard, etc
+    // target.filteredState: show, hide
+    // target.alarmMuted: true, false
+
     updateAnchorWatch();
 }
