@@ -1,9 +1,10 @@
-
 const express = require('express');
 const expressApp = express();
 
 var net = require('net');
 var _ = require('lodash');
+const fs = require('fs');
+const path = require('path');
 
 var SSE = require('./sse.js')
 var sse = new SSE();
@@ -36,13 +37,13 @@ var selfMmsi, selfName, selfCallsign, selfType;
 var httpServer;
 var tcpProxyServer;
 
-var heartBeatInterval;
-var vesselPositionUnderwayInterval;
-var anchorWatchControlInterval;
+var streamingHeartBeatInterval;
+var streamingVesselPositionUnderwayInterval;
+var streamingAnchorWatchControlInterval;
+var streamingAnchorWatchInterval;
+var streamingVesselPositionHistoryInterval;
+var savePositionInterval;
 var anchorWatchInterval;
-var vesselPositionHistoryInterval;
-var savePositionInterval2;
-
 
 var anchorWatchControl = {
     setAnchor: 0,
@@ -63,10 +64,12 @@ var anchorWatchControl = {
     }
 };
 
+var saveCollisionProfiles;
+
 // save position every 2 seconds when underway. this changes to every 30 seconds when anchored.
-const savePositionIntervalWhenUnderway = 2000;
-const savePositionIntervalWhenAnchored = 30000;
-var savePositionInterval = savePositionIntervalWhenUnderway;
+const savePositionDelayWhenUnderway = 2000;
+const savePositionDelayWhenAnchored = 30000;
+var savePositionDelay = savePositionDelayWhenUnderway;
 // 86,400 seconds per 24 hour day. 86400/2 = 43200. 86400/30 = 2880.
 
 // the mobile app is picky about the model number and version numbers
@@ -364,8 +367,6 @@ function getAnchorWatchModelXml() {
 }
 
 function getPreferencesXml() {
-    app.debug('collisionProfiles',collisionProfiles);
-
     return `<?xml version='1.0' encoding='ISO-8859-1' ?>
 <Watchmate version='1.0' priority='0'>
 <Prefs>
@@ -384,9 +385,9 @@ function getAlarmsXml() {
 <Watchmate version='1.0' priority='1'>`;
 
     for (var target of targets.values()) {
-        if (target.dangerState) {
+        if (target.alarmState) {
             response +=
-                `<Alarm MMSI='${target.mmsi}' state='${target.dangerState || ''}' type='${target.alarmType || ''}'>
+                `<Alarm MMSI='${target.mmsi}' state='${translateAlarmState(target.alarmState) || ''}' type='${target.alarmType || ''}'>
 <Name>${xmlescape(target.name) || ''}</Name>
 <COG>${formatCog(target.cog)}</COG>
 <SOG>${formatSog(target.sog)}</SOG>
@@ -439,7 +440,7 @@ function getTargetsXml() {
 <Range>${formatCpa(target.range)}</Range>
 <COG2>${formatCog(target.cog)}</COG2>
 <SOG>${formatSog(target.sog)}</SOG>
-<DangerState>${target.dangerState || ''}</DangerState>
+<DangerState>${translateAlarmState(target.alarmState) || ''}</DangerState>
 <AlarmType>${target.alarmType || ''}</AlarmType>
 <FilteredState>${target.filteredState || ''}</FilteredState>
 </Target>
@@ -447,9 +448,7 @@ function getTargetsXml() {
         } else {
             //app.debug('getTargetsXml: not sending invalid target', target);
         }
-
     }
-
     response += '</Watchmate>';
     return response;
 }
@@ -500,7 +499,7 @@ function getTargetDetailsXml(mmsi) {
 <Range>${formatCpa(target.range)}</Range>
 <COG2>${formatCog(target.cog)}</COG2>
 <SOG>${formatSog(target.sog)}</SOG>
-<DangerState>${target.dangerState || ''}</DangerState>
+<DangerState>${translateAlarmState(target.alarmState) || ''}</DangerState>
 <AlarmType>${target.alarmType || ''}</AlarmType>
 <FilteredState>${target.filteredState || ''}</FilteredState>
 </Target >`;
@@ -530,12 +529,12 @@ function setupSse() {
     if (enableSse) {
 
         // send heartbeat
-        heartBeatInterval = setInterval(() => {
+        streamingHeartBeatInterval = setInterval(() => {
             sendSseMsg("HeartBeat", { "time": new Date().getTime() });
         }, 15000);
 
         // send VesselPositionUnderway - 15s?
-        vesselPositionUnderwayInterval = setInterval(() => {
+        streamingVesselPositionUnderwayInterval = setInterval(() => {
             // 75:VesselPositionUnderway{"a":407106833,"o":-740460408,"cog":0,"sog":0.0,"var":-13,"t":1576639404}
             // 80:VesselPositionUnderway{"a":380704720,"o":-785886085,"cog":220.28,"sog":0,"var":-9.77,"t":1576873731}
             // sse.send("75:VesselPositionUnderway{\"a\":407106833,\"o\":-740460408,\"cog\":0,\"sog\":0.0,\"var\":-13,\"t\":1576639404}\n\n");
@@ -553,12 +552,12 @@ function setupSse() {
         }, 500);
 
         // send AnchorWatchControl
-        anchorWatchControlInterval = setInterval(() => {
+        streamingAnchorWatchControlInterval = setInterval(() => {
             sendSseMsg("AnchorWatchControl", anchorWatchControl);
         }, 1000);
 
         // send AnchorWatch
-        anchorWatchInterval = setInterval(() => {
+        streamingAnchorWatchInterval = setInterval(() => {
             var anchorWatchJson = {
                 "outOfBounds": (anchorWatchControl.alarmTriggered == 1),
                 // FIXME: should we send "positions" for "anchorPreviousPositions"?
@@ -569,7 +568,7 @@ function setupSse() {
         }, 1000);
 
         // send VesselPositionHistory (BIG message)
-        vesselPositionHistoryInterval = setInterval(() => {
+        streamingVesselPositionHistoryInterval = setInterval(() => {
             sendSseMsg("VesselPositionHistory", positions);
         }, 5000);
 
@@ -585,7 +584,7 @@ function setupSse() {
 }
 
 // save position - keep up to 2880 positions (24 hours at 30 sec cadence)
-savePositionInterval2 = setInterval(() => {
+savePositionInterval = setInterval(() => {
     if (gps.lat) {
         positions.unshift({
             a: Math.round(gps.lat * 1e7),
@@ -597,18 +596,17 @@ savePositionInterval2 = setInterval(() => {
             positions.length = 2880;
         }
     }
-}, savePositionInterval);
+}, savePositionDelay);
 
+anchorWatchInterval = setInterval(() => {
+    updateAnchorWatch();
+    // collisionProfiles.setFromEmulator = Math.floor(new Date().getTime() / 1000);
+    // app.debug('emulator: setFromIndex,setFromEmulator', collisionProfiles.setFromIndex, collisionProfiles.setFromEmulator, collisionProfiles.anchor.guard.range);
+    // app.debug("collisionProfiles.anchor.guard.range - vesper", collisionProfiles.anchor.guard.range);
+}, 1000);
 
 async function updateAnchorWatch() {
-
     try {
-        //app.debug('anchorWatchControl',anchorWatchControl,savePositionInterval);
-
-        // if anchored, then record position every 30 secs
-        // otherwise if underway, then record position every 2 secs
-        savePositionInterval = (anchorWatchControl.setAnchor) ? savePositionIntervalWhenAnchored : savePositionIntervalWhenUnderway;
-
         if (!anchorWatchControl.setAnchor) {
             return;
         }
@@ -858,9 +856,14 @@ function setupHttpServer() {
         //      'content-type': 'application/json'
         expressApp.put('/v3/watchMate/collisionProfiles', (req, res) => {
             app.debug('PUT /v3/watchMate/collisionProfiles', req.body);
-
+            //app.debug("before merge", collisionProfiles);
             mergePutData(req, collisionProfiles);
-
+            //app.debug("after merge", collisionProfiles);
+            // remove "threat" paths that watchmate adds:
+            delete collisionProfiles.anchor.threat;
+            delete collisionProfiles.harbor.threat;
+            delete collisionProfiles.coastal.threat;
+            delete collisionProfiles.offshore.threat;
             saveCollisionProfiles();
             res.json();
         });
@@ -979,7 +982,7 @@ function setAnchored() {
 
     //collisionProfiles.current = "anchor";
     //saveCollisionProfiles();
-    savePositionInterval = savePositionIntervalWhenAnchored;
+    savePositionDelay = savePositionDelayWhenAnchored;
 }
 
 function setUnderway() {
@@ -1006,22 +1009,12 @@ function setUnderway() {
 
     //collisionProfiles.current = "coastal";
     //saveCollisionProfiles();
-    savePositionInterval = savePositionIntervalWhenUnderway;
-}
-
-function saveCollisionProfiles() {
-    try {
-        app.savePluginOptions(collisionProfiles, () => { app.debug('collisionProfiles saved') });
-    }
-    catch (err) {
-        app.debug('There has been an error saving your configuration data.')
-        app.debug(err);
-    }
+    savePositionDelay = savePositionDelayWhenUnderway;
 }
 
 function muteAlarms() {
     for (let target of targets.values()) {
-        if (target.dangerState === 'danger') {
+        if (target.alarmState === 'danger') {
             // FIXME nothing is consuming alarmMuted
             target.alarmMuted = true;
         }
@@ -1032,6 +1025,10 @@ function muteAlarms() {
     if (anchorWatchControl.alarmsEnabled == 1 && anchorWatchControl.alarmTriggered == 1) {
         anchorWatchControl.alarmsEnabled = 0;
     }
+}
+
+function translateAlarmState(alarmState) {
+    return alarmState == "warning" ? "threat" : alarmState;
 }
 
 // latitudeText: 'N 39° 57.0689',
@@ -1108,26 +1105,37 @@ function xmlescape(string, ignore) {
     })
 }
 
-exports.start = function (_app, _collisionProfiles, _selfMmsi, _selfName, _selfCallsign, _selfType) {
+module.exports.collisionProfiles = collisionProfiles;
+
+module.exports.setCollisionProfiles = function (_collisionProfiles) {
+    collisionProfiles = _collisionProfiles;
+}
+
+module.exports.start = function (_app, _collisionProfiles, _selfMmsi, _selfName, _selfCallsign, _selfType, _gps, _targets, _saveCollisionProfiles) {
+    //console.log('vesper.start received:',_collisionProfiles, _selfMmsi, _selfName, _selfCallsign, _selfType, _gps, _targets, _saveCollisionProfiles)
     app = _app;
     collisionProfiles = _collisionProfiles;
     selfMmsi = _selfMmsi;
     selfName = _selfName;
     selfCallsign = _selfCallsign;
     selfType = _selfType;
-    app.debug('starting vesper emulator');
+    gps = _gps;
+    targets = _targets;
+    saveCollisionProfiles = _saveCollisionProfiles;
+    app.debug('starting vesper emulator', collisionProfiles);
     setupHttpServer();
     setupTcpProxyServer();
     setupSse();
 }
 
-exports.stop = function () {
-    if (heartBeatInterval) clearInterval(heartBeatInterval);
-    if (vesselPositionUnderwayInterval) clearInterval(vesselPositionUnderwayInterval);
-    if (anchorWatchControlInterval) clearInterval(anchorWatchControlInterval);
+module.exports.stop = function () {
+    if (streamingHeartBeatInterval) clearInterval(streamingHeartBeatInterval);
+    if (streamingVesselPositionUnderwayInterval) clearInterval(streamingVesselPositionUnderwayInterval);
+    if (streamingAnchorWatchControlInterval) clearInterval(streamingAnchorWatchControlInterval);
+    if (streamingAnchorWatchInterval) clearInterval(streamingAnchorWatchInterval);
+    if (streamingVesselPositionHistoryInterval) clearInterval(streamingVesselPositionHistoryInterval);
+    if (savePositionInterval) clearInterval(savePositionInterval);
     if (anchorWatchInterval) clearInterval(anchorWatchInterval);
-    if (vesselPositionHistoryInterval) clearInterval(vesselPositionHistoryInterval);
-    if (savePositionInterval2) clearInterval(savePositionInterval2);
 
     if (tcpProxyServer) {
         try {
@@ -1147,20 +1155,4 @@ exports.stop = function () {
         }
     }
 
-}
-
-exports.update = function (_gps, _targets) {
-    gps = _gps;
-    targets = _targets;
-
-    if (target.dangerState == "warning") {
-        target.dangerState = "threat";
-    }
-
-    // target.dangerState: danger, threat
-    // target.alarmType: cpa, guard, etc
-    // target.filteredState: show, hide
-    // target.alarmMuted: true, false
-
-    updateAnchorWatch();
 }

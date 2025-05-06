@@ -2,23 +2,20 @@
 	"type": "object",
 	"description": "Note: edit CPA warning and alarm settings in the webapp.",
 	"properties": {
-		"enableEmulator": {
-			"type": "boolean",
-			"title": "Enable Vesper XB-8000 Emulation",
-			"description": "Required by Vesper WatchMate mobile apps. Not required by the webapp.",
-			"default": false
-		},
 		"enableDataPublishing": {
 			"type": "boolean",
-			"title": "Publish AIS Target CPA, TCPA, Range, Bearing, Priority, and Alarm Status to SignalK",
-			"description": "Required by the Vesper Emulator. Not required by the webapp.",
+			"title": "Publish AIS Target CPA, TCPA, Range, Bearing, Priority, and Alarm Status to SignalK (navigation.closestApproach). This is not required if just using the webapp.",
 			"default": true
 		},
 		"enableAlarmPublishing": {
 			"type": "boolean",
-			"title": "Publish CPA and Guard alarms to SignalK",
-			"description": "",
+			"title": "Publish AIS Target CPA and Guard warning/alarm notifications to SignalK (notifications.navigation.closestApproach). This is not required if just using the webapp.",
 			"default": true
+		},
+		"enableEmulator": {
+			"type": "boolean",
+			"title": "Enable Vesper XB-8000 Emulation. Turn this on if you intend to use the Vesper WatchMate mobile apps.",
+			"default": false
 		}
 	}
 }

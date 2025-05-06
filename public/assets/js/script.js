@@ -2,11 +2,6 @@
 // FIXME: need to look at better default data - remove impossible values like 450. remove range parameters that are not used.
 // FIXME: need map rotation option to toggle between north-up and cog-up
 // FIXME need to investigate node OOM issues - leak?
-// FIXME show popup alerts for alarms
-// FIXME allow alarms to be acked - store it as a flag on the target data model
-// FIXME report warnings/alarms to signalk
-// FIXME allow user to select from avaialble charts or online sources
-// FIXME prevent screen from sleeping on ios
 
 const DEFAULT_MAP_ZOOM = 14; // 14 gives us 2+ NM
 const METERS_PER_NM = 1852;
@@ -15,14 +10,11 @@ const COURSE_PROJECTION_MINUTES = 10;
 const LOST_TARGET_WARNING_AGE = 10 * 60; // lost target warning in seconds - 10 minutes
 const AGE_OUT_OLD_TARGETS = true;
 const TARGET_MAX_AGE = 30 * 60; // max age in seconds - 30 minutes
+const SHOW_ALARMS_INTERVAL = 60 * 1000; // show alarms every 60 seconds
 const PLUGIN_ID = 'signalk-ais-target-prioritizer';
-const PLUGIN_ID_WITH_LENGTH_LESS_THAN_30 = 'signalkAisTargetPrioritizer'; // we have to do this becasue signalK server insists on appid.length<30
-
-import { defaultConfiguration } from './default-configuration.js'
-//import NoSleep from 'nosleep.js';
 
 var noSleep = new NoSleep();
-var configuration;
+var collisionProfiles;
 var selfMmsi;
 var selfPosition;
 var offsetLatitude = 0;
@@ -42,35 +34,52 @@ var tooltipList;
 var validTargetCount;
 var filteredTargetCount;
 var alarmTargetCount;
+var lastAlarmTime;
 
 var blueLayerGroup = L.layerGroup();
 //blueLayerGroup.className = 'blueStuff';
 
 const bsModalError = new bootstrap.Modal('#modalError');
+const bsModalAlarm = new bootstrap.Modal('#modalAlarm');
 const bsModalClosebyBoats = new bootstrap.Modal('#modalClosebyBoats');
 const bsModalSelectedVesselProperties = new bootstrap.Modal('#modalSelectedVesselProperties');
 const bsOffcanvasSettings = new bootstrap.Offcanvas('#offcanvasSettings');
 const bsOffcanvasEditProfiles = new bootstrap.Offcanvas('#offcanvasEditProfiles');
 const bsOffcanvasTargetList = new bootstrap.Offcanvas('#offcanvasTargetList');
 
-// load configuration
-// /plugins/${plugin.id}/load-configuration
-// /signalk/v1/applicationData/global/${PLUGIN_ID_WITH_LENGTH_LESS_THAN_30}/1.0
-// response = await fetch(`/plugins/${PLUGIN_ID}/load-configuration`, {
-response = await fetch(`/signalk/v1/applicationData/global/${PLUGIN_ID_WITH_LENGTH_LESS_THAN_30}/1.0`, {
+response = await fetch("./assets/js/defaultCollisionProfiles.json", {
     credentials: 'include'
 });
 if (response.status == 401) {
     location.href = "/admin/#/login";
 }
-configuration = await response.json();
-if (!configuration.current) {
-    console.log('using default configuration');
-    configuration = defaultConfiguration;
-    saveConfiguration();
+if (!response.ok) {
+    console.error(`Response status: ${response.status} from ${response.url}`);
+    throw new Error(`Response status: ${response.status} from ${response.url}`);
+}
+const defaultCollisionProfiles = await response.json();
+
+// load collisionProfiles
+// /plugins/${PLUGIN_ID}/getCollisionProfiles
+response = await fetch(`/plugins/${PLUGIN_ID}/getCollisionProfiles`, {
+    credentials: 'include'
+});
+if (response.status == 401) {
+    location.href = "/admin/#/login";
+}
+if (!response.ok) {
+    console.error(`Response status: ${response.status} from ${response.url}`);
+    throw new Error(`Response status: ${response.status} from ${response.url}`);
+}
+collisionProfiles = await response.json();
+console.log('collisionProfiles', collisionProfiles);
+if (!collisionProfiles.current) {
+    console.log('using default collisionProfiles');
+    collisionProfiles = structuredClone(defaultCollisionProfiles);
+    saveCollisionProfiles();
 }
 
-document.getElementById("activeProfile").value = configuration.current;
+document.getElementById("activeProfile").value = collisionProfiles.current;
 document.getElementById("checkNoSleep").checked = (localStorage.getItem("checkNoSleep") == "true");
 configureNoSleep();
 
@@ -78,15 +87,22 @@ response = await fetch('/signalk/v1/api/resources/charts', { credentials: 'inclu
 if (response.status == 401) {
     location.href = "/admin/#/login";
 }
+if (!response.ok) {
+    console.error(`Response status: ${response.status} from ${response.url}`);
+    throw new Error(`Response status: ${response.status} from ${response.url}`);
+}
 var charts = await response.json();
 
 response = await fetch('/signalk/v1/api/vessels/self', { credentials: 'include' });
 if (response.status == 401) {
     location.href = "/admin/#/login";
 }
+if (!response.ok) {
+    console.error(`Response status: ${response.status} from ${response.url}`);
+    throw new Error(`Response status: ${response.status} from ${response.url}`);
+}
 var data = await response.json();
 selfMmsi = data.mmsi;
-console.log('data', data, selfMmsi);
 
 const map = L.map('map', {
     zoom: DEFAULT_MAP_ZOOM,
@@ -111,6 +127,7 @@ let PAINT_RULES = [
     {
         dataLayer: "earth",
         symbolizer: new protomapsL.PolygonSymbolizer({ fill: "lightgray" })
+        // var(--bs-secondary-bg) lightgray
     },
     {
         dataLayer: "water",
@@ -209,6 +226,15 @@ var overlayMaps = {
 
 var layerControl = L.control.layers(baseMaps, overlayMaps, { position: 'topleft' }).addTo(map);
 
+var layerControlLayersToggleEl = document.getElementsByClassName("leaflet-control-layers-toggle")[0];
+
+var biLayersFill = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-layers-fill" viewBox="0 0 16 16">
+  <path d="M7.765 1.559a.5.5 0 0 1 .47 0l7.5 4a.5.5 0 0 1 0 .882l-7.5 4a.5.5 0 0 1-.47 0l-7.5-4a.5.5 0 0 1 0-.882z"/>
+  <path d="m2.125 8.567-1.86.992a.5.5 0 0 0 0 .882l7.5 4a.5.5 0 0 0 .47 0l7.5-4a.5.5 0 0 0 0-.882l-1.86-.992-5.17 2.756a1.5 1.5 0 0 1-1.41 0z"/>
+</svg>`;
+
+layerControlLayersToggleEl.innerHTML = biLayersFill;
+
 var biListOl = `
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi" viewBox="0 0 16 16">
   <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5"/>
@@ -233,7 +259,7 @@ L.easyButton(biGearFill, function (btn, map) {
 var baselayer = localStorage.getItem("baselayer");
 var overlay = localStorage.getItem("overlay");
 if (!baseMaps[baselayer]) {
-    baselayer = "Empty";
+    baselayer = "OpenStreetMap";
 }
 baseMaps[baselayer].addTo(map);
 if (overlay && overlayMaps[overlay]) {
@@ -285,8 +311,8 @@ document.getElementById("tableOfTargetsBody").addEventListener("click", handleTa
 document.getElementById("listOfClosebyBoats").addEventListener("click", handleListOfClosebyBoatsClick);
 
 document.getElementById("activeProfile").addEventListener("input", (ev) => {
-    configuration.current = ev.target.value;
-    saveConfiguration();
+    collisionProfiles.current = ev.target.value;
+    saveCollisionProfiles();
 });
 
 document.getElementById("editProfilesButton").addEventListener("click", () => {
@@ -298,20 +324,43 @@ document.getElementById("checkNoSleep").addEventListener("change", (event) => {
     configureNoSleep();
 });
 
+document.getElementById("checkDarkMode").addEventListener("change", applyColorMode);
+
+document.getElementById("checkFullScreen").addEventListener("change", (event) => {
+    if (checkFullScreen.checked) {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else if (!document.webkitFullscreenElement) {
+            document.documentElement.webkitRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+    }
+});
+
+document.addEventListener("fullscreenchange", fullscreenchangeHandler);
+
+//document.addEventListener("webkitfullscreenchange", fullscreenchangeHandler);
 
 document.getElementById("profileToEdit").addEventListener("input", (ev) => {
     setupProfileEditView(ev.target.value);
 });
 
 document.getElementById("buttonRestoreDefaults").addEventListener("click", () => {
-    configuration = defaultConfiguration;
+    collisionProfiles = structuredClone(defaultCollisionProfiles);
     setupProfileEditView(profileToEdit.value);
-    saveConfiguration();
+    saveCollisionProfiles();
 });
+
+document.getElementById("buttonMuteAllAlarms").addEventListener("click", muteAllAlarms);
 
 // save config when offcanvasEditProfiles is closed 
 offcanvasEditProfiles.addEventListener('hide.bs.offcanvas', () => {
-    saveConfiguration();
+    saveCollisionProfiles();
 })
 
 // show modalSelectedVesselProperties when modalClosebyBoats is closed 
@@ -363,6 +412,30 @@ map.on('click', handleMapClick);
 // ** END REGISTER EVENT LISTENERS
 // *********************************************************************************************************
 
+function fullscreenchangeHandler() {
+    if (document.fullscreenElement) {
+        checkFullScreen.checked = true;
+    } else {
+        checkFullScreen.checked = false;
+    }
+}
+
+function applyColorMode() {
+    if (checkDarkMode.checked) {
+        document.documentElement.setAttribute('data-bs-theme', "dark");
+        var elements = document.querySelectorAll('.leaflet-layer');
+        for (var i = 0; i < elements.length; i++) {
+            elements[i].style.filter = "invert(1) hue-rotate(180deg) brightness(0.8) contrast(1.2)";
+        }
+    } else {
+        document.documentElement.setAttribute('data-bs-theme', "light");
+        var elements = document.querySelectorAll('.leaflet-layer');
+        for (var i = 0; i < elements.length; i++) {
+            elements[i].style.filter = "none";
+        }
+    }
+}
+
 function configureNoSleep() {
     if (checkNoSleep.checked) {
         noSleep.enable();
@@ -374,10 +447,12 @@ function configureNoSleep() {
 
 function handleBaseLayerChange(event) {
     localStorage.setItem("baselayer", event.name);
+    applyColorMode();
 }
 
 function handleOverlayAdd(event) {
     localStorage.setItem("overlay", event.name);
+    applyColorMode();
 }
 
 function handleOverlayRemove(event) {
@@ -391,16 +466,16 @@ updateAllVessels();
 var updateInterval = setInterval(updateAllVessels, 1000);
 
 function setupProfileEditView(profile) {
-    configWarningCpaRange.value = distanceToTick(configuration[profile].warning.cpa);
-    configWarningTcpaRange.value = timeToTick(configuration[profile].warning.tcpa / 60);
-    configWarningSogRange.value = speedToTick(configuration[profile].warning.speed);
+    configWarningCpaRange.value = distanceToTick(collisionProfiles[profile].warning.cpa);
+    configWarningTcpaRange.value = timeToTick(collisionProfiles[profile].warning.tcpa / 60);
+    configWarningSogRange.value = speedToTick(collisionProfiles[profile].warning.speed);
 
-    configAlarmCpaRange.value = distanceToTick(configuration[profile].danger.cpa);
-    configAlarmTcpaRange.value = timeToTick(configuration[profile].danger.tcpa / 60);
-    configAlarmSogRange.value = speedToTick(configuration[profile].danger.speed);
+    configAlarmCpaRange.value = distanceToTick(collisionProfiles[profile].danger.cpa);
+    configAlarmTcpaRange.value = timeToTick(collisionProfiles[profile].danger.tcpa / 60);
+    configAlarmSogRange.value = speedToTick(collisionProfiles[profile].danger.speed);
 
-    configGuardRangeRange.value = distanceToTick(configuration[profile].guard.range);
-    configGuardSogRange.value = speedToTick(configuration[profile].guard.speed);
+    configGuardRangeRange.value = distanceToTick(collisionProfiles[profile].guard.range);
+    configGuardSogRange.value = speedToTick(collisionProfiles[profile].guard.speed);
 
     var inputEvent = new Event('input');
 
@@ -416,30 +491,14 @@ function setupProfileEditView(profile) {
     configGuardSogRange.dispatchEvent(inputEvent);
 }
 
-async function saveConfiguration() {
-    console.log('*** save configuration to server', configuration);
+async function saveCollisionProfiles() {
+    console.log('*** save collisionProfiles to server', collisionProfiles);
 
-    // FIXME need to move this to a separate configuration json - not the default 
-    // plugin configuration - so that we dont have this long list of settings in
-    // server > plugin config
-
-    // response = await fetch(`/plugins/${PLUGIN_ID}/save-configuration`, {
-
-    // /signalk/v1/applicationData/global/${PLUGIN_ID}/1.0/
-
-    // this works. but hyphens in the appid does not :-(. humm its because of the length < 30 thing
-
-    // "signalk-ais-target-prioritizer" is 30 chars long
-
-    // function validateAppId(appid) {
-    //     return appid.length < 30 && appid.indexOf('/') === -1 ? appid : null
-    //   }
-
-    // response = await fetch(`/plugins/${PLUGIN_ID}/save-configuration`, {
-    response = await fetch(`/signalk/v1/applicationData/global/${PLUGIN_ID_WITH_LENGTH_LESS_THAN_30}/1.0`, {
+    // /plugins/${PLUGIN_ID}/setCollisionProfiles
+    response = await fetch(`/plugins/${PLUGIN_ID}/setCollisionProfiles`, {
         credentials: 'include',
-        method: 'POST',
-        body: JSON.stringify(configuration),
+        method: 'PUT',
+        body: JSON.stringify(collisionProfiles),
         headers: {
             "Content-Type": "application/json",
         }
@@ -448,15 +507,13 @@ async function saveConfiguration() {
         location.href = "/admin/#/login";
     }
     if (!response.ok) {
-        showError('Encountered an error while saving configuration.');
-    } else {
-        console.log('successfully saved config', configuration);
+        throw new Error(`Error saving collisionProfiles. Response status: ${response.status} from ${response.url}`);
     }
+    console.log('successfully saved config', collisionProfiles);
 }
 
 function showError(message) {
-    var errorText = document.getElementById("errorText");
-    errorText.textContent = message;
+    document.getElementById("errorText").textContent = message;
     bsModalError.show();
 }
 
@@ -465,10 +522,14 @@ function handleTableOfTargetsBodyClick(ev) {
     var mmsi = ev.target.parentNode.dataset.mmsi;
     var boatMarker = boatMarkers.get(mmsi);
     selectBoatMarker(boatMarker);
+    // FIXME: maybe use blueLayerGroup here. looks like L.featureGroup would be what we need.
     map.fitBounds([
         boatMarker.getLatLng(),
         boatMarkers.get(selfMmsi).getLatLng()
     ]);
+    positionModalWindow(boatMarker.getLatLng(), "modalSelectedVesselProperties");
+    updateSelectedVesselProperties(targets.get(boatMarker.mmsi));
+    bsModalSelectedVesselProperties.show();
 }
 
 function distanceToTick(distance) {
@@ -498,7 +559,7 @@ function processDistanceRangeControl(ev) {
     }
 
     valueStorageElement.textContent = distance || 'OFF';
-    configuration[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = distance;
+    collisionProfiles[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = distance;
 }
 
 function timeToTick(time) {
@@ -533,7 +594,7 @@ function processTcpaRangeControl(ev) {
     // 9 - 12   correspond to   30 - 60
     var time = tickToTime(tick)
     valueStorageElement.textContent = time;
-    configuration[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = time * 60;
+    collisionProfiles[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = time * 60;
 }
 
 function speedToTick(speed) {
@@ -571,7 +632,7 @@ function processSpeedRangeControl(ev) {
     // 10       correspond to   10
     var speed = tickToSpeed(tick);
     valueStorageElement.textContent = speed;
-    configuration[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = speed;
+    collisionProfiles[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = speed;
 }
 
 function drawRangeRings() {
@@ -652,61 +713,125 @@ function drawRangeRings() {
 }
 
 async function updateAllVessels() {
-    var startTime = new Date();
+    try {
+        var startTime = new Date();
 
-    // FIXME switch to the streaming api? does it send atons?
+        // FIXME switch to the streaming api? does it send atons?
 
-    response = await fetch('/signalk/v1/api/vessels', { credentials: 'include' });
+        response = await fetch('/signalk/v1/api/vessels', { credentials: 'include' });
+        if (response.status == 401) {
+            location.href = "/admin/#/login";
+        }
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status} from ${response.url}`);
+        }
+        var vessels = await response.json();
+        //console.log(vessels);
+
+        // we expect 404s from this when there are no atons:
+        response = await fetch('/signalk/v1/api/atons', { credentials: 'include' });
+        if (response.status == 401) {
+            location.href = "/admin/#/login";
+        }
+        // we expect 404 errors querying atons - as there may not be any - and this is how signalk responds
+        if (response.ok) {
+            var atons = await response.json();
+            vessels = Object.assign(vessels, atons);
+        }
+
+        validTargetCount = 0;
+        filteredTargetCount = 0;
+        alarmTargetCount = 0;
+
+        updateAllVesselDataModel(vessels);
+        updateAllVesselUI();
+
+        if (AGE_OUT_OLD_TARGETS) {
+            ageOutOldTargets();
+        }
+
+        if (alarmTargetCount > 0 && (lastAlarmTime == null || Date.now() > lastAlarmTime + SHOW_ALARMS_INTERVAL)) {
+            lastAlarmTime = Date.now();
+            showAlarms();
+        }
+
+        // display performance metrics
+        let layers = 0;
+        map.eachLayer(function () { layers++ });
+        var updateTimeInMillisecs = (new Date()).getTime() - startTime.getTime();
+        //console.log(updateTimeInMillisecs + ' msecs');
+        // FIXME this does not work in ios: performance.memory.usedJSHeapSize
+        // map.attributionControl.setPrefix(`${updateTimeInMillisecs} msecs / ${layers} layers / ${(performance.memory.usedJSHeapSize / Math.pow(1000, 2)).toFixed(1)} MB`);
+        map.attributionControl.setPrefix(`${updateTimeInMillisecs} msecs / ${layers} layers`);
+    } catch (error) {
+        console.error('Error in updateAllVessels:', error);
+        showError(`Encountered an error while updating vessel data: ${error}`);
+    }
+}
+
+function showAlarms() {
+    var targetsWithAlarms = [];
+    targets.forEach((target, mmsi) => {
+        //console.log(target.mmsi, target.name, target.alarmState, target.alarmMuted);
+        if (target.isValid && target.alarmState && !target.alarmMuted) {
+            targetsWithAlarms.push(target);
+        }
+    });
+
+    if (targetsWithAlarms.length > 0) {
+        document.getElementById("alarmDiv").innerHTML = " ";
+        targetsWithAlarms.forEach((target) => {
+            document.getElementById("alarmDiv").innerHTML += `<div class="alert alert-danger" role="alert">${target.name} - ${target.alarmType.toUpperCase()}</div>`;
+        });
+        bsModalAlarm.show();
+        new Audio('./assets/audio/horn.mp3').play();
+    }
+}
+
+async function muteAllAlarms() {
+    console.log('muting all alarms');
+    targets.forEach((target, mmsi) => {
+        if (target.alarmState) {
+            target.alarmMuted = true;
+        }
+    });
+
+    // mute alarms in the plugin as well
+    // /plugins/${PLUGIN_ID}/muteAllAlarms
+    response = await fetch(`/plugins/${PLUGIN_ID}/muteAllAlarms`, {
+        credentials: 'include'
+    });
     if (response.status == 401) {
         location.href = "/admin/#/login";
     }
-    var vessels = await response.json();
-    //console.log(vessels);
-
-    // we expect 404s from this when there are no atons:
-    response = await fetch('/signalk/v1/api/atons', { credentials: 'include' });
-    if (response.status == 401) {
-        location.href = "/admin/#/login";
+    if (!response.ok) {
+        console.error(`Response status: ${response.status} from ${response.url}`);
+        throw new Error(`Response status: ${response.status} from ${response.url}`);
     }
-    if (response.ok) {
-        var atons = await response.json();
-        vessels = Object.assign(vessels, atons);
-    }
-
-    targets.clear();
-    validTargetCount = 0;
-    filteredTargetCount = 0;
-    alarmTargetCount = 0;
-
-    updateAllVesselDataModel(vessels);
-    updateAllVesselUI();
-
-    if (AGE_OUT_OLD_TARGETS) {
-        ageOutOldTargets();
-    }
-
-    // display performance metrics
-    let layers = 0;
-    map.eachLayer(function () { layers++ });
-    var updateTimeInMillisecs = (new Date()).getTime() - startTime.getTime();
-    //console.log(updateTimeInMillisecs + ' msecs');
-    // FIXME this does not work in ios: performance.memory.usedJSHeapSize
-    map.attributionControl.setPrefix(`${updateTimeInMillisecs} msecs / ${layers} layers / ${(performance.memory.usedJSHeapSize / Math.pow(1000, 2)).toFixed(1)} MB`);
 }
 
 function updateAllVesselDataModel(vessels) {
     // update our vessel first - then other vessels
     // vesselId looks like: urn:mrn:imo:mmsi:123456789
     var selfVessel = vessels[`urn:mrn:imo:mmsi:${selfMmsi}`];
+    if (!selfVessel) {
+        console.warn('selfVessel is undefined - skipping updateAllVesselDataModel');
+        return;
+    }
 
     // FIXME - override gps to testing with signalk team sample data (netherlands)
     // selfVessel.navigation.position.value = {
-    //     latitude: 53.5,
-    //     longitude: 5.0
+    //     latitude: 53.44,
+    //     longitude: 4.86 //5.07
     // }
 
     // FIXME Cannot read properties of undefined (reading 'navigation')
     selfPosition = selfVessel.navigation?.position?.value;
+    if (!selfPosition) {
+        console.warn('selfPosition is undefined - skipping updateAllVesselDataModel');
+        return;
+    }
+
     updateSingleVesselDataModel(selfVessel);
 
     for (var vesselId in vessels) {
@@ -723,7 +848,10 @@ function updateAllVesselDataModel(vessels) {
 function updateSingleVesselDataModel(vessel) {
     //get vessel data into an easier to access data model
     // values in their original data types - no text formatting of numeric values here
-    var target = {};
+    var target = targets.get(vessel.mmsi);
+    if (!target) {
+        target = {};
+    }
 
     target.mmsi = vessel.mmsi;
     target.name = vessel.name || '<' + vessel.mmsi + '>';
@@ -782,7 +910,7 @@ function updateSingleVesselDataModel(vessel) {
     target.rangeFormatted = target.range != null ? (target.range / METERS_PER_NM).toFixed(2) + ' NM' : '---';
     target.bearingFormatted = target.bearing != null ? target.bearing + ' T' : '---';
     target.sogFormatted = target.sog != null ? (target.sog * KNOTS_PER_M_PER_S).toFixed(1) + ' kn' : '---';
-    target.cogFormatted = (Math.round(toDegrees(target.cog)) + ' T') || '---';
+    target.cogFormatted = target.cog != null ? (Math.round(toDegrees(target.cog)) + ' T') : '---';
     target.hdgFormatted = target.hdg != null ? (Math.round(toDegrees(target.hdg)) + ' T') : '---';
     target.rotFormatted = Math.round(toDegrees(target.rot)) || '---';
     target.aisClassFormatted = target.aisClass + (target.isVirtual ? ' (virtual)' : '');
@@ -926,6 +1054,7 @@ function updateTableOfTargets() {
     var tableBody = '';
 
     // FIXME add target icons to table: sail, pleasure, ship, tug, fishing, sart, aton
+    // https://www.flaticon.com/search?word=ship
 
     var rowCount = 0;
 
@@ -950,7 +1079,6 @@ function updateTableOfTargets() {
 }
 
 function updateSingleVesselUI(target) {
-
     // dont update (and dont add back in) old targets
     if (!target.isValid) {
         return;
@@ -973,7 +1101,7 @@ function updateSingleVesselUI(target) {
             permanent: true,
             direction: 'right',
             opacity: 0.7,
-            offset: [25, 20],
+            offset: [25, 10],
             className: 'map-labels',
             interactive: false,
             zIndexOffset: -999
@@ -1057,7 +1185,8 @@ function updateSingleVesselUI(target) {
 
     // if this is our vessel and another vessel has been selected
     // draw a solid blue line to cpa point from our vessel
-    if (target.mmsi == selfMmsi && selectedVesselMmsi & targets.has(selectedVesselMmsi)) {
+    // FIXME: the problem with this is that we process our vessel first. so the selected vessel wont be in targets yet: & targets.has(selectedVesselMmsi)
+    if (target.mmsi == selfMmsi && selectedVesselMmsi) {
         //console.log(selectedVesselMmsi, targets.get(selectedVesselMmsi));
         var projectedCpaLocation = projectedLocation([
             target.latitude, target.longitude],
@@ -1168,15 +1297,14 @@ function getMid(mmsi) {
 }
 
 function ageOutOldTargets() {
-    boatMarkers.forEach((boatMarker, mmsi) => {
+    targets.forEach((target, mmsi) => {
         // dont age ourselves out. should never happen, but...
         if (mmsi == selfMmsi) {
             return;
         }
 
-        var target = targets.get(mmsi);
-        if (!target || target.lastSeen > TARGET_MAX_AGE) {
-            console.log('aging out old target', mmsi, target?.name, target?.lastSeen / 60);
+        if (target.lastSeen > TARGET_MAX_AGE) {
+            console.log('aging out old target', mmsi, target.name, target.mmsi, target.lastSeen / 60);
 
             if (mmsi == selectedVesselMmsi) {
                 blueBoxIcon.removeFrom(map);
@@ -1187,14 +1315,16 @@ function ageOutOldTargets() {
             }
 
             if (boatMarkers.has(mmsi)) {
-                boatMarkers.get(mmsi).remove();
+                boatMarkers.get(mmsi).removeFrom(map);
                 boatMarkers.delete(mmsi);
             }
+
             if (boatProjectedCourseLines.has(mmsi)) {
-                boatProjectedCourseLines.get(mmsi).remove();
+                boatProjectedCourseLines.get(mmsi).removeFrom(map);
                 boatProjectedCourseLines.delete(mmsi);
             }
             labelToCollisionController.removeLabel(mmsi, null);
+            targets.delete(mmsi);
         }
     });
 }
@@ -1818,27 +1948,28 @@ function dist(u, v) {
     });
 }
 
+// FIXME duplicated in plugin
 function evaluateAlarms(target) {
     try {
         // guard alarm
         target.guardAlarm =
-            (target.range !== undefined && target.range < configuration[configuration.current].guard.range * METERS_PER_NM)
-            && (configuration[configuration.current].guard.speed == 0
-                || (target.sog !== undefined && target.sog > configuration[configuration.current].guard.speed / KNOTS_PER_M_PER_S));
+            (target.range != null && target.range < collisionProfiles[collisionProfiles.current].guard.range * METERS_PER_NM)
+            && (collisionProfiles[collisionProfiles.current].guard.speed == 0
+                || (target.sog != null && target.sog > collisionProfiles[collisionProfiles.current].guard.speed / KNOTS_PER_M_PER_S));
 
         // collision alarm
         target.collisionAlarm =
-            target.cpa !== undefined && target.cpa < configuration[configuration.current].danger.cpa * METERS_PER_NM
-            && target.tcpa !== undefined && target.tcpa > 0 && target.tcpa < configuration[configuration.current].danger.tcpa
-            && (configuration[configuration.current].danger.speed == 0
-                || (target.sog !== undefined && target.sog > configuration[configuration.current].danger.speed / KNOTS_PER_M_PER_S));
+            target.cpa != null && target.cpa < collisionProfiles[collisionProfiles.current].danger.cpa * METERS_PER_NM
+            && target.tcpa != null && target.tcpa > 0 && target.tcpa < collisionProfiles[collisionProfiles.current].danger.tcpa
+            && (collisionProfiles[collisionProfiles.current].danger.speed == 0
+                || (target.sog != null && target.sog > collisionProfiles[collisionProfiles.current].danger.speed / KNOTS_PER_M_PER_S));
 
         // collision warning
         target.collisionWarning =
-            target.cpa !== undefined && target.cpa < configuration[configuration.current].warning.cpa * METERS_PER_NM
-            && target.tcpa !== undefined && target.tcpa > 0 && target.tcpa < configuration[configuration.current].warning.tcpa
-            && (configuration[configuration.current].warning.speed == 0
-                || (target.sog !== undefined && target.sog > configuration[configuration.current].warning.speed / KNOTS_PER_M_PER_S));
+            target.cpa != null && target.cpa < collisionProfiles[collisionProfiles.current].warning.cpa * METERS_PER_NM
+            && target.tcpa != null && target.tcpa > 0 && target.tcpa < collisionProfiles[collisionProfiles.current].warning.tcpa
+            && (collisionProfiles[collisionProfiles.current].warning.speed == 0
+                || (target.sog != null && target.sog > collisionProfiles[collisionProfiles.current].warning.speed / KNOTS_PER_M_PER_S));
 
         target.sartAlarm = (target.mmsi.startsWith('970'));
         target.mobAlarm = (target.mmsi.startsWith('972'));
@@ -1857,7 +1988,6 @@ function evaluateAlarms(target) {
             target.alarmState = 'danger';
             target.order = 10000;
         }
-        // FIXME stitch from "threat" to "warning" here, and translate to "threat" in the emulator
         // warning
         else if (target.collisionWarning) {
             target.alarmState = 'warning';
@@ -1889,7 +2019,7 @@ function evaluateAlarms(target) {
         }
 
         // sort sooner tcpa targets to top
-        if (target.tcpa !== undefined && target.tcpa > 0) {
+        if (target.tcpa != null && target.tcpa > 0) {
             // sort vessels with any tcpa above vessels that dont have a tcpa
             target.order -= 1000;
             // tcpa of 0 seconds reduces order by 1000 (this is an arbitrary weighting)
@@ -1899,7 +2029,7 @@ function evaluateAlarms(target) {
         }
 
         // sort closer cpa targets to top
-        if (target.cpa !== undefined && target.cpa > 0) {
+        if (target.cpa != null && target.cpa > 0) {
             // cpa of 0 nm reduces order by 2000 (this is an arbitrary weighting)
             // cpa of 5 nm reduces order by 0
             var weight = 2000;
@@ -1907,7 +2037,7 @@ function evaluateAlarms(target) {
         }
 
         // sort closer targets to top
-        if (target.range !== undefined && target.range > 0) {
+        if (target.range != null && target.range > 0) {
             // range of 0 nm increases order by 0
             // range of 5 nm increases order by 500
             target.order += Math.round(100 * target.range / METERS_PER_NM);
@@ -1917,7 +2047,7 @@ function evaluateAlarms(target) {
         // high positive rate of close decreases order 
 
         // sort targets with no range to bottom
-        if (target.range === undefined) {
+        if (target.range == null) {
             target.order += 99999;
         }
     }
@@ -1941,7 +2071,6 @@ function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
 };
 
 function getRhumbLineBearing(lat1, lon1, lat2, lon2) {
-
     // difference of longitude coords
     var diffLon = toRadians(lon2 - lon1);
 
