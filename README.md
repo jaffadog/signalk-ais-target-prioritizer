@@ -39,6 +39,8 @@ Sample screenshot of webapp:
   - Notifications can be muted using the webapp or REST API (`GET /plugins/signalk-ais-target-prioritizer/muteAllAlarms`)
   - Emulates the Vesper XB-8000 AIS - for the purpose of using the very nice Vesper WatchMate mobile apps for iOS and Android (*this may be deprecated soon, as the webapp now provides this functionality*)
 
+**The Plugin must be running in order to use the webapp.**
+
 ## Vessel Deltas Published
 
 The plugin emits the following SignalK deltas on the AIS targets in the SignalK data model:

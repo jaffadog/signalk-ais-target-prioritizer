@@ -48,13 +48,9 @@ module.exports = function (app) {
             enablePluginCpaCalculations();
         }
         if (options.enableEmulator) {
-
             //app.debug("collisionProfiles in index.js", collisionProfiles);
             //vesper.collisionProfiles = collisionProfiles;
-
             //vesper.setCollisionProfiles(collisionProfiles);
-
-
             vesper.start(app, collisionProfiles, selfMmsi, selfName, selfCallsign, selfType, gps, targets, saveCollisionProfiles);
         }
     };
@@ -64,7 +60,7 @@ module.exports = function (app) {
         unsubscribes.forEach(f => f());
         unsubscribes = [];
         if (refreshDataModelInterval) { clearInterval(refreshDataModelInterval); }
-        if (options.enableEmulator) { vesper.stop(); }
+        if (options?.enableEmulator) { vesper.stop(); }
     };
 
     plugin.schema = schema;
