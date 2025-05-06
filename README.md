@@ -1,14 +1,45 @@
 [![npm version](https://img.shields.io/npm/v/signalk-ais-target-prioritizer.svg)](https://www.npmjs.com/package/signalk-ais-target-prioritizer)
 
-# SignalK AIS Target Prioritizer ...and Vesper XB-8000 AIS Emulator
+# SignalK AIS Target Prioritizer
 
 A [SignalK](https://signalk.org/) plugin that prioritizes AIS targets according to guard and CPA criteria.
 
 ## What Does It Do?
 
-The SignalK AIS Target Prioritizer plugin processes SignalK AIS data and applies configurable collision risk criteria to each AIS target. It establishes a collision risk rating for each AIS target. This rating can be used to rank AIS targets and highlight those targets that represent the most immediate risk/danger. The plugin will also trigger warnings and alarms when AIS target vessels meet the collision risk criteria.
+The SignalK AIS Target Prioritizer plugin processes SignalK AIS data and applies configurable collision risk criteria to each AIS target. It calculates CPA and time to CPA (TCPA) and establishes a collision risk rating for each AIS target. This rating can be used to rank AIS targets and highlight those targets that represent the most immediate risk/danger. The plugin will also trigger warnings and alarms when AIS target vessels meet the collision risk criteria.
 
-The prioritized AIS target data can be viewed in The Vesper WatchMate iOS and Android mobile apps - thanks to Vesper XB-8000 AIS emulation performed by this plugin. See [Extras](#extras) below for more information.
+Sample screenshot of webapp:
+
+![](/resources/webapp.png)
+
+## Features
+- **Webapp**
+  - Plots AIS targets 
+  - Different symbols for Class A, Class B, ATONS, BASE, and MOB/EPIRB/SART targets
+  - Show full AIS target details
+  - Configurable CPA and guard warnings and alarms with separate profiles for anchored, Harbor, coastal, and offshore
+  - Restore default CPA and guard warnings and alarms configuration
+  - Select current active profile (anchored, Harbor, coastal, or offshore)
+  - Calculates AIS target range, bearing, CPA, time to CPA (TCPA), collision risk rating, and warning/alarm status
+  - Visual and audible CPA and guard alarm announcements
+  - Visually highlights AIS targets that represent higher collision risk
+  - Visually indicates AIS crossing situation by projecting vessel positions to the moment of CPA. This makes it very easy to understand if the target will pass ahead or behind you.
+  - Lists AIS targets in order of collision risk
+  - Mute alarms - such that muted vessels will no longer raise further alarms
+  - Visually indicates lost AIS targets with red X
+  - Supports tiled (png) and vector (**PMTiles**) maps, including SignalK chart resource API providers such as [Signal K Charts](https://github.com/SignalK/charts-plugin) and [PMTiles Chart provider](https://github.com/panaaj/signalk-pmtiles-plugin). Note that offline charts can be setup using these features. I highly recommend creating your own PMTiles maps using [Protomaps](https://docs.protomaps.com/), as the resulting files are quite small. For example, a PMTiles extracted subset covering all of French polynesia wiht zoom 1-15 comes out at 22MB.
+  - Prevent screen sleep
+  - Dark mode for night time use
+  - Fullscreen mode
+
+- **Plugin**
+  - Calculates AIS target range, bearing, CPA, time to CPA (TCPA), collision risk rating, and warning/alarm status
+  - Publishes SignalK vessel deltas containing range, bearing, CPA, time to CPA (TCPA), collision risk rating, and warning/alarm status
+  - Publishes SignalK notification messages for AIS CPA and gurad warnings and alarms. These can be wired up to produce audible alarms and/or push notifications using various available notification plugins or the Node-RED plugin. This facilitates "headless" alarming.
+  - Notifications can be muted using the webapp or REST API (`GET /plugins/signalk-ais-target-prioritizer/muteAllAlarms`)
+  - Emulates the Vesper XB-8000 AIS - for the purpose of using the very nice Vesper WatchMate mobile apps for iOS and Android (*this may be deprecated soon, as the webapp now provides this functionality*)
+
+## Vessel Deltas Published
 
 The plugin emits the following SignalK deltas on the AIS targets in the SignalK data model:
 
@@ -32,14 +63,14 @@ The configuration consists of the **Collision Profile** criteria used to evaluat
 
 There are four sets of the above criteria for different navigation situations:
 
-* **Anchored** - where you might not want any alarms
-* **Harbor** - where the warning and alarm thresholds might be quite tight given heavy harbor traffic
+* **Anchored**
+* **Harbor**
 * **Coastal**
-* **Offshore** - where the thresholds might be set quite large to get long advance warning while navigating in an environment where you might not be expecting any traffic
+* **Offshore**
 
-You can manage this configuration either on the SignalK plugin configuration page, or in the Vesper WatchMate mobile apps described below.
+## Vesper XB-8000 AIS Emulation
 
-## Extras
+**Warning: this functionality may be deprecated soon as the webapp provides equivalent functionality**
 
 This plugin emulates the Vesper XB-8000 AIS - for the purpose of using the very nice Vesper WatchMate mobile apps for iOS and Android to get a nice visual representation of the AIS targets and their associated collision risk. Install the Watchmate app on your mobile device, point it at the IP of your SignalK server, and the app will merrily connect as if it were a Vesper AIS. The Watchmate app will display the live AIS data from your SignalK server with the target prioritization. The sample screenshot below is from my development using the SignalK team's sample NMEA/AIS data.
 
@@ -52,6 +83,8 @@ Note that not everything works in these apps when used this way. This is a work 
 * Anchor Watch works on the Android app, but not the iOS app
 
 Proprietary functionality intended for configuring the Vesper AIS obviously does not and never will.
+
+Sample screenshot of WatchMate on an iPad:
 
 ![](resources/watchmate-800.png)
 
@@ -66,5 +99,3 @@ Not implemented, but possible:
 * Activate a piezo buffer on the Raspberry Pi running SignalK when an alarm is triggered
 * Use a physical momentary switch on the Raspberry Pi to ack and hush alarms
 * Automatically switch from an underway profile (e.g. coastal) to the anchored profile when the vessel stops moving. Could also automatically turn on the anchor alarm as well. And vice-versa - turn off the anchor alarm and switch back to an underway profile when you get going again. 
-* Create a webapp for this plugin that provides the same functionality as the Vesper Watchmate mobile app.
-

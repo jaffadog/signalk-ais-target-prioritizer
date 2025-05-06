@@ -61,3 +61,17 @@ offline map:
         pmtiles extract https://build.protomaps.com/20250426.pmtiles FP.pmtiles --bbox=196.699219,-23.039298,232.558594,-5.790897 --dry-run
 
         https://pmtiles.io/
+
+
+C:\Users\jaffa\Downloads\go-pmtiles_1.27.2_Windows_x86_64
+
+C:\signalk\signalkhome\.signalk\charts\pmtiles
+
+        // e3 e6
+        // n54 n52
+
+        pmtiles extract https://build.protomaps.com/20250504.pmtiles NL.pmtiles --bbox=1,50,8,56 --dry-run
+        pmtiles extract https://build.protomaps.com/20250504.pmtiles NL.pmtiles --bbox=3,52,6,54
+
+        
+

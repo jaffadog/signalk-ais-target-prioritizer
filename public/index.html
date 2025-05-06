@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 
 <head>
     <meta charset="utf-8">
@@ -19,8 +19,35 @@
         #map {
             height: 100%;
             width: 100vw;
-            /* background: #fffbf6 */
-            background: white
+        }
+
+        #map {
+            color: var(--bs-body-color);
+            background-color: var(--bs-body-bg);
+        }
+
+        .leaflet-bar a,
+        .leaflet-bar button,
+        .leaflet-bar button:hover,
+        .leaflet-touch .leaflet-control-layers-toggle,
+        .leaflet-control-layers-expanded,
+        .leaflet-container .leaflet-control-attribution {
+            color: var(--bs-secondary-color);
+            background-color: var(--bs-secondary-bg);
+        }
+
+        .leaflet-bar a:hover,
+        .leaflet-bar a:focus {
+            background-color: var(--bs-tertiary-bg);
+        }
+
+        .leaflet-tooltip {
+            color: var(--bs-body-color);
+        }
+
+        .leaflet-layer {
+            background-color: var(--bs-body-bg);
+            /* filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); */
         }
 
         .leaflet-tooltip.map-labels {
@@ -62,10 +89,15 @@
         }
 
         .leaflet-touch .leaflet-control-layers-toggle {
-            background-image: url(assets/icons/layers-fill.svg);
-            background-size: 16px;
+            /* background-image: url(assets/icons/layers-fill.svg); */
+            background-image: unset;
+            /* fill: currentcolor; */
+            /* background-size: 16px; */
             width: 30px;
             height: 30px;
+            text-align: center;
+            font-size: 16px;
+            line-height: 30px;
         }
 
         #offcanvasEditProfiles {
@@ -133,7 +165,7 @@
         </svg>
 
         <div class="modal" tabindex="-1" id="modalError">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="alert alert-danger mb-0" role="alert">
                         <div class="alert-dismissible">
@@ -151,17 +183,26 @@
             </div>
         </div>
 
-        <div class="modal" tabindex="-1" id="modalMapLayers">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
-                <div class="modal-content">
-                    <div class="list-group" id="listOfMapLayers">
-                        <a href="#" class="list-group-item list-group-item-action active">OpenStreetMap</a>
-                        <a href="#" class="list-group-item list-group-item-action">FP.tiles</a>
-                        <li class="list-group-item">
-                            <input class="form-check-input me-1" type="checkbox" value="" id="thirdCheckbox">
-                            <label class="form-check-label" for="thirdCheckbox">OpenSeaMap</label>
-                        </li>
+        <div class="modal" tabindex="-1" id="modalAlarm">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-danger-subtle text-danger-emphasis border-danger-subtle">
+
+                    <div class="modal-header border-danger-subtle">
+                        <h5 class="modal-title"> <svg class="bi flex-shrink-0 me-2" role="img">
+                                <use xlink:href="#exclamation-triangle-fill" />
+                            </svg>
+                            Alarm</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
+
+                    <div class="modal-body" id="alarmDiv">
+                    </div>
+
+                    <div class="modal-footer border-danger-subtle">
+                        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" id="buttonMuteAllAlarms">Mute All Alarms</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -337,6 +378,18 @@
                                 <input class="form-check-input" type="checkbox" id="checkNoSleep">
                                 <label class="form-check-label" for="checkNoSleep">
                                     Prevent screen sleeping in iOS and Android
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="checkDarkMode">
+                                <label class="form-check-label" for="checkDarkMode">
+                                    Dark Mode
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="checkFullScreen">
+                                <label class="form-check-label" for="checkFullScreen">
+                                    Fullscreen Mode
                                 </label>
                             </div>
                         </form>
