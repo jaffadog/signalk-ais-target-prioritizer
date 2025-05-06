@@ -71,7 +71,12 @@ if (!response.ok) {
     console.error(`Response status: ${response.status} from ${response.url}`);
     throw new Error(`Response status: ${response.status} from ${response.url}`);
 }
-collisionProfiles = await response.json();
+var text = await response.text();
+if (!text) {
+    showError("The SignalK AIS Target Prioritizer plugin is not running. Please check the plugin status.");
+    throw new Error("Error: SignalK AIS Target Prioritizer plugin is not running.");
+}
+collisionProfiles = JSON.parse(text);
 console.log('collisionProfiles', collisionProfiles);
 if (!collisionProfiles.current) {
     console.log('using default collisionProfiles');
