@@ -1,3 +1,4 @@
+"use strict";
 
 // FIXME: need to look at better default data - remove impossible values like 450. remove range parameters that are not used.
 // FIXME: need map rotation option to toggle between north-up and cog-up
@@ -111,7 +112,7 @@ selfMmsi = data.mmsi;
 
 const map = L.map('map', {
     zoom: DEFAULT_MAP_ZOOM,
-    minZoom: 9,
+    minZoom: 1, //9,
     maxZoom: 18,
 });
 
@@ -131,7 +132,9 @@ L.easyButton(biCursorFill, function (btn, map) {
 let PAINT_RULES = [
     {
         dataLayer: "earth",
-        symbolizer: new protomapsL.PolygonSymbolizer({ fill: "lightgray" })
+        symbolizer: new protomapsL.PolygonSymbolizer({
+            fill: "lightgray",
+        }),
         // var(--bs-secondary-bg) lightgray
     },
     {
@@ -139,20 +142,20 @@ let PAINT_RULES = [
         symbolizer: new protomapsL.LineSymbolizer({
             color: "cadetblue",
             opacity: 0.3
-        })
+        }),
     },
     {
         dataLayer: "roads",
         symbolizer: new protomapsL.LineSymbolizer({
             color: "gray",
             opacity: 0.4
-        })
+        }),
     },
     {
         dataLayer: "places",
         symbolizer: new protomapsL.PolygonSymbolizer({
             fill: "orange"
-        })
+        }),
     },
 
 ];
@@ -200,17 +203,38 @@ var baseMaps = {
     "OpenTopoMap": openTopoMap
 };
 
+// console.log(basemaps);
+// console.log(basemaps.namedFlavor("light"));
+// let light_theme = protomapsL.light;
+// console.log(light_theme);
+// console.log(protomapsL.paintRules(basemaps.namedFlavor("light")));
+// console.log(protomapsL.labelRules(basemaps.namedFlavor("light")));
+//console.log(protomapsL.paintRules(light_theme));
+//console.log(protomapsL.paintRules(light_theme, ""));
+//protomapsL.paintRules(light_theme, "light");
+// protomapsL.paintRules();
+
 for (let key in charts) {
     var chart = charts[key];
     var layer;
+    console.log(chart.name, chart.tilemapUrl, chart.format, chart.maxzoom);
     if (chart.format == "mvt") {
+
+        // layer = protomapsL.leafletLayer({
+        //     url: chart.tilemapUrl,
+        //     flavor: 'light', 
+        //     lang: 'en'
+        // });
+
         layer = protomapsL.leafletLayer({
             url: chart.tilemapUrl,
             paintRules: PAINT_RULES,
             labelRules: LABEL_RULES,
             //  flavor: "dark",
             //  lang: "en"
+            // maxNativeZoom: 6, this produces very blury results at z>=6
         });
+
     } else {
         layer = L.tileLayer(chart.tilemapUrl, {
             maxZoom: chart.maxzoom,
@@ -749,6 +773,7 @@ async function updateAllVessels() {
         alarmTargetCount = 0;
 
         updateAllVesselDataModel(vessels);
+        updateAllVesselDerivedData();
         updateAllVesselUI();
 
         if (AGE_OUT_OLD_TARGETS) {
@@ -882,61 +907,66 @@ function updateSingleVesselDataModel(vessel) {
     target.imo = vessel.registrations?.imo;
     target.latitude = vessel.navigation?.position?.value.latitude;
     target.longitude = vessel.navigation?.position?.value.longitude;
+    target.lastSeenDate = new Date(vessel.navigation?.position?.timestamp);
     // target.alarmState = vessel.navigation?.closestApproach?.value?.collisionAlarmState;
     // target.alarmType = vessel.navigation?.closestApproach?.value?.collisionAlarmType;
     // target.order = vessel.navigation?.closestApproach?.value?.collisionRiskRating ?? Number.MAX_VALUE;
 
-    target.y = target.latitude * 111120;
-    target.x = target.longitude * 111120 * Math.cos(toRadians(selfPosition.latitude));
-    target.vy = target.sog * Math.cos(target.cog); // cog is in radians
-    target.vx = target.sog * Math.sin(target.cog); // cog is in radians
+    var lastSeen = Math.round((new Date() - target.lastSeenDate) / 1000);
 
-    if (target.mmsi != selfMmsi) {
-        calculateRangeAndBearing(target);
-        updateCpa(target);
-        evaluateAlarms(target);
+    // dont add targets that have already aged out
+    if (lastSeen < TARGET_MAX_AGE) {
+        targets.set(target.mmsi, target);
     }
+}
 
-    // format and derive a few values for consistent use and display later:
-    // these values are all strings - without units appended (NM, KN, T, etc)
-    var mmsiMid = getMid(target.mmsi);
+function updateAllVesselDerivedData() {
+    targets.forEach((target, mmsi) => {
+        target.y = target.latitude * 111120;
+        target.x = target.longitude * 111120 * Math.cos(toRadians(selfPosition.latitude));
+        target.vy = target.sog * Math.cos(target.cog); // cog is in radians
+        target.vx = target.sog * Math.sin(target.cog); // cog is in radians
 
-    var lastSeen = Math.round((new Date() - new Date(vessel.navigation?.position?.timestamp)) / 1000);
-    if (lastSeen < 0) {
-        lastSeen = 0;
-    }
+        if (target.mmsi != selfMmsi) {
+            calculateRangeAndBearing(target);
+            updateCpa(target);
+            evaluateAlarms(target);
+        }
 
-    target.lastSeen = lastSeen;
-    target.isLost = lastSeen > LOST_TARGET_WARNING_AGE ? true : false;
-    target.mmsiCountryCode = mmsiMidToCountry.get(mmsiMid)?.code;
-    target.mmsiCountryName = mmsiMidToCountry.get(mmsiMid)?.name;
-    target.cpaFormatted = formatCpa(target.cpa);
-    target.tcpaFormatted = formatTcpa(target.tcpa);
-    target.rangeFormatted = target.range != null ? (target.range / METERS_PER_NM).toFixed(2) + ' NM' : '---';
-    target.bearingFormatted = target.bearing != null ? target.bearing + ' T' : '---';
-    target.sogFormatted = target.sog != null ? (target.sog * KNOTS_PER_M_PER_S).toFixed(1) + ' kn' : '---';
-    target.cogFormatted = target.cog != null ? (Math.round(toDegrees(target.cog)) + ' T') : '---';
-    target.hdgFormatted = target.hdg != null ? (Math.round(toDegrees(target.hdg)) + ' T') : '---';
-    target.rotFormatted = Math.round(toDegrees(target.rot)) || '---';
-    target.aisClassFormatted = target.aisClass + (target.isVirtual ? ' (virtual)' : '');
-    target.sizeFormatted = `${target.length?.toFixed(1) ?? '---'} m x ${target.beam?.toFixed(1) ?? '---'} m`;
-    target.imoFormatted = target.imo?.replace(/imo/i, '') || '---';
-    target.latitudeFormatted = formatLat(target.latitude);
-    target.longitudeFormatted = formatLon(target.longitude);
+        // format and derive a few values for consistent use and display later:
+        // these values are all strings - without units appended (NM, KN, T, etc)
+        var mmsiMid = getMid(target.mmsi);
 
-    if (!vessel.navigation?.position
-        || target.lastSeen > TARGET_MAX_AGE
-    ) {
-        target.isValid = false;
-    } else {
-        target.isValid = true;
-    }
+        var lastSeen = Math.round((new Date() - target.lastSeenDate) / 1000);
+        if (lastSeen < 0) {
+            lastSeen = 0;
+        }
 
-    targets.set(target.mmsi, target);
+        target.lastSeen = lastSeen;
+        target.isLost = lastSeen > LOST_TARGET_WARNING_AGE ? true : false;
+        target.mmsiCountryCode = mmsiMidToCountry.get(mmsiMid)?.code;
+        target.mmsiCountryName = mmsiMidToCountry.get(mmsiMid)?.name;
+        target.cpaFormatted = formatCpa(target.cpa);
+        target.tcpaFormatted = formatTcpa(target.tcpa);
+        target.rangeFormatted = target.range != null ? (target.range / METERS_PER_NM).toFixed(2) + ' NM' : '---';
+        target.bearingFormatted = target.bearing != null ? target.bearing + ' T' : '---';
+        target.sogFormatted = target.sog != null ? (target.sog * KNOTS_PER_M_PER_S).toFixed(1) + ' kn' : '---';
+        target.cogFormatted = target.cog != null ? (Math.round(toDegrees(target.cog)) + ' T') : '---';
+        target.hdgFormatted = target.hdg != null ? (Math.round(toDegrees(target.hdg)) + ' T') : '---';
+        target.rotFormatted = Math.round(toDegrees(target.rot)) || '---';
+        target.aisClassFormatted = target.aisClass + (target.isVirtual ? ' (virtual)' : '');
+        target.sizeFormatted = `${target.length?.toFixed(1) ?? '---'} m x ${target.beam?.toFixed(1) ?? '---'} m`;
+        target.imoFormatted = target.imo?.replace(/imo/i, '') || '---';
+        target.latitudeFormatted = formatLat(target.latitude);
+        target.longitudeFormatted = formatLon(target.longitude);
 
-    if (target.mmsi == selectedVesselMmsi) {
-        updateSelectedVesselProperties(target);
-    }
+        if (!target.latitude || !target.longitude || target.lastSeen > TARGET_MAX_AGE
+        ) {
+            target.isValid = false;
+        } else {
+            target.isValid = true;
+        }
+    });
 }
 
 function updateSelectedVesselProperties(target) {
@@ -1025,6 +1055,11 @@ function updateAllVesselUI() {
     targets.forEach((target, mmsi) => {
         //console.log(target);
         updateSingleVesselUI(target);
+
+        // update data shown in modal properties screen
+        if (target.mmsi == selectedVesselMmsi) {
+            updateSelectedVesselProperties(target);
+        }
     });
 
     labelToCollisionController.update();

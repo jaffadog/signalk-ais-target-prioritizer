@@ -62,6 +62,12 @@ offline map:
 
         https://pmtiles.io/
 
+        https://www.jsdelivr.com/package/npm/protomaps-leaflet?tab=files
+        5.0.1
+
+        https://www.jsdelivr.com/package/npm/@protomaps/basemaps?tab=files&path=dist
+        5.3.0
+
 
 C:\Users\jaffa\Downloads\go-pmtiles_1.27.2_Windows_x86_64
 
@@ -73,5 +79,30 @@ C:\signalk\signalkhome\.signalk\charts\pmtiles
         pmtiles extract https://build.protomaps.com/20250504.pmtiles NL.pmtiles --bbox=1,50,8,56 --dry-run
         pmtiles extract https://build.protomaps.com/20250504.pmtiles NL.pmtiles --bbox=3,52,6,54
 
-        
 
+
+download:
+https://osmdata.openstreetmap.de/download/simplified-land-polygons-complete-3857.zip
+
+which contains:
+simplified_land_polygons.shp
+(Large simplified polygons not split, use for zoom level 0-9)	
+Mercator (EPSG 3857)
+
+convert to pmtiles (protomaps):
+
+ogr2ogr -t_srs EPSG:3857 simplified_land_polygons.json simplified_land_polygons.shp
+tippecanoe -zg --projection=EPSG:3857 -o simplified_land_polygons.pmtiles --drop-densest-as-needed --extend-zooms-if-still-dropping simplified_land_polygons.json
+
+ogr2ogr -f GeoJSON simplified_land_polygons.geojson simplified_land_polygons.shp
+
+tippecanoe -zg --projection=EPSG:3857 -o simplified_land_polygons.pmtiles --drop-densest-as-needed --extend-zooms-if-still-dropping simplified_land_polygons.geojson
+
+tippecanoe --projection=EPSG:3857 -o earth.pmtiles -l earth -n "earth" -z13 simplified_land_polygons.json
+
+tippecanoe --projection=EPSG:3857 -o earth-z15.pmtiles -l earth -n "earth" -z15 --drop-densest-as-needed --extend-zooms-if-still-dropping simplified_land_polygons.json
+
+
+test with:
+https://maps.protomaps.com/
+https://pmtiles.io/
