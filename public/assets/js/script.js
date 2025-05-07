@@ -112,7 +112,7 @@ selfMmsi = data.mmsi;
 
 const map = L.map('map', {
     zoom: DEFAULT_MAP_ZOOM,
-    minZoom: 1, //9,
+    minZoom: 9,
     maxZoom: 18,
 });
 
@@ -228,11 +228,11 @@ for (let key in charts) {
 
         layer = protomapsL.leafletLayer({
             url: chart.tilemapUrl,
+            maxDataZoom: chart.maxzoom,
             paintRules: PAINT_RULES,
             labelRules: LABEL_RULES,
             //  flavor: "dark",
             //  lang: "en"
-            // maxNativeZoom: 6, this produces very blury results at z>=6
         });
 
     } else {
