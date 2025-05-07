@@ -67,13 +67,13 @@ module.exports = function (app) {
 
     plugin.registerWithRouter = (router) => {
 
-        // /plugins/${plugin.id}/getCollisionProfiles
+        // GET /plugins/${plugin.id}/getCollisionProfiles
         router.get('/getCollisionProfiles', (req, res) => {
             app.debug('getCollisionProfiles', collisionProfiles);
             res.json(collisionProfiles);
         });
 
-        // /plugins/${plugin.id}/setCollisionProfiles
+        // PUT /plugins/${plugin.id}/setCollisionProfiles
         router.put('/setCollisionProfiles', (req, res) => {
             var newCollisionProfiles = req.body;
             app.debug('setCollisionProfiles', newCollisionProfiles);
@@ -95,7 +95,7 @@ module.exports = function (app) {
             res.json(collisionProfiles);
         });
 
-        // /plugins/${plugin.id}/muteAllAlarms
+        // GET /plugins/${plugin.id}/muteAllAlarms
         router.get('/muteAllAlarms', (req, res) => {
             app.debug('muteAllAlarms');
             targets.forEach((target, mmsi) => {
@@ -106,6 +106,24 @@ module.exports = function (app) {
             });
             res.json();
         });
+
+        // GET /plugins/${plugin.id}/getTargets
+        router.get('/getTargets', (req, res) => {
+            app.debug('getTargets', targets.size);
+            res.json(Object.fromEntries(targets));
+        });
+
+        // GET /plugins/${plugin.id}/getTarget/:mmsi
+        router.get('/getTarget/:mmsi', (req, res) => {
+            var mmsi = req.params.mmsi;
+            app.debug('getTarget', mmsi);
+            if (targets.has(mmsi)) {
+                res.json(targets.get(mmsi));
+            } else {
+                res.status(404).end();
+            }
+        });
+        
     };
 
     function getCollisionProfiles() {
