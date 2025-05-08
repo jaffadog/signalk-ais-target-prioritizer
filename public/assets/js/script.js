@@ -3,6 +3,7 @@
 // FIXME: need to look at better default data - remove impossible values like 450. remove range parameters that are not used.
 // FIXME: need map rotation option to toggle between north-up and cog-up
 // FIXME need to investigate node OOM issues - leak?
+// FIXME look at natural earth maps for better map data - https://www.naturalearthdata.com/downloads/10m-raster-data/10m-physical-map/
 
 const DEFAULT_MAP_ZOOM = 14; // 14 gives us 2+ NM
 const METERS_PER_NM = 1852;
@@ -129,64 +130,6 @@ L.easyButton(biCursorFill, function (btn, map) {
     }
 }).addTo(map);
 
-let PAINT_RULES = [
-    {
-        dataLayer: "earth",
-        symbolizer: new protomapsL.PolygonSymbolizer({
-            fill: "lightgray",
-        }),
-        // var(--bs-secondary-bg) lightgray
-    },
-    {
-        dataLayer: "water",
-        symbolizer: new protomapsL.LineSymbolizer({
-            color: "cadetblue",
-            opacity: 0.3
-        }),
-    },
-    {
-        dataLayer: "roads",
-        symbolizer: new protomapsL.LineSymbolizer({
-            color: "gray",
-            opacity: 0.4
-        }),
-    },
-    {
-        dataLayer: "places",
-        symbolizer: new protomapsL.PolygonSymbolizer({
-            fill: "orange"
-        }),
-    },
-
-];
-
-// FIXME add basic labels - land masses, islands, countries, towns
-let LABEL_RULES = []; // ignore for now LabelSymbolizers 
-
-// Grab hold of the light theme configuration
-//let light_theme = protomapsL.light;
-// Create the actual paint and label rules. These decide how to render the map.
-//let my_paint_rules = protomapsL.paintRules(light_theme, "");
-//let my_label_rules = protomapsL.labelRules(light_theme, "");
-
-// http://localhost:3000/signalk/v1/api/resources/charts
-// http://localhost:3000/pmtiles/FP.pmtiles
-// var layer = protomapsL.leafletLayer({url:'FILE.pmtiles OR ENDPOINT/{z}/{x}/{y}.mvt',flavor:"light",lang:"en"})
-
-// url: 'https://demo-bucket.protomaps.com/v4.pmtiles',
-// url: 'http://localhost:8080/FP/{z}/{x}/{y}.mvt',
-
-// FIXME look at protomaps basemap project - which is apparently now a dependency for flavor/styles
-
-// var layer = protomapsL.leafletLayer({
-//     url: 'http://localhost:8080/FP/{z}/{x}/{y}.mvt',
-//     paintRules: PAINT_RULES,
-//     labelRules: LABEL_RULES,
-//     flavor: "light",
-//     lang: "en"
-// });
-// layer.addTo(map)
-
 var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap'
@@ -203,38 +146,21 @@ var baseMaps = {
     "OpenTopoMap": openTopoMap
 };
 
-// console.log(basemaps);
-// console.log(basemaps.namedFlavor("light"));
-// let light_theme = protomapsL.light;
-// console.log(light_theme);
-// console.log(protomapsL.paintRules(basemaps.namedFlavor("light")));
-// console.log(protomapsL.labelRules(basemaps.namedFlavor("light")));
-//console.log(protomapsL.paintRules(light_theme));
-//console.log(protomapsL.paintRules(light_theme, ""));
-//protomapsL.paintRules(light_theme, "light");
-// protomapsL.paintRules();
+// protomaps color flavors: light dark white grayscale black
+// make water transparent so that bootstrap light/dark mode backgroud comes through
+var paintRules = protomapsL.paintRules({ ...basemaps.namedFlavor("light"), water: "rgba(0,0,0,0)" });
+var labelRules = protomapsL.labelRules(basemaps.namedFlavor("light"));
 
 for (let key in charts) {
     var chart = charts[key];
     var layer;
-    console.log(chart.name, chart.tilemapUrl, chart.format, chart.maxzoom);
     if (chart.format == "mvt") {
-
-        // layer = protomapsL.leafletLayer({
-        //     url: chart.tilemapUrl,
-        //     flavor: 'light', 
-        //     lang: 'en'
-        // });
-
         layer = protomapsL.leafletLayer({
             url: chart.tilemapUrl,
             maxDataZoom: chart.maxzoom,
-            paintRules: PAINT_RULES,
-            labelRules: LABEL_RULES,
-            //  flavor: "dark",
-            //  lang: "en"
+            paintRules: paintRules,
+            labelRules: labelRules,
         });
-
     } else {
         layer = L.tileLayer(chart.tilemapUrl, {
             maxZoom: chart.maxzoom,
@@ -451,12 +377,14 @@ function fullscreenchangeHandler() {
 
 function applyColorMode() {
     if (checkDarkMode.checked) {
+        // dark mode
         document.documentElement.setAttribute('data-bs-theme', "dark");
         var elements = document.querySelectorAll('.leaflet-layer');
         for (var i = 0; i < elements.length; i++) {
             elements[i].style.filter = "invert(1) hue-rotate(180deg) brightness(0.8) contrast(1.2)";
         }
     } else {
+        // light mode
         document.documentElement.setAttribute('data-bs-theme', "light");
         var elements = document.querySelectorAll('.leaflet-layer');
         for (var i = 0; i < elements.length; i++) {
