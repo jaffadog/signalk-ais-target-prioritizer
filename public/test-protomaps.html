@@ -7,6 +7,11 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-hash@0.2.1/leaflet-hash.js"></script>
     <script src="https://unpkg.com/protomaps-leaflet@5.0.1/dist/protomaps-leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@protomaps/basemaps@5.3.0/dist/basemaps.min.js"></script>
+
+    <!-- <script src="assets/js/protomaps-leaflet.js"></script> -->
+    <!-- <script src="assets/js/basemaps.min.js"></script> -->
+
     <style>
         body,
         #map {
@@ -21,18 +26,72 @@
     <script>
         const map = L.map('map')
         let hash = new L.Hash(map)
-        if (!window.location.hash) map.setView(new L.LatLng(1.335/104.172), 5)
-        var layer = protomapsL.leafletLayer({
-            url: "/pmtiles/earth.pmtiles",
-            maxDataZoom: 6,
-            paintRules: [
-                {
-                    dataLayer: "earth",
-                    symbolizer: new protomapsL.PolygonSymbolizer({ fill: "gray" }),
-                }],
-            labelRules: [],
-        });
+        if (!window.location.hash) map.setView(new L.LatLng(1.335 / 104.172), 5)
+
+        // console.log(new protomapsL.PolygonSymbolizer({ fill: "gray" }));
+
+        console.log(protomapsL.paintRules(basemaps.namedFlavor("light")));
+
+        console.log(basemaps.we("light"));
+
+        var light = basemaps.namedFlavor("light");
+
+        light.water = "white";
+
+        console.log(light);
+
+        //let flavor = { ...namedFlavor("light"), buildings: "red" };   //...we could use this approach to override ocean color
+
+
+        var layer = protomapsL.leafletLayer({ url: 'https://data.source.coop/protomaps/openstreetmap/v4.pmtiles', flavor: 'light' });
+
+        // var layer = protomapsL.leafletLayer({ url: 'https://data.source.coop/protomaps/openstreetmap/v4.pmtiles', 
+        //     paintRules: protomapsL.paintRules(light),
+        //     labelRules: protomapsL.labelRules(light)
+        //  });
+
+
+
+        // var layer = protomapsL.leafletLayer({ url: '/pmtiles/FP.pmtiles', flavor: 'dark' })
+
+        // var layer = protomapsL.leafletLayer({ url: '/pmtiles/NL.pmtiles', flavor: 'light' })
+
+        // var layer = protomapsL.leafletLayer({
+        //     url: "/pmtiles/earth.pmtiles",
+        //     maxDataZoom: 6,
+        //     flavor: "dark",
+        //     lang: "en",
+        // });
+
+        // var layer = protomapsL.leafletLayer({
+        //     url: "/pmtiles/earth.pmtiles",
+        //     maxDataZoom: 6,
+        //     paintRules: [
+        //         {
+        //             dataLayer: "earth",
+        //             symbolizer: new protomapsL.PolygonSymbolizer({ fill: "gray" }),
+        //         }],
+        //     labelRules: [],
+        // });
+
         layer.addTo(map)
+
+
+        // setTimeout(() => {
+        //     console.log(layer.options.flavor);
+        //     layer.removeFrom(map);
+        //     // layer = protomapsL.leafletLayer({ url: '/pmtiles/NL.pmtiles', flavor: 'black' })
+        //     layer = protomapsL.leafletLayer({ url: 'https://data.source.coop/protomaps/openstreetmap/v4.pmtiles', flavor: 'black' });
+
+        //     //layer.options.flavor = "black";
+        //     // layer.rerenderTiles();
+        //     // layer.redraw();
+
+
+        //     layer.addTo(map);
+
+        // }, 5000);
+
     </script>
 </body>
 
