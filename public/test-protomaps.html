@@ -3,14 +3,17 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-hash@0.2.1/leaflet-hash.js"></script>
     <script src="https://unpkg.com/protomaps-leaflet@5.0.1/dist/protomaps-leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@protomaps/basemaps@5.3.0/dist/basemaps.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@protomaps/basemaps@5.3.0/dist/basemaps.min.js"></script> -->
 
-    <!-- <script src="assets/js/protomaps-leaflet.js"></script> -->
-    <!-- <script src="assets/js/basemaps.min.js"></script> -->
+    <link rel="stylesheet" href="assets/css/leaflet.css" />
+    <script src="assets/js/leaflet.js"></script>
+    <script src="assets/js/protomaps-leaflet.js"></script>
+    <script src="assets/js/basemaps.min.js"></script>
 
     <style>
         body,
@@ -25,8 +28,11 @@
     <div id="map"></div>
     <script>
         const map = L.map('map')
-        let hash = new L.Hash(map)
-        if (!window.location.hash) map.setView(new L.LatLng(1.335 / 104.172), 5)
+
+        // let hash = new L.Hash(map)
+        // if (!window.location.hash) 
+        
+        map.setView(new L.LatLng(1.335 / 104.172), 5)
 
         // console.log(new protomapsL.PolygonSymbolizer({ fill: "gray" }));
 
@@ -43,16 +49,20 @@
         //let flavor = { ...namedFlavor("light"), buildings: "red" };   //...we could use this approach to override ocean color
 
 
-        var layer = protomapsL.leafletLayer({ url: 'https://data.source.coop/protomaps/openstreetmap/v4.pmtiles', flavor: 'light' });
+        //var layer = protomapsL.leafletLayer({ url: 'https://data.source.coop/protomaps/openstreetmap/v4.pmtiles', flavor: 'light' });
+
+        // ne_10m_minor_islands
 
         // var layer = protomapsL.leafletLayer({ url: 'https://data.source.coop/protomaps/openstreetmap/v4.pmtiles', 
         //     paintRules: protomapsL.paintRules(light),
         //     labelRules: protomapsL.labelRules(light)
         //  });
 
+        // ne_10m_minor_islands.pmtiles
 
+        var layer = protomapsL.leafletLayer({ url: '/pmtiles/ne_10m_minor_islands.pmtiles', flavor: 'dark' })
 
-        // var layer = protomapsL.leafletLayer({ url: '/pmtiles/FP.pmtiles', flavor: 'dark' })
+        // var layer = protomapsL.leafletLayer({ url: '/pmtiles/NL.pmtiles', flavor: 'light' })
 
         // var layer = protomapsL.leafletLayer({ url: '/pmtiles/NL.pmtiles', flavor: 'light' })
 

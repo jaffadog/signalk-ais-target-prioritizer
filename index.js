@@ -5,32 +5,32 @@
 
 "use strict";
 
-const vesper = require("./vesper-xb8000-emulator.js");
-const schema = require('./schema')
+const schema = require('./schema');
 const fs = require('fs');
 const path = require('path');
-const defaultCollisionProfiles = require('./public/assets/js/defaultCollisionProfiles.json')
+const defaultCollisionProfiles = require('./public/assets/js/defaultCollisionProfiles.json');
 
-const METERS_PER_NM = 1852;
-const KNOTS_PER_M_PER_S = 1.94384;
+var aisUtils;
+import("./public/assets/js/ais-utils.mjs").then((module) => {
+    aisUtils = module;
+});
+
+var vesper = require("./vesper-xb8000-emulator.js");
+
+const AGE_OUT_OLD_TARGETS = true;
+const TARGET_MAX_AGE = 30 * 60; // max age in seconds - 30 minutes
 
 var selfMmsi;
 var selfName;
 var selfCallsign;
-var selfType;
+var selfTypeId;
+var selfTarget;
 
-var gps = {};
 var targets = new Map();
 var collisionProfiles;
 var options;
 
-// how long to keep old targets that we have not seen in a while
-// in minutes
-const ageOldTargets = true;
-const ageOldTargetsTTL = 20;
-
 module.exports = function (app) {
-
     var plugin = {};
     var unsubscribes = [];
 
@@ -46,12 +46,15 @@ module.exports = function (app) {
         getCollisionProfiles();
         if (options.enableDataPublishing || options.enableAlarmPublishing || options.enableEmulator) {
             enablePluginCpaCalculations();
+        } else {
+            // if plugin was stopped and started again with options set to not perform calculations, then clear out old targets
+            targets.clear();
         }
         if (options.enableEmulator) {
             //app.debug("collisionProfiles in index.js", collisionProfiles);
             //vesper.collisionProfiles = collisionProfiles;
             //vesper.setCollisionProfiles(collisionProfiles);
-            vesper.start(app, collisionProfiles, selfMmsi, selfName, selfCallsign, selfType, gps, targets, saveCollisionProfiles);
+            vesper.start(app, collisionProfiles, selfMmsi, selfName, selfCallsign, selfTypeId, targets, saveCollisionProfiles);
         }
     };
 
@@ -60,7 +63,9 @@ module.exports = function (app) {
         unsubscribes.forEach(f => f());
         unsubscribes = [];
         if (refreshDataModelInterval) { clearInterval(refreshDataModelInterval); }
-        if (options?.enableEmulator) { vesper.stop(); }
+        if (options?.enableEmulator) {
+            vesper.stop();
+        }
     };
 
     plugin.schema = schema;
@@ -99,12 +104,25 @@ module.exports = function (app) {
         router.get('/muteAllAlarms', (req, res) => {
             app.debug('muteAllAlarms');
             targets.forEach((target, mmsi) => {
-                if (target.alarmState) {
-                    app.debug('muting alarm for target', mmsi, target.name, target.alarmState);
-                    target.alarmMuted = true;
+                if (target.alarmState == "danger" && !target.alarmIsMuted) {
+                    app.debug('muting alarm for target', mmsi, target.name, target.alarmType, target.alarmState);
+                    target.alarmIsMuted = true;
                 }
             });
             res.json();
+        });
+
+        // GET /plugins/${plugin.id}/setAlarmIsMuted/:mmsi/:alarmIsMuted
+        router.get('/setAlarmIsMuted/:mmsi/:alarmIsMuted', (req, res) => {
+            var mmsi = req.params.mmsi;
+            var alarmIsMuted = (req.params.alarmIsMuted === "true");
+            app.debug('setting alarmIsMuted', mmsi, alarmIsMuted);
+            if (targets.has(mmsi)) {
+                targets.get(mmsi).alarmIsMuted = alarmIsMuted;
+                res.json();
+            } else {
+                res.status(404).end();
+            }
         });
 
         // GET /plugins/${plugin.id}/getTargets
@@ -123,7 +141,6 @@ module.exports = function (app) {
                 res.status(404).end();
             }
         });
-        
     };
 
     function getCollisionProfiles() {
@@ -172,7 +189,7 @@ module.exports = function (app) {
         selfMmsi = app.getSelfPath('mmsi');
         selfName = app.getSelfPath('name');
         selfCallsign = app.getSelfPath('communication') ? app.getSelfPath('communication').callsignVhf : '';
-        selfType = app.getSelfPath('design.aisShipType') ? app.getSelfPath('design.aisShipType').value.id : '';
+        selfTypeId = app.getSelfPath('design.aisShipType') ? app.getSelfPath('design.aisShipType').value.id : '';
 
         // *
         // atons.*
@@ -279,7 +296,6 @@ module.exports = function (app) {
         }
 
         target.context = delta.context;
-        target.lastSeen = new Date().toISOString();
 
         for (let update of updates) {
             let values = update.values;
@@ -298,62 +314,41 @@ module.exports = function (app) {
                             target.imo = value.value.registrations.imo.replace(/imo/i, '');
                         }
                         else if (value.value.mmsi) {
-                            // we expected mmsi]
+                            // we expected mmsi
                         }
                         else {
                             //app.debug('received unexpected delta on root path', delta.context, value.path, value.value);
                         }
                         break;
                     case 'navigation.position':
-                        target.lat = value.value.latitude;
-                        target.lon = value.value.longitude;
-
-                        if (mmsi == selfMmsi) {
-                            gps.lat = value.value.latitude;
-                            gps.lon = value.value.longitude;
-                            gps.time = Date.now();
-                        }
-
-                        // used by test targets:
-                        if (value.value.targetType) {
-                            target.targetType = value.value.targetType;
-                        }
+                        target.latitude = value.value.latitude;
+                        target.longitude = value.value.longitude;
+                        target.lastSeenDate = new Date(update.timestamp);
                         break;
                     case 'navigation.courseOverGroundTrue':
-                        target.cog = Math.round(rad2deg(value.value));
-                        if (mmsi == selfMmsi) {
-                            gps.cog = Math.round(rad2deg(value.value));
-                        }
+                        target.cog = value.value;
                         break;
                     case 'navigation.speedOverGround':
                         target.sog = value.value;
-                        if (mmsi == selfMmsi) {
-                            gps.sog = value.value;
-                        }
                         break;
                     case 'navigation.magneticVariation':
-                        if (mmsi == selfMmsi) {
-                            gps.magvar = rad2deg(value.value);
-                        }
+                        target.magvar = value.value;
                         break;
                     case 'navigation.headingTrue':
-                        target.hdg = Math.round(rad2deg(value.value));
-                        if (mmsi == selfMmsi) {
-                            gps.hdg = Math.round(rad2deg(value.value));
-                        }
+                        target.hdg = value.value;
                         break;
                     case 'navigation.rateOfTurn':
-                        target.rot = rad2deg(value.value);
+                        target.rot = value.value;
                         break;
                     case 'design.aisShipType':
-                        target.vesselType = value.value.id;
-                        target.vesselTypeString = value.value.name;
+                        target.typeId = value.value.id;
+                        target.type = value.value.name;
                         break;
                     case 'navigation.state':
-                        target.navstatus = value.value;
+                        target.status = value.value;
                         break;
                     case 'sensors.ais.class':
-                        target.classType = value.value;
+                        target.aisClass = value.value;
                         break;
                     case 'navigation.destination.commonName':
                         target.destination = value.value;
@@ -365,119 +360,29 @@ module.exports = function (app) {
                         target.width = value.value;
                         break;
                     case 'design.draft':
-                        target.draught = value.value.current;
+                        target.draft = value.value.current;
                         break;
                     case 'atonType':
-                        target.vesselType = value.value.id;
-                        target.vesselTypeString = value.value.name;
-                        if (target.navstatus == null) {
-                            target.navstatus = 'default'; // 15 = "default"
+                        target.typeId = value.value.id;
+                        target.type = value.value.name;
+                        if (target.status == null) {
+                            target.status = 'default'; // 15 = "default"
                         }
                         break;
                     case 'offPosition':
-                        target.offPosition = value.value ? 1 : 0;
+                        target.isOffPosition = value.value ? 1 : 0;
                         break;
                     case 'virtual':
-                        target.virtual = value.value ? 1 : 0;
+                        target.isVirtual = value.value ? 1 : 0;
                         break;
 
                     default:
-                    // do something or not
                     //app.debug('received unexpected delta', delta.context, value.path, value.value);
                 }
             }
         }
 
-        // if (target.targetType) {
-        //     // target.targetType is already set (test targets), dont change it
-        // }
-        // 111MIDXXX        SAR (Search and Rescue) aircraft
-        if (mmsi.startsWith('111')) {
-            target.targetType = 5;
-        }
-        // targetType determines what kind of symbol gets used to represent the target in the vesper mobile app
-        // 970MIDXXX        AIS SART (Search and Rescue Transmitter)
-        else if (mmsi.startsWith('970')) {
-            target.targetType = 6;
-        }
-        // 972XXXXXX        MOB (Man Overboard) device
-        else if (mmsi.startsWith('972')) {
-            target.targetType = 7;
-        }
-        // 974XXXXXX        EPIRB (Emergency Position Indicating Radio Beacon) AIS
-        else if (mmsi.startsWith('974')) {
-            target.targetType = 8;
-        }
-        // Aid to Navigation
-        // 99MIDXXXX        Aids to Navigation
-        else if (target.classType == 'ATON' || mmsi.startsWith('99')) {
-            target.targetType = 4;
-        }
-        // class A
-        else if (target.classType == 'A') {
-            target.targetType = 1;
-        }
-        // make evrything else class B
-        else {
-            target.targetType = 2;
-        }
-
         targets.set(mmsi, target);
-
-        // FIXME - override gps to testing with signalk team sample data (netherlands)
-        // gps.lat = 53.5;
-        // gps.lon = 5.0;
-    }
-
-    // used to create dummy vessels for testing purposes
-    function sendVesselDelta(mmsi, lat, lon, cog, sog, aisClass, targetType, navState, shipTypeId, shipTypeName) {
-        app.handleMessage(plugin.id, {
-            "context": 'vessels.urn:mrn:imo:mmsi:' + mmsi,
-            "updates": [
-                {
-                    "values": [
-                        {
-                            "path": "navigation.position",
-                            "value": {
-                                "latitude": lat,
-                                "longitude": lon,
-                                // this is not part of the signalk schema, but we use it for force targetType on test targets
-                                "targetType": targetType
-                            },
-                        },
-                        {
-                            "path": "design.aisShipType",
-                            "value": {
-                                "id": shipTypeId,
-                                "name": shipTypeName
-                            },
-                        },
-                        {
-                            "path": "",
-                            "value": {
-                                "name": mmsi.toString()
-                            }
-                        },
-                        {
-                            "path": "navigation.courseOverGroundTrue",
-                            "value": deg2rad(cog)
-                        },
-                        {
-                            "path": "navigation.speedOverGround",
-                            "value": sog / 1.9438
-                        },
-                        {
-                            "path": "sensors.ais.class",
-                            "value": aisClass
-                        },
-                        {
-                            "path": "navigation.state",
-                            "value": navState
-                        },
-                    ]
-                }
-            ]
-        });
     }
 
     async function refreshDataModel() {
@@ -486,26 +391,39 @@ module.exports = function (app) {
             // app.debug('index.js: setFromIndex,setFromEmulator', collisionProfiles.setFromIndex, collisionProfiles.setFromEmulator, collisionProfiles.anchor.guard.range);
             // app.debug("collisionProfiles.anchor.guard.range - index ",collisionProfiles.anchor.guard.range);
 
-            addCoords(gps);
-            addSpeed(gps);
+            if (aisUtils) {
+                aisUtils.updateDerivedData(targets, selfTarget, collisionProfiles, TARGET_MAX_AGE);
+            } else {
+                app.debug("aisUtils not ready...");
+                return;
+            }
 
-            for (var target of targets.values()) {
-                if (ageOldTargets && (new Date() - new Date(target.lastSeen)) / 1000 / 60 > ageOldTargetsTTL) {
-                    app.debug('ageing out target', target.mmsi, target.name, target.lastSeen);
-                    targets.delete(target.mmsi);
-                    continue;
+            selfTarget = targets.get(selfMmsi);
+
+            targets.forEach((target, mmsi) => {
+                if (options.enableDataPublishing && mmsi != selfMmsi) {
+                    pushTargetDataToSignalK(target);
                 }
 
-                if (target.mmsi != selfMmsi) {
-                    calculateRangeAndBearing(target);
-                    updateCpa(target);
-                    target.isValid = isValidTarget(target);
-                    evaluateAlarms(target);
-                    if (options.enableDataPublishing) {
-                        pushTargetDataToSignalK(target);
+                // publish warning/alarm notifications
+                // FIXME - should we send 1 notification for all targets? or separate notifications for each target?
+                if (options.enableAlarmPublishing && target.alarmState && !target.alarmIsMuted) {
+                    var message = (`${target.name || '<' + target.mmsi + '>'} - `
+                        + `${target.alarmType} `
+                        + `${(target.alarmState == "danger" ? "alarm" : target.alarmState)}`).toUpperCase();
+                    if (target.alarmState == "warning") {
+                        sendNotification("warn", message);
+                    }
+                    else if (target.alarmState == "danger") {
+                        sendNotification("alarm", message);
                     }
                 }
-            }
+
+                if (AGE_OUT_OLD_TARGETS && target.lastSeen > TARGET_MAX_AGE) {
+                    app.debug('ageing out target', target.mmsi, target.name, target.lastSeen);
+                    targets.delete(target.mmsi);
+                }
+            });
         }
         catch (err) {
             app.debug('error in refreshDataModel', err.message, err);
@@ -536,272 +454,8 @@ module.exports = function (app) {
         });
     }
 
-    function calculateRangeAndBearing(target) {
-        if (gps.lat == null
-            || gps.lon == null
-            || target.lat == null
-            || target.lon == null) {
-            target.range = null;
-            target.bearing = null;
-            //app.debug('cant calc range bearing', gps, target);
-            return;
-        }
-
-        target.range = Math.round(getDistanceFromLatLonInMeters(gps.lat, gps.lon, target.lat, target.lon));
-        target.bearing = Math.round(getRhumbLineBearing(gps.lat, gps.lon, target.lat, target.lon));
-
-        if (target.bearing >= 360) {
-            target.bearing = 0;
-        }
-    }
-
-    // from: http://geomalgorithms.com/a07-_distance.html
-    function updateCpa(target) {
-        if (gps.lat == null
-            || gps.lon == null
-            || gps.sog == null
-            || gps.cog == null
-            || target.lat == null
-            || target.lon == null
-            || target.sog == null
-            || target.cog == null) {
-            //app.debug('cant calc cpa: missing data',target.mmsi);
-            target.cpa = null;
-            target.tcpa = null;
-            return;
-        }
-
-        // add x,y in meters
-        addCoords(target);
-        // add vx,vy in m/H
-        addSpeed(target);
-
-        // dv = Tr1.v - Tr2.v
-        // this is relative speed
-        // m/s
-        var dv = {
-            x: target.vx - gps.vx,
-            y: target.vy - gps.vy,
-        }
-
-        // (m/s)^2
-        var dv2 = dot(dv, dv);
-
-        // guard against division by zero
-        // the tracks are almost parallel
-        // or there is almost no relative movement
-        if (dv2 < 0.00000001) {
-            // app.debug('cant calc tcpa: ',target.mmsi);
-            target.cpa = null;
-            target.tcpa = null;
-            return;
-        }
-
-        // w0 = Tr1.P0 - Tr2.P0
-        // this is relative position
-        // 111120 m / deg lat
-        // m
-        var w0 = {
-            x: (target.lon - gps.lon) * 111120 * Math.cos(gps.lat * Math.PI / 180),
-            y: (target.lat - gps.lat) * 111120,
-        }
-
-        // in secs
-        // m * m/s / (m/s)^2 = m / (m/s) = s
-        var tcpa = -dot(w0, dv) / dv2;
-
-        // if tcpa is in the past,
-        // or if tcpa is more than 3 hours in the future
-        // then dont calc cpa & tcpa
-        if (!tcpa || tcpa < 0 || tcpa > 3 * 3600) {
-            // app.debug('cant calc tcpa: ',target.mmsi);
-            target.cpa = null;
-            target.tcpa = null;
-            return;
-        }
-
-        // Point P1 = Tr1.P0 + (ctime * Tr1.v);
-        // m
-        var p1 = {
-            x: gps.x + tcpa * gps.vx,
-            y: gps.y + tcpa * gps.vy,
-        }
-
-        // Point P2 = Tr2.P0 + (ctime * Tr2.v);
-        // m
-        var p2 = {
-            x: target.x + tcpa * target.vx,
-            y: target.y + tcpa * target.vy,
-        }
-
-        // in meters
-        var cpa = dist(p1, p2);
-
-        // in meters
-        target.cpa = Math.round(cpa);
-        // in seconds
-        target.tcpa = Math.round(tcpa);
-    }
-
-    // add x,y in m
-    function addCoords(target) {
-        target.y = target.lat * 111120;
-        target.x = target.lon * 111120 * Math.cos(gps.lat * Math.PI / 180);
-    }
-
-    // add vx,vy in m/s
-    function addSpeed(target) {
-        target.vy = target.sog * Math.cos(target.cog * Math.PI / 180);
-        target.vx = target.sog * Math.sin(target.cog * Math.PI / 180);
-    }
-
-    // #define dot(u,v) ((u).x * (v).x + (u).y * (v).y + (u).z * (v).z)
-    function dot(u, v) {
-        return u.x * v.x + u.y * v.y;
-    }
-
-    // #define norm(v) sqrt(dot(v,v))
-    // norm = length of vector
-    function norm(v) {
-        return Math.sqrt(dot(v, v));
-    }
-
-    // #define d(u,v) norm(u-v)
-    // distance = norm of difference
-    function dist(u, v) {
-        return norm({
-            x: u.x - v.x,
-            y: u.y - v.y,
-        });
-    }
-
-    // FIXME duplicated in webapp
-    function evaluateAlarms(target) {
-        try {
-            // guard alarm
-            target.guardAlarm =
-                (target.range != null && target.range < collisionProfiles[collisionProfiles.current].guard.range * METERS_PER_NM)
-                && (collisionProfiles[collisionProfiles.current].guard.speed == 0
-                    || (target.sog != null && target.sog > collisionProfiles[collisionProfiles.current].guard.speed / KNOTS_PER_M_PER_S));
-
-            // collision alarm
-            target.collisionAlarm =
-                target.cpa != null && target.cpa < collisionProfiles[collisionProfiles.current].danger.cpa * METERS_PER_NM
-                && target.tcpa != null && target.tcpa > 0 && target.tcpa < collisionProfiles[collisionProfiles.current].danger.tcpa
-                && (collisionProfiles[collisionProfiles.current].danger.speed == 0
-                    || (target.sog != null && target.sog > collisionProfiles[collisionProfiles.current].danger.speed / KNOTS_PER_M_PER_S));
-
-            // collision warning
-            target.collisionWarning =
-                target.cpa != null && target.cpa < collisionProfiles[collisionProfiles.current].warning.cpa * METERS_PER_NM
-                && target.tcpa != null && target.tcpa > 0 && target.tcpa < collisionProfiles[collisionProfiles.current].warning.tcpa
-                && (collisionProfiles[collisionProfiles.current].warning.speed == 0
-                    || (target.sog != null && target.sog > collisionProfiles[collisionProfiles.current].warning.speed / KNOTS_PER_M_PER_S));
-
-            target.sartAlarm = (target.mmsi.startsWith('970'));
-            target.mobAlarm = (target.mmsi.startsWith('972'));
-            target.epirbAlarm = (target.mmsi.startsWith('974'));
-
-            // alarm
-            if (target.guardAlarm
-                || target.collisionAlarm
-                || target.sartAlarm
-                || target.mobAlarm
-                || target.epirbAlarm) {
-                target.alarmState = 'danger';
-                target.filteredState = 'show';
-                target.order = 10000;
-            }
-            // threat
-            else if (target.collisionWarning) {
-                // "warning" does not produce orange icons or alarms in the app, but
-                // "threat" does :)
-                target.alarmState = 'warning';
-                target.filteredState = 'show';
-                target.order = 20000;
-            }
-            // no alarm/warning - but has positive tcpa (closing)
-            else if (target.tcpa != null && target.tcpa > 0) {
-                target.alarmState = null;
-                target.filteredState = 'hide';
-                target.order = 30000;
-            }
-            // no alarm/warning and moving away)
-            else {
-                target.alarmState = null;
-                target.filteredState = 'hide';
-                target.order = 40000;
-            }
-
-            var alarms = [];
-
-            if (target.guardAlarm) alarms.push('guard');
-            if (target.collisionAlarm || target.collisionWarning) alarms.push('cpa');
-            if (target.sartAlarm) alarms.push('sart');
-            if (target.mobAlarm) alarms.push('mob');
-            if (target.epirbAlarm) alarms.push('epirb');
-
-            if (alarms.length > 0) {
-                target.alarmType = alarms.join(',');
-            } else {
-                target.alarmType = null;
-            }
-
-            // sort sooner tcpa targets to top
-            if (target.tcpa != null && target.tcpa > 0) {
-                // sort vessels with any tcpa above vessels that dont have a tcpa
-                target.order -= 1000;
-                // tcpa of 0 seconds reduces order by 1000 (this is an arbitrary
-                // weighting)
-                // tcpa of 60 minutes reduces order by 0
-                var weight = 1000;
-                target.order -= Math.max(0, Math.round(weight - weight * target.tcpa / 3600));
-            }
-
-            // sort closer cpa targets to top
-            if (target.cpa != null && target.cpa > 0) {
-                // cpa of 0 nm reduces order by 2000 (this is an arbitrary weighting)
-                // cpa of 5 nm reduces order by 0
-                var weight = 2000;
-                target.order -= Math.max(0, Math.round(weight - weight * target.cpa / 5 / METERS_PER_NM));
-            }
-
-            // sort closer targets to top
-            if (target.range != null && target.range > 0) {
-                // range of 0 nm increases order by 0
-                // range of 5 nm increases order by 500
-                target.order += Math.round(100 * target.range / METERS_PER_NM);
-            }
-
-            // sort targets with no range to bottom
-            if (target.range == null) {
-                target.order += 99999;
-            }
-
-            // publish warning/alarm notifications
-            // FIXME add sog, cpa, tcpa
-            // FIXME need to get formatting functions from webapp - and maybe the data model approach too
-            if (options.enableAlarmPublishing && target.alarmState && !target.alarmMuted) {
-                var message = (`${target.name || '<' + target.mmsi + '>'} - `
-                    + `${target.alarmType} `
-                    + `${(target.alarmState == "danger" ? "alarm" : target.alarmState)}`).toUpperCase();
-                // + `${(target.sog * KNOTS_PER_M_PER_S).toFixed(1)} kn `
-                // + `${(target.cpa / METERS_PER_NM).toFixed(2)} NM `
-                // + `${new Date(1000 * Math.abs(target.tcpa)).toISOString().substring(14, 19)}`;
-                if (target.alarmState == "warning") {
-                    sendNotification("warn", message);
-                }
-                else if (target.alarmState == "danger") {
-                    sendNotification("alarm", message);
-                }
-            }
-        }
-        catch (err) {
-            app.debug('error in evaluateAlarms', err.message, err);
-        }
-    }
-
     function sendNotification(state, message) {
+        app.debug('sendNotification', state, message);
         var delta = {
             "updates": [
                 {
@@ -820,88 +474,6 @@ module.exports = function (app) {
 
         app.handleMessage(plugin.id, delta);
     }
-
-    function isValidTarget(target) {
-
-        // if (!(target.mmsi
-        //     && /[0-9]{9}/.test(target.mmsi)
-        //     && target.classType
-        //     && target.lat
-        //     && target.lon
-        //     && target.range
-        //     && target.bearing)) {
-        //     app.debug(`*** invalid target ${ target.mmsi } classType = ${ target.classType } lat = ${ target.lat } lon = ${ target.lon } range = ${ target.range } bearing = ${ target.bearing } `);
-        // }
-
-        return (target.mmsi
-            && /[0-9]{9}/.test(target.mmsi)
-            && target.classType
-            && target.lat
-            && target.lon
-            && target.range
-            && target.bearing
-            // cog and sog only required for type A and B, and not ATON and BASE:
-            // although we initialize these to zero now... so this always passes
-            // && (
-            //     (target.cog && target.sog)
-            //     ||
-            //     (target.classType == 'ATON' || target.classType == 'BASE')
-            // )
-        );
-    }
-
-    function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
-        var R = 6371000; // Radius of the earth in meters
-        var dLat = deg2rad(lat2 - lat1);
-        var dLon = deg2rad(lon2 - lon1);
-        var a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2)
-            ;
-        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        var d = R * c; // Distance in meters
-        return d;
-    };
-
-    function getRhumbLineBearing(lat1, lon1, lat2, lon2) {
-
-        // difference of longitude coords
-        var diffLon = deg2rad(lon2 - lon1);
-
-        // difference latitude coords phi
-        var diffPhi = Math.log(
-            Math.tan(
-                deg2rad(lat2) / 2 + Math.PI / 4
-            ) /
-            Math.tan(
-                deg2rad(lat1) / 2 + Math.PI / 4
-            )
-        );
-
-        // recalculate diffLon if it is greater than pi
-        if (Math.abs(diffLon) > Math.PI) {
-            if (diffLon > 0) {
-                diffLon = (Math.PI * 2 - diffLon) * -1;
-            }
-            else {
-                diffLon = Math.PI * 2 + diffLon;
-            }
-        }
-
-        //return the angle, normalized
-        return (rad2deg(Math.atan2(diffLon, diffPhi)) + 360) % 360;
-    };
-
-    function deg2rad(deg) {
-        return deg * (Math.PI / 180)
-    };
-
-    function rad2deg(rad) {
-        return rad * (180 / Math.PI)
-    };
-
-
 
     return plugin;
 };

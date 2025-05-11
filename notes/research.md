@@ -102,6 +102,54 @@ tippecanoe --projection=EPSG:3857 -o earth.pmtiles -l earth -n "earth" -z13 simp
 
 tippecanoe --projection=EPSG:3857 -o earth-z15.pmtiles -l earth -n "earth" -z15 --drop-densest-as-needed --extend-zooms-if-still-dropping simplified_land_polygons.json
 
+---
+
+10m Natural Earth
+
+/mnt/c/Users/jaffa/Downloads/10m_physical
+
+ne_10m_land.shp
+ne_10m_land_ocean_label_points.shp
+ne_10m_minor_islands.shp
+ne_10m_minor_islands_label_points.shp
+
+// LAND:
+ogr2ogr -f GeoJSON ne_10m_land.geojson ne_10m_land.shp
+tippecanoe -f -z6 -o ne_10m_land.pmtiles --drop-densest-as-needed --extend-zooms-if-still-dropping ne_10m_land.geojson
+
+tippecanoe -f -zg -o ne_10m_land-earth.pmtiles -l earth -n "earth" --drop-densest-as-needed --extend-zooms-if-still-dropping ne_10m_land.geojson
+
+// MINOR ISLANDS:
+ogr2ogr -f GeoJSON ne_10m_minor_islands.geojson ne_10m_minor_islands.shp
+tippecanoe -f -z6 -o ne_10m_minor_islands.pmtiles --drop-densest-as-needed --extend-zooms-if-still-dropping ne_10m_minor_islands.geojson
+
+tippecanoe -f -zg -o ne_10m_minor_islands.pmtiles -l earth -n "earth" --drop-densest-as-needed --extend-zooms-if-still-dropping ne_10m_minor_islands.geojson
+
+// LAND OCEAN LABEL POINTS:
+ogr2ogr -f GeoJSON ne_10m_land_ocean_label_points.geojson ne_10m_land_ocean_label_points.shp
+tippecanoe -f -z6 -o ne_10m_land_ocean_label_points.pmtiles --drop-densest-as-needed --extend-zooms-if-still-dropping ne_10m_land_ocean_label_points.geojson
+
+// MINOR ISLAND LABEL POINTS:
+ogr2ogr -f GeoJSON ne_10m_minor_islands_label_points.geojson ne_10m_minor_islands_label_points.shp
+tippecanoe -f -z6 -o ne_10m_minor_islands_label_points.pmtiles --drop-densest-as-needed --extend-zooms-if-still-dropping ne_10m_minor_islands_label_points.geojson
+
+// MARINR POLYGONS:
+ogr2ogr -f GeoJSON ne_10m_geography_marine_polys.geojson ne_10m_geography_marine_polys.shp
+tippecanoe -f -z6 -o ne_10m_geography_marine_polys.pmtiles --drop-densest-as-needed --extend-zooms-if-still-dropping ne_10m_geography_marine_polys.geojson
+
+
+
+--overzoom
+
+tile-join -f -o ne_10m_land_islands.pmtiles \
+ne_10m_land.pmtiles \
+ne_10m_minor_islands.pmtiles \
+ne_10m_land_ocean_label_points.pmtiles \
+ne_10m_minor_islands_label_points.pmtiles \
+ne_10m_geography_marine_polys.pmtiles
+
+
+---
 
 test with:
 https://maps.protomaps.com/

@@ -1,4 +1,4 @@
-const mmsiMidToCountry = new Map([
+export const mmsiMidToCountry = new Map([
     ['401', { 'code': 'AF', 'name': 'Afghanistan' }],
     ['201', { 'code': 'AL', 'name': 'Albania' }],
     ['605', { 'code': 'DZ', 'name': 'Algeria' }],
