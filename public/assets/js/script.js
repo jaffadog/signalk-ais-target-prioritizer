@@ -24,7 +24,6 @@ var offsetLatitude = 0;
 var offsetLongitude = 0;
 var disableMoveend = false;
 var disableMapPanTo = false;
-var response;
 var targets = new Map();
 var pluginTargets;
 var boatMarkers = new Map();
@@ -51,36 +50,12 @@ const bsOffcanvasSettings = new bootstrap.Offcanvas('#offcanvasSettings');
 const bsOffcanvasEditProfiles = new bootstrap.Offcanvas('#offcanvasEditProfiles');
 const bsOffcanvasTargetList = new bootstrap.Offcanvas('#offcanvasTargetList');
 
-response = await fetch("./assets/js/defaultCollisionProfiles.json", {
-    credentials: 'include'
-});
-if (response.status == 401) {
-    location.href = "/admin/#/login";
-}
-if (!response.ok) {
-    console.error(`Response status: ${response.status} from ${response.url}`);
-    throw new Error(`Response status: ${response.status} from ${response.url}`);
-}
-const defaultCollisionProfiles = await response.json();
+const defaultCollisionProfiles = await getHttpResponse("./assets/js/defaultCollisionProfiles.json", { throwErrors: true });
 
 // load collisionProfiles
 // /plugins/${PLUGIN_ID}/getCollisionProfiles
-response = await fetch(`/plugins/${PLUGIN_ID}/getCollisionProfiles`, {
-    credentials: 'include'
-});
-if (response.status == 401) {
-    location.href = "/admin/#/login";
-}
-if (!response.ok) {
-    console.error(`Response status: ${response.status} from ${response.url}`);
-    throw new Error(`Response status: ${response.status} from ${response.url}`);
-}
-var text = await response.text();
-if (!text) {
-    showError("The SignalK AIS Target Prioritizer plugin is not running. Please check the plugin status.");
-    throw new Error("Error: SignalK AIS Target Prioritizer plugin is not running.");
-}
-collisionProfiles = JSON.parse(text);
+collisionProfiles = await getHttpResponse(`/plugins/${PLUGIN_ID}/getCollisionProfiles`, { throwErrors: true });
+
 console.log('collisionProfiles', collisionProfiles);
 if (!collisionProfiles.current) {
     console.log('using default collisionProfiles');
@@ -92,36 +67,16 @@ document.getElementById("activeProfile").value = collisionProfiles.current;
 document.getElementById("checkNoSleep").checked = (localStorage.getItem("checkNoSleep") == "true");
 configureNoSleep();
 
-response = await fetch('/signalk/v1/api/resources/charts', { credentials: 'include' });
-if (response.status == 401) {
-    location.href = "/admin/#/login";
-}
-if (!response.ok) {
-    console.error(`Response status: ${response.status} from ${response.url}`);
-    throw new Error(`Response status: ${response.status} from ${response.url}`);
-}
-var charts = await response.json();
+var charts = await getHttpResponse("/signalk/v1/api/resources/charts", {
+    throwErrors: false,
+    ignore404: true,
+    ignoreEmptyResponse: true
+});
 
-response = await fetch('/signalk/v1/api/vessels/self', { credentials: 'include' });
-if (response.status == 401) {
-    location.href = "/admin/#/login";
-}
-if (!response.ok) {
-    console.error(`Response status: ${response.status} from ${response.url}`);
-    throw new Error(`Response status: ${response.status} from ${response.url}`);
-}
-var data = await response.json();
+var data = await getHttpResponse("/signalk/v1/api/vessels/self", { throwErrors: true });
 selfMmsi = data.mmsi;
 
-response = await fetch(`/plugins/${PLUGIN_ID}/getTargets`, { credentials: 'include' });
-if (response.status == 401) {
-    location.href = "/admin/#/login";
-}
-if (!response.ok) {
-    console.error(`Response status: ${response.status} from ${response.url}`);
-} else {
-    pluginTargets = await response.json();
-}
+pluginTargets = await getHttpResponse(`/plugins/${PLUGIN_ID}/getTargets`);
 
 const map = L.map('map', {
     zoom: DEFAULT_MAP_ZOOM,
@@ -448,7 +403,7 @@ async function saveCollisionProfiles() {
     console.log('*** save collisionProfiles to server', collisionProfiles);
 
     // /plugins/${PLUGIN_ID}/setCollisionProfiles
-    response = await fetch(`/plugins/${PLUGIN_ID}/setCollisionProfiles`, {
+    var response = await fetch(`/plugins/${PLUGIN_ID}/setCollisionProfiles`, {
         credentials: 'include',
         method: 'PUT',
         body: JSON.stringify(collisionProfiles),
@@ -670,26 +625,12 @@ async function refresh() {
 
         // FIXME switch to the streaming api? does it send atons?
 
-        response = await fetch('/signalk/v1/api/vessels', { credentials: 'include' });
-        if (response.status == 401) {
-            location.href = "/admin/#/login";
-        }
-        if (!response.ok) {
-            throw new Error(`Response status: ${response.status} from ${response.url}`);
-        }
-        var vessels = await response.json();
+        var vessels = await getHttpResponse("/signalk/v1/api/vessels", { throwErrors: true });
         //console.log(vessels);
 
         // we expect 404s from this when there are no atons:
-        response = await fetch('/signalk/v1/api/atons', { credentials: 'include' });
-        if (response.status == 401) {
-            location.href = "/admin/#/login";
-        }
-        // we expect 404 errors querying atons - as there may not be any - and this is how signalk responds
-        if (response.ok) {
-            var atons = await response.json();
-            vessels = Object.assign(vessels, atons);
-        }
+        var atons = await getHttpResponse("/signalk/v1/api/atons", { ignore404: true });
+        vessels = Object.assign(vessels, atons);
 
         validTargetCount = 0;
         filteredTargetCount = 0;
@@ -778,16 +719,7 @@ async function muteAllAlarms() {
 
     // mute alarms in the plugin as well
     // /plugins/${PLUGIN_ID}/muteAllAlarms
-    response = await fetch(`/plugins/${PLUGIN_ID}/muteAllAlarms`, {
-        credentials: 'include'
-    });
-    if (response.status == 401) {
-        location.href = "/admin/#/login";
-    }
-    if (!response.ok) {
-        console.error(`Response status: ${response.status} from ${response.url}`);
-        throw new Error(`Response status: ${response.status} from ${response.url}`);
-    }
+    await getHttpResponse(`/plugins/${PLUGIN_ID}/muteAllAlarms`, { throwErrors: true, ignoreEmptyResponse: true });
 }
 
 async function handleButtonMuteToggle() {
@@ -799,16 +731,7 @@ async function handleButtonMuteToggle() {
     console.log("setting alarmIsMuted", target.mmsi, target.name, target.alarmIsMuted);
 
     // GET /plugins/${plugin.id}/setAlarmIsMuted/:mmsi/:alarmIsMuted
-    response = await fetch(`/plugins/${PLUGIN_ID}/setAlarmIsMuted/${target.mmsi}/${target.alarmIsMuted}`, {
-        credentials: 'include'
-    });
-    if (response.status == 401) {
-        location.href = "/admin/#/login";
-    }
-    if (!response.ok) {
-        console.error(`Response status: ${response.status} from ${response.url}`);
-        throw new Error(`Response status: ${response.status} from ${response.url}`);
-    }
+    await getHttpResponse(`/plugins/${PLUGIN_ID}/setAlarmIsMuted/${target.mmsi}/${target.alarmIsMuted}`, { throwErrors: true, ignoreEmptyResponse: true });
 }
 
 function updateButtonMuteToggleIcon(target) {
@@ -1479,3 +1402,40 @@ function projectedLocation(start, θ, distance) {
     return [toDegrees(φ2), (toDegrees(λ2) + 540) % 360 - 180]; // normalise to −180..+180°
 }
 
+async function getHttpResponse(url, options) {
+    var jsonResponse;
+    var response;
+    try {
+        response = await fetch(url, { credentials: 'include' });
+        if (response.status == 401) {
+            location.href = "/admin/#/login";
+        }
+        if (!response.ok) {
+            if (response.status == 404 && options?.ignore404) {
+                //  ignore 404s if so directed
+            } else {
+                console.error(`Response status: ${response.status} from ${url}`);
+                if (options?.throwErrors) {
+                    throw new Error(`Response status: ${response.status} from ${url}`);
+                }
+            }
+        } else {
+            var textResponse = await response.text();
+            if (textResponse) {
+                jsonResponse = JSON.parse(textResponse);
+            } else if (!options?.ignoreEmptyResponse) {
+                throw new Error(`Error: Got empty json response from ${url}`);
+            }
+        }
+    } catch (error) {
+        console.error(`Error in getHttpResponse: url=${url}, options=${options}, status=${response?.status || "none"}`, error);
+        if (options?.throwErrors) {
+            //showError("The SignalK AIS Target Prioritizer plugin is not running. Please check the plugin status.");
+            showError(`Encountered an error retrieving data from the Signal K server. Please ensure that the Signal K `
+                + `server is running and that the AIS Target Prioritizer plugin is enabled. `
+                + `url=${url}, options=${JSON.stringify(options)}, status=${response?.status || "none"}, error=${error.message}`);
+            throw new Error(`Error in getHttpResponse: url=${url}, options=${JSON.stringify(options)}, status=${response?.status || "none"}, error=${error.message}`);
+        }
+    }
+    return jsonResponse;
+}
