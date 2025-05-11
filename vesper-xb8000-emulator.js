@@ -1,15 +1,20 @@
+"use strict";
+
+// FIXME rot coming in in radians now
+
+var aisUtilsPromise = import("./public/assets/js/ais-utils.mjs");
+let toDegrees;
+
 const express = require('express');
 const expressApp = express();
 
-var net = require('net');
 var _ = require('lodash');
-const fs = require('fs');
-const path = require('path');
 
 var SSE = require('./sse.js')
 var sse = new SSE();
 
 const proxy = require("node-tcp-proxy");
+//const { clearInterval } = require("timers");
 const mdns = require('multicast-dns')();
 
 const METERS_PER_NM = 1852;
@@ -32,7 +37,7 @@ var targets = new Map();
 var positions = [];
 var app;
 var collisionProfiles;
-var selfMmsi, selfName, selfCallsign, selfType;
+var selfMmsi, selfName, selfCallsign, selfTypeId;
 
 var httpServer;
 var tcpProxyServer;
@@ -44,6 +49,7 @@ var streamingAnchorWatchInterval;
 var streamingVesselPositionHistoryInterval;
 var savePositionInterval;
 var anchorWatchInterval;
+var refreshInterval;
 
 var anchorWatchControl = {
     setAnchor: 0,
@@ -190,199 +196,212 @@ function getDeviceModelXml() {
 }
 
 function getGpsModelXml() {
-    return `<?xml version='1.0' encoding='ISO-8859-1' ?>
+    var xml = `<?xml version='1.0' encoding='ISO-8859-1' ?>
 <Watchmate version='1.0' priority='0'>
-<GPSModel>
-<hasGPS>1</hasGPS>
-<latitudeText>${formatLat(gps.lat)}</latitudeText>
-<longitudeText>${formatLon(gps.lon)}</longitudeText>
+<GPSModel>`;
+    if (gps && gps.isValid) {
+        xml += `<hasGPS>1</hasGPS>
+<latitudeText>${formatLat(gps.latitude)}</latitudeText>
+<longitudeText>${formatLon(gps.longitude)}</longitudeText>
 <COG>${formatCog(gps.cog)}</COG>
 <SOG>${formatSog(gps.sog)}</SOG>
 <HDGT>${formatCog(gps.hdg)}</HDGT>
-<magvar>${formatFixed(gps.magvar, 2)}</magvar>
+<magvar>${formatFixed(toDegrees(gps.magvar, 2))}</magvar>
 <hasBowPosition>0</hasBowPosition>
 <sim>stop</sim>
-</GPSModel>
+`;
+    } else {
+        xml += `<hasGPS>0</hasGPS>`;
+    }
+    xml += `</GPSModel>
 </Watchmate>`;
+
+    return xml;
 }
 
 function getGpsModelAdvancedXml() {
-    return `<?xml version='1.0' encoding='ISO-8859-1' ?>
-<Watchmate version='1.0' priority='0'>
-<GPSModel>
-<hasGPS>1</hasGPS>
-<latitudeText>${formatLat(gps.lat)}</latitudeText>
-<longitudeText>${formatLon(gps.lon)}</longitudeText>
-<COG>${formatCog(gps.cog)}</COG>
-<SOG>${formatSog(gps.sog)}</SOG>
-<HDGT>${formatCog(gps.hdg)}</HDGT>
-<magvar>${formatFixed(gps.magvar, 2)}</magvar>
-<hasBowPosition>0</hasBowPosition>
-<sim>stop</sim>
-<Fix>
-<fixType>2</fixType>
-<AutoMode>1</AutoMode>
-<HDOP>0.94</HDOP>
-<PDOP>1.86</PDOP>
-<VDOP>1.61</VDOP>
-<metersAccuracy>1.9</metersAccuracy>
-<fix_ids>2</fix_ids>
-<fix_ids>5</fix_ids>
-<fix_ids>6</fix_ids>
-<fix_ids>9</fix_ids>
-<fix_ids>12</fix_ids>
-<fix_ids>17</fix_ids>
-<fix_ids>19</fix_ids>
-<fix_ids>23</fix_ids>
-<fix_ids>25</fix_ids>
-</Fix>
-<GPSSatsInView>
-<SatID>2</SatID>
-<El>059</El>
-<Az>296</Az>
-<SNR>39</SNR>
-</GPSSatsInView>
-<GPSSatsInView>
-<SatID>5</SatID>
-<El>028</El>
-<Az>210</Az>
-<SNR>40</SNR>
-</GPSSatsInView>
-<GPSSatsInView>
-<SatID>6</SatID>
-<El>059</El>
-<Az>042</Az>
-<SNR>46</SNR>
-</GPSSatsInView>
-<GPSSatsInView>
-<SatID>9</SatID>
-<El>024</El>
-<Az>079</Az>
-<SNR>42</SNR>
-</GPSSatsInView>
-<GPSSatsInView>
-<SatID>12</SatID>
-<El>047</El>
-<Az>274</Az>
-<SNR>36</SNR>
-</GPSSatsInView>
-<GPSSatsInView>
-<SatID>17</SatID>
-<El>029</El>
-<Az>121</Az>
-<SNR>38</SNR>
-</GPSSatsInView>
-<GPSSatsInView>
-<SatID>19</SatID>
-<El>055</El>
-<Az>111</Az>
-<SNR>29</SNR>
-</GPSSatsInView>
-<GPSSatsInView>
-<SatID>23</SatID>
-<El>015</El>
-<Az>053</Az>
-<SNR>37</SNR>
-</GPSSatsInView>
-<GPSSatsInView>
-<SatID>25</SatID>
-<El>023</El>
-<Az>312</Az>
-<SNR>33</SNR>
-</GPSSatsInView>
-</GPSModel>
-</Watchmate>`;
+    var xml = `<?xml version = '1.0' encoding = 'ISO-8859-1' ?>
+        <Watchmate version='1.0' priority='0'>
+            <GPSModel>`;
+    if (gps && gps.isValid) {
+        xml += `<hasGPS>1</hasGPS>
+                <latitudeText>${formatLat(gps.latitude)}</latitudeText>
+                <longitudeText>${formatLon(gps.longitude)}</longitudeText>
+                <COG>${formatCog(gps.cog)}</COG>
+                <SOG>${formatSog(gps.sog)}</SOG>
+                <HDGT>${formatCog(gps.hdg)}</HDGT>
+                <magvar>${formatFixed(toDegrees(gps.magvar, 2))}</magvar>
+                <hasBowPosition>0</hasBowPosition>
+                <sim>stop</sim>
+                <Fix>
+                    <fixType>2</fixType>
+                    <AutoMode>1</AutoMode>
+                    <HDOP>0.94</HDOP>
+                    <PDOP>1.86</PDOP>
+                    <VDOP>1.61</VDOP>
+                    <metersAccuracy>1.9</metersAccuracy>
+                    <fix_ids>2</fix_ids>
+                    <fix_ids>5</fix_ids>
+                    <fix_ids>6</fix_ids>
+                    <fix_ids>9</fix_ids>
+                    <fix_ids>12</fix_ids>
+                    <fix_ids>17</fix_ids>
+                    <fix_ids>19</fix_ids>
+                    <fix_ids>23</fix_ids>
+                    <fix_ids>25</fix_ids>
+                </Fix>
+                <GPSSatsInView>
+                    <SatID>2</SatID>
+                    <El>059</El>
+                    <Az>296</Az>
+                    <SNR>39</SNR>
+                </GPSSatsInView>
+                <GPSSatsInView>
+                    <SatID>5</SatID>
+                    <El>028</El>
+                    <Az>210</Az>
+                    <SNR>40</SNR>
+                </GPSSatsInView>
+                <GPSSatsInView>
+                    <SatID>6</SatID>
+                    <El>059</El>
+                    <Az>042</Az>
+                    <SNR>46</SNR>
+                </GPSSatsInView>
+                <GPSSatsInView>
+                    <SatID>9</SatID>
+                    <El>024</El>
+                    <Az>079</Az>
+                    <SNR>42</SNR>
+                </GPSSatsInView>
+                <GPSSatsInView>
+                    <SatID>12</SatID>
+                    <El>047</El>
+                    <Az>274</Az>
+                    <SNR>36</SNR>
+                </GPSSatsInView>
+                <GPSSatsInView>
+                    <SatID>17</SatID>
+                    <El>029</El>
+                    <Az>121</Az>
+                    <SNR>38</SNR>
+                </GPSSatsInView>
+                <GPSSatsInView>
+                    <SatID>19</SatID>
+                    <El>055</El>
+                    <Az>111</Az>
+                    <SNR>29</SNR>
+                </GPSSatsInView>
+                <GPSSatsInView>
+                    <SatID>23</SatID>
+                    <El>015</El>
+                    <Az>053</Az>
+                    <SNR>37</SNR>
+                </GPSSatsInView>
+                <GPSSatsInView>
+                    <SatID>25</SatID>
+                    <El>023</El>
+                    <Az>312</Az>
+                    <SNR>33</SNR>
+                </GPSSatsInView>`;
+    } else {
+        xml += `<hasGPS>0</hasGPS>`;
+    }
+    xml += `</GPSModel >
+        </Watchmate > `;
+
+    return xml;
 }
 
 
 function getTxStatusModelXml() {
-    return `<?xml version='1.0' encoding='ISO-8859-1' ?>
-<Watchmate version='1.0' priority='0'>
-<TxStatus>
-<warnMMSI>0</warnMMSI>
-<warnSilent>0</warnSilent>
-<warnStartup>0</warnStartup>
-<warnGPS>0</warnGPS>
-<warnPosReportSent>0</warnPosReportSent>
-<statusVSWR>1</statusVSWR>
-<valueVSWR>6</valueVSWR>
-<antennaInUse>0</antennaInUse>
-<gpsSBAS>0</gpsSBAS>
-<gpsSmooth>1</gpsSmooth>
-<gpsFastUpdate>0</gpsFastUpdate>
-<nmeaInBaud>4800</nmeaInBaud>
-<nmeaOutBaud>38400</nmeaOutBaud>
-<nmeaEchoAIS>1</nmeaEchoAIS>
-<nmeaEchoVDO>1</nmeaEchoVDO>
-<nmeaEchoGPS>1</nmeaEchoGPS>
-<nmeaEchoN2K>1</nmeaEchoN2K>
-<nmeaEchoNMEA>1</nmeaEchoNMEA>
-<n2kBus>2</n2kBus>
-<n2kProdCode>9511</n2kProdCode>
-<n2kAdr>21</n2kAdr>
-<n2kDevInst>0</n2kDevInst>
-<n2kSysInst>0</n2kSysInst>
-<n2kPosRate>500</n2kPosRate>
-<n2kCogRate>500</n2kCogRate>
-<externalAlarm>2</externalAlarm>
-<extSwitchFunc>2</extSwitchFunc>
-<extSwitchState>0</extSwitchState>
-<channelStatus>
-<frequency>161.975</frequency>
-<mode>1</mode>
-<rssi>-105</rssi>
-<rxCount>118</rxCount>
-<txCount>3</txCount>
-</channelStatus>
-<channelStatus>
-<frequency>162.025</frequency>
-<mode>1</mode>
-<rssi>-104</rssi>
-<rxCount>121</rxCount>
-<txCount>0</txCount>
-</channelStatus>
-</TxStatus>
-</Watchmate>`;
+    return `<?xml version = '1.0' encoding = 'ISO-8859-1' ?>
+        <Watchmate version='1.0' priority='0'>
+            <TxStatus>
+                <warnMMSI>0</warnMMSI>
+                <warnSilent>0</warnSilent>
+                <warnStartup>0</warnStartup>
+                <warnGPS>0</warnGPS>
+                <warnPosReportSent>0</warnPosReportSent>
+                <statusVSWR>1</statusVSWR>
+                <valueVSWR>6</valueVSWR>
+                <antennaInUse>0</antennaInUse>
+                <gpsSBAS>0</gpsSBAS>
+                <gpsSmooth>1</gpsSmooth>
+                <gpsFastUpdate>0</gpsFastUpdate>
+                <nmeaInBaud>4800</nmeaInBaud>
+                <nmeaOutBaud>38400</nmeaOutBaud>
+                <nmeaEchoAIS>1</nmeaEchoAIS>
+                <nmeaEchoVDO>1</nmeaEchoVDO>
+                <nmeaEchoGPS>1</nmeaEchoGPS>
+                <nmeaEchoN2K>1</nmeaEchoN2K>
+                <nmeaEchoNMEA>1</nmeaEchoNMEA>
+                <n2kBus>2</n2kBus>
+                <n2kProdCode>9511</n2kProdCode>
+                <n2kAdr>21</n2kAdr>
+                <n2kDevInst>0</n2kDevInst>
+                <n2kSysInst>0</n2kSysInst>
+                <n2kPosRate>500</n2kPosRate>
+                <n2kCogRate>500</n2kCogRate>
+                <externalAlarm>2</externalAlarm>
+                <extSwitchFunc>2</extSwitchFunc>
+                <extSwitchState>0</extSwitchState>
+                <channelStatus>
+                    <frequency>161.975</frequency>
+                    <mode>1</mode>
+                    <rssi>-105</rssi>
+                    <rxCount>118</rxCount>
+                    <txCount>3</txCount>
+                </channelStatus>
+                <channelStatus>
+                    <frequency>162.025</frequency>
+                    <mode>1</mode>
+                    <rssi>-104</rssi>
+                    <rxCount>121</rxCount>
+                    <txCount>0</txCount>
+                </channelStatus>
+            </TxStatus>
+        </Watchmate>`;
 }
 
 // anchorLatitude of 399510671 == N 39° 57.0645
 // 39.9510671 = 39 deg 57.064026 mins
 function getAnchorWatchModelXml() {
-    return `<?xml version='1.0' encoding='ISO-8859-1' ?>
-<Watchmate version='1.0' priority='0'>
-<AnchorWatch>
-<setAnchor>${anchorWatchControl.setAnchor}</setAnchor>
-<alarmRadius>${anchorWatchControl.alarmRadius}</alarmRadius>
-<alarmsEnabled>${anchorWatchControl.alarmsEnabled}</alarmsEnabled>
-<anchorLatitude>${anchorWatchControl.anchorPosition.a}</anchorLatitude>
-<anchorLongitude>${anchorWatchControl.anchorPosition.o}</anchorLongitude>
-<anchorCorrectedLat></anchorCorrectedLat>
-<anchorCorrectedLong></anchorCorrectedLong>
-<usingCorrected>0</usingCorrected>
-<distanceToAnchor>${formatFixed(anchorWatchControl.distanceToAnchor, 1)}</distanceToAnchor>
-<bearingToAnchor>${anchorWatchControl.bearingToAnchor || ''}</bearingToAnchor>
-<alarmTriggered>${anchorWatchControl.alarmTriggered}</alarmTriggered>
-</AnchorWatch>
-</Watchmate>`;
+    return `<?xml version = '1.0' encoding = 'ISO-8859-1' ?>
+        <Watchmate version='1.0' priority='0'>
+            <AnchorWatch>
+                <setAnchor>${anchorWatchControl.setAnchor}</setAnchor>
+                <alarmRadius>${anchorWatchControl.alarmRadius}</alarmRadius>
+                <alarmsEnabled>${anchorWatchControl.alarmsEnabled}</alarmsEnabled>
+                <anchorLatitude>${anchorWatchControl.anchorPosition.a}</anchorLatitude>
+                <anchorLongitude>${anchorWatchControl.anchorPosition.o}</anchorLongitude>
+                <anchorCorrectedLat></anchorCorrectedLat>
+                <anchorCorrectedLong></anchorCorrectedLong>
+                <usingCorrected>0</usingCorrected>
+                <distanceToAnchor>${formatFixed(anchorWatchControl.distanceToAnchor, 1)}</distanceToAnchor>
+                <bearingToAnchor>${anchorWatchControl.bearingToAnchor || ''}</bearingToAnchor>
+                <alarmTriggered>${anchorWatchControl.alarmTriggered}</alarmTriggered>
+            </AnchorWatch>
+        </Watchmate>`;
 }
 
 function getPreferencesXml() {
-    return `<?xml version='1.0' encoding='ISO-8859-1' ?>
-<Watchmate version='1.0' priority='0'>
-<Prefs>
-<PrefsRequested>
-{2,{"accept.demo_mode",""},{"profile.current",""}}
-</PrefsRequested>
-<Pref prefname='accept.demo_mode'>0</Pref>
-<Pref prefname='profile.current'>${collisionProfiles.current.toUpperCase()}</Pref>
-</Prefs>
-</Watchmate>`;
+    return `<?xml version = '1.0' encoding = 'ISO-8859-1' ?>
+        <Watchmate version='1.0' priority='0'>
+            <Prefs>
+                <PrefsRequested>
+                    {2, { "accept.demo_mode", ""}, { "profile.current", ""}}
+                </PrefsRequested>
+                <Pref prefname='accept.demo_mode'>0</Pref>
+                <Pref prefname='profile.current'>${collisionProfiles.current.toUpperCase()}</Pref>
+            </Prefs>
+        </Watchmate>`;
 }
 
 function getAlarmsXml() {
     var response =
-        `<?xml version='1.0' encoding='ISO-8859-1' ?>
-<Watchmate version='1.0' priority='1'>`;
+        `<?xml version = '1.0' encoding = 'ISO-8859-1' ?>
+        <Watchmate version='1.0' priority='1'>`;
 
     for (var target of targets.values()) {
         if (target.alarmState) {
@@ -395,7 +414,7 @@ function getAlarmsXml() {
 <TCPA>${formatTcpa(target.tcpa)}</TCPA>
 <Range>${formatCpa(target.range)}</Range>
 <BearingTrue>${target.bearing || ''}</BearingTrue>
-<TargetType>${target.targetType || ''}</TargetType>
+<TargetType>${target.vesperTargetType || ''}</TargetType>
 </Alarm>`;
         }
     }
@@ -430,9 +449,9 @@ function getTargetsXml() {
 <MMSI>${target.mmsi}</MMSI>
 <Name>${xmlescape(target.name) || ''}</Name>
 <CallSign>${xmlescape(target.callsign) || ''}</CallSign> 
-<VesselTypeString>${target.vesselTypeString || ''}</VesselTypeString>
-<VesselType>${target.vesselType || ''}</VesselType>
-<TargetType>${target.targetType || ''}</TargetType>
+<VesselTypeString>${target.type || ''}</VesselTypeString>
+<VesselType>${target.typeId || ''}</VesselType>
+<TargetType>${target.vesperTargetType || ''}</TargetType>
 <Order>${target.order || ''}</Order>
 <TCPA>${formatTcpa(target.tcpa)}</TCPA>
 <CPA>${formatCpa(target.cpa)}</CPA>
@@ -476,22 +495,22 @@ function getTargetDetailsXml(mmsi) {
 <HDG>${formatCog(target.hdg)}</HDG>
 <ROT>${formatRot(target.rot)}</ROT>
 <Altitude>-1</Altitude>
-<latitudeText>${formatLat(target.lat)}</latitudeText>
-<longitudeText>${formatLon(target.lon)}</longitudeText>
-<OffPosition>${target.offPosition || '0'}</OffPosition>
-<Virtual>${target.virtual || '0'}</Virtual>
+<latitudeText>${formatLat(target.latitude)}</latitudeText>
+<longitudeText>${formatLon(target.longitude)}</longitudeText>
+<OffPosition>${target.isOffPosition || '0'}</OffPosition>
+<Virtual>${target.isVirtual || '0'}</Virtual>
 <Dimensions>${target.length && target.width ? target.length + 'm x ' + target.width + 'm' : '---'}</Dimensions >
-<Draft>${target.draught ? target.draught + 'm' : '---'}</Draft>
-<ClassType>${target.classType || ''}</ClassType>
+<Draft>${target.draft ? target.draft + 'm' : '---'}</Draft>
+<ClassType>${target.aisClass || ''}</ClassType>
 <Destination>${xmlescape(target.destination) || ''}</Destination>
 <ETAText></ETAText>
-<NavStatus>${stateMappingTextToNumeric[target.navstatus] || ''}</NavStatus>
+<NavStatus>${stateMappingTextToNumeric[target.status] || ''}</NavStatus>
 <MMSI>${mmsi || ''}</MMSI>
 <Name>${xmlescape(target.name) || ''}</Name>
 <CallSign>${xmlescape(target.callsign) || ''}</CallSign> 
-<VesselTypeString>${target.vesselTypeString || ''}</VesselTypeString>
-<VesselType>${target.vesselType || ''}</VesselType>
-<TargetType>${target.targetType || ''}</TargetType>
+<VesselTypeString>${target.type || ''}</VesselTypeString>
+<VesselType>${target.typeId || ''}</VesselType>
+<TargetType>${target.vesperTargetType || ''}</TargetType>
 <Order>${target.order || ''}</Order>
 <TCPA>${formatTcpa(target.tcpa)}</TCPA>
 <CPA>${formatCpa(target.cpa)}</CPA>
@@ -516,7 +535,7 @@ function getOwnStaticDataXml() {
 <MMSI>${selfMmsi}</MMSI>
 <Name>${selfName}</Name>
 <CallSign>${selfCallsign}</CallSign>
-<VesselType>${selfType}</VesselType>
+<VesselType>${selfTypeId}</VesselType>
 <VesselSize a='1' b='1' c='1' d='1'/>
 </OwnStaticData>
 </Watchmate>`;
@@ -539,16 +558,18 @@ function setupSse() {
             // 80:VesselPositionUnderway{"a":380704720,"o":-785886085,"cog":220.28,"sog":0,"var":-9.77,"t":1576873731}
             // sse.send("75:VesselPositionUnderway{\"a\":407106833,\"o\":-740460408,\"cog\":0,\"sog\":0.0,\"var\":-13,\"t\":1576639404}\n\n");
 
-            var vesselPositionUnderway = {
-                "a": Math.round(gps.lat * 1e7),
-                "o": Math.round(gps.lon * 1e7),
-                "cog": gps.cog,
-                "sog": gps.sog * KNOTS_PER_M_PER_S,
-                "var": gps.magvar,
-                "t": gps.time
-            };
+            if (gps && gps.isValid) {
+                var vesselPositionUnderway = {
+                    "a": Math.round(gps.latitude * 1e7),
+                    "o": Math.round(gps.longitude * 1e7),
+                    "cog": toDegrees(gps.cog),
+                    "sog": gps.sog * KNOTS_PER_M_PER_S,
+                    "var": toDegrees(gps.magvar),
+                    "t": gps.lastSeenDate.getTime()
+                };
 
-            sendSseMsg("VesselPositionUnderway", vesselPositionUnderway);
+                sendSseMsg("VesselPositionUnderway", vesselPositionUnderway);
+            }
         }, 500);
 
         // send AnchorWatchControl
@@ -585,11 +606,11 @@ function setupSse() {
 
 // save position - keep up to 2880 positions (24 hours at 30 sec cadence)
 savePositionInterval = setInterval(() => {
-    if (gps.lat) {
+    if (gps && gps.isValid) {
         positions.unshift({
-            a: Math.round(gps.lat * 1e7),
-            o: Math.round(gps.lon * 1e7),
-            t: gps.time
+            a: Math.round(gps.latitude * 1e7),
+            o: Math.round(gps.longitude * 1e7),
+            t: gps.lastSeenDate.getTime()
         });
 
         if (positions.length > 2880) {
@@ -607,17 +628,17 @@ anchorWatchInterval = setInterval(() => {
 
 async function updateAnchorWatch() {
     try {
-        if (!anchorWatchControl.setAnchor) {
+        if (!anchorWatchControl.setAnchor || !gps || !gps.isValid) {
             return;
         }
 
         // in meters
         anchorWatchControl.distanceToAnchor = getDistanceFromLatLonInMeters(
-            gps.lat, gps.lon,
+            gps.latitude, gps.longitude,
             anchorWatchControl.anchorPosition.a / 1e7, anchorWatchControl.anchorPosition.o / 1e7);
 
         anchorWatchControl.bearingToAnchor = Math.round(getRhumbLineBearing(
-            gps.lat, gps.lon,
+            gps.latitude, gps.longitude,
             anchorWatchControl.anchorPosition.a / 1e7, anchorWatchControl.anchorPosition.o / 1e7));
 
 
@@ -699,7 +720,7 @@ function setupHttpServer() {
             res.status(404).end();
             /*
             res.set('Content-Type', 'text/xml');
-            var xml = `<? xml version = '1.0' encoding = 'ISO-8859-1' ?>
+            var xml = `<?xml version = '1.0' encoding = 'ISO-8859-1' ?>
                 <Watchmate version='1.0' priority='0'>
                 </Watchmate>`;
             res.send(Buffer.from(xml);
@@ -966,17 +987,17 @@ function setAnchored() {
         alarmRadius: 30,
         alarmsEnabled: 1,
         alarmTriggered: 0,
-        anchorLatitude: Math.round(gps.lat * 1e7),
-        anchorLongitude: Math.round(gps.lon * 1e7),
+        anchorLatitude: Math.round(gps.latitude * 1e7),
+        anchorLongitude: Math.round(gps.longitude * 1e7),
         anchorCorrectedLat: 0,
         anchorCorrectedLong: 0,
         usingCorrected: 0,
         distanceToAnchor: 0,
         bearingToAnchor: 0,
         anchorPosition: {
-            a: Math.round(gps.lat * 1e7),
-            o: Math.round(gps.lon * 1e7),
-            t: gps.time
+            a: Math.round(gps.latitude * 1e7),
+            o: Math.round(gps.longitude * 1e7),
+            t: gps.lastSeenDate.getTime()
         }
     };
 
@@ -1015,8 +1036,8 @@ function setUnderway() {
 function muteAlarms() {
     for (let target of targets.values()) {
         if (target.alarmState === 'danger') {
-            // FIXME nothing is consuming alarmMuted
-            target.alarmMuted = true;
+            // FIXME nothing is consuming alarmIsMuted
+            target.alarmIsMuted = true;
         }
     }
 
@@ -1053,11 +1074,12 @@ function formatSog(sog) {
 }
 
 function formatCog(cog) {
-    return cog === undefined ? '' : ('00' + Math.round(cog)).slice(-3);
+    return cog === undefined ? '' : ('00' + Math.round(toDegrees(cog))).slice(-3);
 }
 
 function formatRot(rot) {
     // sample: 3°/min
+    // to decode the field value, divide by 4.733and then square it. Sign of the field value should be preserved
     return rot === undefined || rot == 0 || rot == -128 ? '' : Math.round(Math.pow(rot / 4.733, 2)) + '°/min';
 }
 
@@ -1105,27 +1127,72 @@ function xmlescape(string, ignore) {
     })
 }
 
-module.exports.collisionProfiles = collisionProfiles;
+// derive target data this is only used by the vesper emulator
+function refreshTargetData() {
+    gps = targets.get(selfMmsi);
+
+    targets.forEach((target, mmsi) => {
+        // 111MIDXXX        SAR (Search and Rescue) aircraft
+        if (mmsi.startsWith('111')) {
+            target.vesperTargetType = 5;
+        }
+        // targetType determines what kind of symbol gets used to represent the target in the vesper mobile app
+        // 970MIDXXX        AIS SART (Search and Rescue Transmitter)
+        else if (mmsi.startsWith('970')) {
+            target.vesperTargetType = 6;
+        }
+        // 972XXXXXX        MOB (Man Overboard) device
+        else if (mmsi.startsWith('972')) {
+            target.vesperTargetType = 7;
+        }
+        // 974XXXXXX        EPIRB (Emergency Position Indicating Radio Beacon) AIS
+        else if (mmsi.startsWith('974')) {
+            target.vesperTargetType = 8;
+        }
+        // Aid to Navigation
+        // 99MIDXXXX        Aids to Navigation
+        else if (target.aisClass == 'ATON' || mmsi.startsWith('99')) {
+            target.vesperTargetType = 4;
+        }
+        // class A
+        else if (target.aisClass == 'A') {
+            target.vesperTargetType = 1;
+        }
+        // make evrything else class B
+        else {
+            target.vesperTargetType = 2;
+        }
+    });
+}
 
 module.exports.setCollisionProfiles = function (_collisionProfiles) {
     collisionProfiles = _collisionProfiles;
 }
 
-module.exports.start = function (_app, _collisionProfiles, _selfMmsi, _selfName, _selfCallsign, _selfType, _gps, _targets, _saveCollisionProfiles) {
-    //console.log('vesper.start received:',_collisionProfiles, _selfMmsi, _selfName, _selfCallsign, _selfType, _gps, _targets, _saveCollisionProfiles)
+module.exports.start = function (_app, _collisionProfiles, _selfMmsi, _selfName, _selfCallsign, _selfTypeId, _targets, _saveCollisionProfiles) {
+    //console.log('vesper.start received:',_collisionProfiles, _selfMmsi, _selfName, _selfCallsign, _selfTypeId, _gps, _targets, _saveCollisionProfiles)
     app = _app;
     collisionProfiles = _collisionProfiles;
     selfMmsi = _selfMmsi;
     selfName = _selfName;
     selfCallsign = _selfCallsign;
-    selfType = _selfType;
-    gps = _gps;
+    selfTypeId = _selfTypeId;
     targets = _targets;
     saveCollisionProfiles = _saveCollisionProfiles;
-    app.debug('starting vesper emulator', collisionProfiles);
-    setupHttpServer();
-    setupTcpProxyServer();
-    setupSse();
+
+    Promise.resolve(aisUtilsPromise).then(function (aisUtils) {
+        toDegrees = aisUtils.toDegrees;
+        app.debug('starting vesper emulator', collisionProfiles);
+        refreshTargetData();
+        setupHttpServer();
+        setupTcpProxyServer();
+        setupSse();
+
+        // update the data model every 1000 ms
+        refreshInterval = setInterval(() => {
+            refreshTargetData();
+        }, 1000);
+    })
 }
 
 module.exports.stop = function () {
@@ -1136,6 +1203,7 @@ module.exports.stop = function () {
     if (streamingVesselPositionHistoryInterval) clearInterval(streamingVesselPositionHistoryInterval);
     if (savePositionInterval) clearInterval(savePositionInterval);
     if (anchorWatchInterval) clearInterval(anchorWatchInterval);
+    if (refreshInterval) clearInterval(refreshInterval);
 
     if (tcpProxyServer) {
         try {

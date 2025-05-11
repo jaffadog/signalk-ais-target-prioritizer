@@ -1,0 +1,60 @@
+<html>
+
+<body>
+    <div id="output"></div>
+    <script>
+
+        // https://signalk.org/specification/1.5.0/doc/subscription_protocol.html
+
+        // ws://localhost:3000/signalk/v1/stream
+        /*
+
+ws://hostname/signalk/«version»/stream?subscribe=self
+ws://hostname/signalk/«version»/stream?subscribe=all
+ws://hostname/signalk/«version»/stream?subscribe=none
+
+        */
+
+
+        // http://localhost:3000/signalk-ais-target-prioritizer/test-streaming-api.html
+
+        const exampleSocket = new WebSocket(
+            // using subscribe=none has the desired effect of nothing streaming in. otherwise, we immediately get a firehose of data
+            "ws://localhost:3000/signalk/v1/stream?subscribe=none",
+        );
+
+        // we can then send to the server messages to subscribe to specific data. similar to the non-streaming http api.
+
+
+        const div = document.getElementById("output");
+
+        var sub = {
+            "context": "vessels.*",
+            "subscribe": [
+                {
+                    "path": "navigation.position",
+                    "period": 10000,
+                    "format": "delta",
+                    "policy": "ideal",
+                    "minPeriod": 1000
+                },
+                {
+                    "path": "navigation.logTrip",
+                    "period": 10000
+                }
+            ]
+        };
+
+        exampleSocket.onopen = () => {
+            console.log("CONNECTED");
+            exampleSocket.send(JSON.stringify(sub));
+        };
+
+        exampleSocket.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            div.innerHTML = `<pre>${JSON.stringify(msg, null, 2)}</pre>${div.innerHTML}`;
+        }
+    </script>
+</body>
+
+</html>

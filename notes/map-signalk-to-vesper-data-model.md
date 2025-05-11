@@ -41,16 +41,16 @@
         sog               y y   navigation.speedOverGround
         hdg               y y   navigation.headingTrue
         rot               y y   navigation.rateOfTurn
-        vesselType        y y   design.aisShipType.id
-        vesselTypeString  y y   design.aisShipType.name
+        typeId            y y   design.aisShipType.id
+        type              y y   design.aisShipType.name
         navstatus         y y   navigation.state                    FIXME: navstatus needs to be numeric, but navigation.state is descriptive text
-        classType         y y   sensors.ais.class                   A, B, ATON, BASE
+        aisClass          y y   sensors.ais.class                   A, B, ATON, BASE
         callsign          y y   communication.callsignVhf
         imo               y y   registrations.imo
         destination       y y   navigation.destination.commonName
         length            y y   design.length.overall
         width             y y   design.beam
-        draught           y y   design.draft.current
+        draft             y y   design.draft.current
         targetType        - y   <<<derived>>>
         
                                 sensors.ais.functionalId            10
@@ -118,7 +118,7 @@
 
 
     /*
-    target.targetType:
+    target.vesperTargetType:
     0 = triangle                  *                                                                      0 is not a thing?
     1 = big pointy box               y               class A                                             >>> class A ships
          does not render a symbol in ios unless you add.... navigation.state
