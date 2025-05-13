@@ -4,7 +4,7 @@ import { mmsiMidToCountry } from './mmsi-mid-decoder.mjs';
 
 const METERS_PER_NM = 1852;
 const KNOTS_PER_M_PER_S = 1.94384;
-const LOST_TARGET_WARNING_AGE = 10 * 60; // lost target warning in seconds - 10 minutes
+const LOST_TARGET_WARNING_AGE = 10 * 60; // in seconds - 10 minutes
 
 export { updateDerivedData, toRadians, toDegrees };
 
@@ -77,7 +77,7 @@ function updateSingleTargetDerivedData(target, selfTarget, collisionProfiles, TA
     target.longitudeFormatted = formatLon(target.longitude);
 
     if (!target.latitude || !target.longitude || target.lastSeen > TARGET_MAX_AGE) {
-        console.log("invalid target", target.mmsi, target.latitude, target.longitude, target.lastSeen);
+        //console.log("invalid target", target.mmsi, target.latitude, target.longitude, target.lastSeen);
         target.isValid = false;
     } else {
         target.isValid = true;
@@ -312,7 +312,7 @@ function evaluateAlarms(target, collisionProfiles) {
         }
     }
     catch (err) {
-        console.log('error in evaluateAlarms', err.message, err);
+        console.error('error in evaluateAlarms', err.message, err);
     }
 }
 
