@@ -21,9 +21,7 @@
 	},
 	"dependencies": {
 		"express": "^4.21.2",
-		"leaflet": "^1.9.4",
 		"lodash": "^4.17.21",
-		"multicast-dns": "^7.2.3",
 		"node-tcp-proxy": "^0.0.21"
 	},
 	"repository": {
