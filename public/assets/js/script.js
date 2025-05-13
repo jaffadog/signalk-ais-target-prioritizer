@@ -92,6 +92,11 @@ L.easyButton(biCursorFill, function (btn, map) {
     }
 }).addTo(map);
 
+// protomaps color flavors: light dark white grayscale black
+// make water transparent so that bootstrap light/dark mode backgroud comes through
+var paintRules = protomapsL.paintRules({ ...basemaps.namedFlavor("light"), water: "rgba(0,0,0,0)" });
+var labelRules = protomapsL.labelRules(basemaps.namedFlavor("light"));
+
 var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap'
@@ -102,16 +107,19 @@ var openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
     attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
 });
 
+var naturalEarth10m = protomapsL.leafletLayer({
+    url: "assets/pmtiles/ne_10m_land.pmtiles",
+    maxDataZoom: 5,
+    paintRules: paintRules,
+    labelRules: labelRules
+});
+
 var baseMaps = {
     "Empty": L.tileLayer(''),
     "OpenStreetMap": osm,
-    "OpenTopoMap": openTopoMap
+    "OpenTopoMap": openTopoMap,
+    "NaturalEarth (offline)": naturalEarth10m
 };
-
-// protomaps color flavors: light dark white grayscale black
-// make water transparent so that bootstrap light/dark mode backgroud comes through
-var paintRules = protomapsL.paintRules({ ...basemaps.namedFlavor("light"), water: "rgba(0,0,0,0)" });
-var labelRules = protomapsL.labelRules(basemaps.namedFlavor("light"));
 
 for (let key in charts) {
     var chart = charts[key];
