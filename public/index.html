@@ -384,15 +384,15 @@
                     <div class="card card-body">
                         <form>
                             <div class="mb-3">
-                                <label for="activeProfile" class="form-label">Active Profile</label>
-                                <select class="form-select" id="activeProfile">
+                                <label for="selectActiveProfile" class="form-label">Active Profile</label>
+                                <select class="form-select fw-bold" id="selectActiveProfile">
                                     <option value="anchor">Anchored</option>
                                     <option value="harbor">Harbor</option>
                                     <option value="coastal">Coastal</option>
                                     <option value="offshore">Offshore</option>
                                 </select>
                             </div>
-                            <button type="button" class="btn btn-primary col-12 mb-3" id="editProfilesButton">
+                            <button type="button" class="btn btn-primary col-12 mb-3" id="buttonEditProfiles">
                                 Edit Profiles
                             </button>
                             <button type="button" class="btn btn-danger col-12 mb-3" id="buttonMuteAllAlarms2">
@@ -429,14 +429,21 @@
             </div>
             <div class="offcanvas-body">
 
-                <div class="mb-3">
-                    <label for="profileToEdit" class="form-label">Select profile to edit</label>
-                    <select class="form-select" id="profileToEdit">
-                        <option value="anchor" selected>Anchored</option>
-                        <option value="harbor">Harbor</option>
-                        <option value="coastal">Coastal</option>
-                        <option value="offshore">Offshore</option>
-                    </select>
+                <label for="selectProfileToEdit" class="form-label">Select profile to edit</label>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <select class="form-select fw-bold" id="selectProfileToEdit">
+                            <option value="anchor" selected>Anchored</option>
+                            <option value="harbor">Harbor</option>
+                            <option value="coastal">Coastal</option>
+                            <option value="offshore">Offshore</option>
+                        </select>
+                    </div>
+                    <div class="col-6 d-grid">
+                        <button type="button" class="btn btn-warning" id="buttonRestoreDefaults">
+                            Restore Defaults
+                        </button>
+                    </div>
                 </div>
 
                 <div class="card mb-3">
@@ -454,7 +461,7 @@
                             </p>
 
                             <div class="row mb-3">
-                                <div class="col-3">
+                                <div class="col-3 pe-0">
                                     <label for="configWarningCpaRange" class="form-label">CPA Less
                                         Than</label>
                                 </div>
@@ -471,7 +478,7 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-3">
+                                <div class="col-3 pe-0">
                                     <label for="configWarningTcpaRange" class="form-label">TCPA Less
                                         Than</label>
                                 </div>
@@ -487,7 +494,7 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-3">
+                                <div class="col-3 pe-0">
                                     <label for="configWarningSogRange" class="form-label">Speed
                                         Exceeds</label>
                                 </div>
@@ -519,7 +526,7 @@
                             </p>
 
                             <div class="row mb-3">
-                                <div class="col-3">
+                                <div class="col-3 pe-0">
                                     <label for="configAlarmCpaRange" class="form-label">CPA Less
                                         Than</label>
                                 </div>
@@ -535,7 +542,7 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-3">
+                                <div class="col-3 pe-0">
                                     <label for="configAlarmTcpaRange" class="form-label">TCPA Less
                                         Than</label>
                                 </div>
@@ -551,7 +558,7 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-3">
+                                <div class="col-3 pe-0">
                                     <label for="configAlarmSogRange" class="form-label">Speed
                                         Exceeds</label>
                                 </div>
@@ -582,7 +589,7 @@
                             </p>
 
                             <div class="row mb-3">
-                                <div class="col-3">
+                                <div class="col-3 pe-0">
                                     <label for="configGuardRangeRange" class="form-label">Range
                                         Within</label>
                                 </div>
@@ -599,7 +606,7 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-3">
+                                <div class="col-3 pe-0">
                                     <label for="configGuardSogRange" class="form-label">Speed
                                         Exceeds</label>
                                 </div>
@@ -618,9 +625,6 @@
                     </ul>
                 </div>
                 <!--end card-->
-                <button type="button" class="btn btn-warning" id="buttonRestoreDefaults">
-                    Restore Defaults
-                </button>
             </div>
             <!--end offcanvas-body-->
         </div>
