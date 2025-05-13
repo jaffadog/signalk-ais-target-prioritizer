@@ -63,7 +63,7 @@ if (!collisionProfiles.current) {
     saveCollisionProfiles();
 }
 
-document.getElementById("activeProfile").value = collisionProfiles.current;
+document.getElementById("selectActiveProfile").value = collisionProfiles.current;
 document.getElementById("checkNoSleep").checked = (localStorage.getItem("checkNoSleep") == "true");
 configureNoSleep();
 
@@ -213,13 +213,15 @@ document.getElementById("tableOfTargetsBody").addEventListener("click", handleTa
 
 document.getElementById("listOfClosebyBoats").addEventListener("click", handleListOfClosebyBoatsClick);
 
-document.getElementById("activeProfile").addEventListener("input", (ev) => {
+document.getElementById("selectActiveProfile").addEventListener("input", (ev) => {
     collisionProfiles.current = ev.target.value;
     saveCollisionProfiles();
 });
 
-document.getElementById("editProfilesButton").addEventListener("click", () => {
+document.getElementById("buttonEditProfiles").addEventListener("click", () => {
     bsOffcanvasSettings.hide();
+    selectProfileToEdit.value = selectActiveProfile.value;
+    setupProfileEditView(selectProfileToEdit.value);
     bsOffcanvasEditProfiles.show();
 });
 
@@ -249,13 +251,13 @@ document.addEventListener("fullscreenchange", fullscreenchangeHandler);
 
 //document.addEventListener("webkitfullscreenchange", fullscreenchangeHandler);
 
-document.getElementById("profileToEdit").addEventListener("input", (ev) => {
+document.getElementById("selectProfileToEdit").addEventListener("input", (ev) => {
     setupProfileEditView(ev.target.value);
 });
 
 document.getElementById("buttonRestoreDefaults").addEventListener("click", () => {
     collisionProfiles = structuredClone(defaultCollisionProfiles);
-    setupProfileEditView(profileToEdit.value);
+    setupProfileEditView(selectProfileToEdit.value);
     saveCollisionProfiles();
 });
 
@@ -466,7 +468,7 @@ function processDistanceRangeControl(ev) {
     }
 
     valueStorageElement.textContent = distance || 'OFF';
-    collisionProfiles[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = distance;
+    collisionProfiles[selectProfileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = distance;
 }
 
 function timeToTick(time) {
@@ -501,7 +503,7 @@ function processTcpaRangeControl(ev) {
     // 9 - 12   correspond to   30 - 60
     var time = tickToTime(tick)
     valueStorageElement.textContent = time;
-    collisionProfiles[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = time * 60;
+    collisionProfiles[selectProfileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = time * 60;
 }
 
 function speedToTick(speed) {
@@ -539,7 +541,7 @@ function processSpeedRangeControl(ev) {
     // 10       correspond to   10
     var speed = tickToSpeed(tick);
     valueStorageElement.textContent = speed;
-    collisionProfiles[profileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = speed;
+    collisionProfiles[selectProfileToEdit.value][dataset.alarmType][dataset.alarmCriteria] = speed;
 }
 
 function drawRangeRings() {
