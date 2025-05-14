@@ -431,7 +431,8 @@ async function saveCollisionProfiles() {
 }
 
 function showError(message) {
-    document.getElementById("errorMessage").textContent = message;
+    //document.getElementById("errorMessage").textContent = message;
+    document.getElementById("errorMessage").innerHTML = message;
     bsModalAlert.show();
 }
 
@@ -650,7 +651,15 @@ async function refresh() {
 
         selfTarget = targets.get(selfMmsi);
 
-        updateDerivedData(targets, selfTarget, collisionProfiles, TARGET_MAX_AGE);
+        try {
+            updateDerivedData(targets, selfTarget, collisionProfiles, TARGET_MAX_AGE);
+        } catch (error) {
+            console.error(error);
+            showError(`No GPS position available. Verify that you are connected to the 
+                SignalK server and that the SignalK server has a position for your vessel.<br><br>
+                ${error}`);
+        }
+        // FIXME do we need to do this in each cycle???
         UpdateTargetsWithMuteDataFromPlugin();
         updateUI();
 
@@ -661,6 +670,13 @@ async function refresh() {
         if (alarmTargetCount > 0 && (lastAlarmTime == null || Date.now() > lastAlarmTime + SHOW_ALARMS_INTERVAL)) {
             lastAlarmTime = Date.now();
             showAlarms();
+        }
+
+        // show error if our position has not updated in more than 10 seconds
+        if (selfTarget.lastSeen > 10) {
+            console.error("no gps position received for > 10 seconds", selfTarget.lastSeen);
+            showError(`No GPS position received for more than ${selfTarget.lastSeen} seconds. Verify that you are connected to the 
+                SignalK server and that the SignalK server has a position for your vessel.`);
         }
 
         // display performance metrics
@@ -1441,9 +1457,9 @@ async function getHttpResponse(url, options) {
         console.error(`Error in getHttpResponse: url=${url}, options=${options}, status=${response?.status || "none"}`, error);
         if (options?.throwErrors) {
             //showError("The SignalK AIS Target Prioritizer plugin is not running. Please check the plugin status.");
-            showError(`Encountered an error retrieving data from the Signal K server. Please ensure that the Signal K `
-                + `server is running and that the AIS Target Prioritizer plugin is enabled. `
-                + `url=${url}, options=${JSON.stringify(options)}, status=${response?.status || "none"}, error=${error.message}`);
+            showError(`Encountered an error retrieving data from the SignalK server. Verify that you are coonected to the SignalK server, that the SignalK 
+                server is running, and that the AIS Target Prioritizer plugin is enabled.<br><br>
+                <b>url</b>=${url},<br><b>options</b>=${JSON.stringify(options)},<br><b>status</b>=${response?.status || "none"},<br><b>error</b>=${error.message}`);
             throw new Error(`Error in getHttpResponse: url=${url}, options=${JSON.stringify(options)}, status=${response?.status || "none"}, error=${error.message}`);
         }
     }
