@@ -11,15 +11,21 @@ export { updateDerivedData, toRadians, toDegrees };
 function updateDerivedData(targets, selfTarget, collisionProfiles, TARGET_MAX_AGE) {
     // update self first
     if (!selfTarget) {
-        console.warn('selfTarget is null', selfTarget);
-        return;
+        throw new Error("No GPS position available");
+        // FIXME: raise an alarm notification for this
+        // FIXME: post a plugin error status for this
+        //console.warn('selfTarget is null', selfTarget);
+        //return;
     }
 
     updateSingleTargetDerivedData(selfTarget, selfTarget, collisionProfiles, TARGET_MAX_AGE);
 
     if (!selfTarget.isValid) {
-        console.warn('selfTarget is invalid', selfTarget);
-        return;
+        throw new Error("No GPS position available");
+        // FIXME: raise an alarm notification for this
+        // FIXME: post a plugin error status for this
+        // console.warn('selfTarget is invalid', selfTarget);
+        //return;
     }
 
     // then update all other targets

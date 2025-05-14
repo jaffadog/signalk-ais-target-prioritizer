@@ -41,7 +41,7 @@ module.exports = function (app) {
     plugin.description = "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria";
 
     plugin.start = function (_options) {
-        app.debug('*** Plugin started with options=', _options);
+        app.debug(`*** Starting plugin ${plugin.id} with options=`, _options);
         options = _options;
         getCollisionProfiles();
         if (options.enableDataPublishing || options.enableAlarmPublishing || options.enableEmulator) {
@@ -59,7 +59,7 @@ module.exports = function (app) {
     };
 
     plugin.stop = function () {
-        app.debug(`Stopping the plugin`);
+        app.debug(`Stopping plugin ${plugin.id}`);
         unsubscribes.forEach(f => f());
         unsubscribes = [];
         if (refreshDataModelInterval) { clearInterval(refreshDataModelInterval); }
@@ -391,14 +391,30 @@ module.exports = function (app) {
             // app.debug('index.js: setFromIndex,setFromEmulator', collisionProfiles.setFromIndex, collisionProfiles.setFromEmulator, collisionProfiles.anchor.guard.range);
             // app.debug("collisionProfiles.anchor.guard.range - index ",collisionProfiles.anchor.guard.range);
 
+            selfTarget = targets.get(selfMmsi);
+
             if (aisUtils) {
-                aisUtils.updateDerivedData(targets, selfTarget, collisionProfiles, TARGET_MAX_AGE);
+                try {
+                    aisUtils.updateDerivedData(targets, selfTarget, collisionProfiles, TARGET_MAX_AGE);
+                } catch (error) {
+                    app.debug(error); // we use app.debug rather than app.error so that the user can filter these out of the log
+                    app.setPluginError(error.message);
+                    sendNotification("alarm", error.message);
+                    return;
+                }
             } else {
                 app.debug("aisUtils not ready...");
                 return;
             }
 
-            selfTarget = targets.get(selfMmsi);
+            if (selfTarget.lastSeen > 10) {
+                var message = `No GPS position received for more than ${selfTarget.lastSeen} seconds`;
+                app.debug(message); // we use app.debug rather than app.error so that the user can filter these out of the log
+                app.setPluginError(message);
+                sendNotification("alarm", message);
+                return;
+            }
+
 
             targets.forEach((target, mmsi) => {
                 if (options.enableDataPublishing && mmsi != selfMmsi) {
@@ -424,6 +440,8 @@ module.exports = function (app) {
                     targets.delete(target.mmsi);
                 }
             });
+
+            app.setPluginStatus("Ok");
         }
         catch (err) {
             app.debug('error in refreshDataModel', err.message, err);
