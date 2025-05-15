@@ -415,6 +415,7 @@ module.exports = function (app) {
                 return;
             }
 
+            var isCurrentAlarm = false;
 
             targets.forEach((target, mmsi) => {
                 if (options.enableDataPublishing && mmsi != selfMmsi) {
@@ -433,6 +434,7 @@ module.exports = function (app) {
                     else if (target.alarmState == "danger") {
                         sendNotification("alarm", message);
                     }
+                    isCurrentAlarm = true;
                 }
 
                 if (AGE_OUT_OLD_TARGETS && target.lastSeen > TARGET_MAX_AGE) {
@@ -440,6 +442,11 @@ module.exports = function (app) {
                     targets.delete(target.mmsi);
                 }
             });
+
+            // if there are no active alarms, yet still an alarm notification, then clean the alarm notification
+            if (!isCurrentAlarm && isCurrentAlarmNotification()) {
+                sendNotification("normal", "watching");
+            }
 
             app.setPluginStatus("Ok");
         }
@@ -491,6 +498,11 @@ module.exports = function (app) {
         }
 
         app.handleMessage(plugin.id, delta);
+    }
+
+    function isCurrentAlarmNotification() {
+        let notifications = app.getSelfPath('notifications.navigation.closestApproach');
+        return notifications?.value?.state == "alarm" ? true : false;
     }
 
     return plugin;
