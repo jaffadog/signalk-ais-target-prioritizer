@@ -1457,7 +1457,7 @@ async function getHttpResponse(url, options) {
         console.error(`Error in getHttpResponse: url=${url}, options=${options}, status=${response?.status || "none"}`, error);
         if (options?.throwErrors) {
             //showError("The SignalK AIS Target Prioritizer plugin is not running. Please check the plugin status.");
-            showError(`Encountered an error retrieving data from the SignalK server. Verify that you are coonected to the SignalK server, that the SignalK 
+            showError(`Encountered an error retrieving data from the SignalK server. Verify that you are connected to the SignalK server, that the SignalK 
                 server is running, and that the AIS Target Prioritizer plugin is enabled.<br><br>
                 <b>url</b>=${url},<br><b>options</b>=${JSON.stringify(options)},<br><b>status</b>=${response?.status || "none"},<br><b>error</b>=${error.message}`);
             throw new Error(`Error in getHttpResponse: url=${url}, options=${JSON.stringify(options)}, status=${response?.status || "none"}, error=${error.message}`);
