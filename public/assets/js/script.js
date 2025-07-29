@@ -38,6 +38,7 @@ var filteredTargetCount;
 var alarmTargetCount;
 var lastAlarmTime;
 var tooltipList;
+var sortTableBy = "priority";
 
 var blueLayerGroup = L.layerGroup();
 //blueLayerGroup.className = 'blueStuff';
@@ -224,6 +225,10 @@ document.getElementById("listOfClosebyBoats").addEventListener("click", handleLi
 document.getElementById("selectActiveProfile").addEventListener("input", (ev) => {
     collisionProfiles.current = ev.target.value;
     saveCollisionProfiles();
+});
+
+document.getElementById("selectTableSort").addEventListener("input", (ev) => {
+    sortTableBy = ev.target.value;
 });
 
 document.getElementById("buttonEditProfiles").addEventListener("click", () => {
@@ -659,8 +664,10 @@ async function refresh() {
                 SignalK server and that the SignalK server has a position for your vessel.<br><br>
                 ${error}`);
         }
-        // FIXME do we need to do this in each cycle???
+
+        // we need to do this after we get the initial round of targets
         UpdateTargetsWithMuteDataFromPlugin();
+
         updateUI();
 
         if (AGE_OUT_OLD_TARGETS) {
@@ -672,9 +679,9 @@ async function refresh() {
             showAlarms();
         }
 
-        // show error if our position has not updated in more than 10 seconds
-        if (selfTarget.lastSeen > 10) {
-            console.error("no gps position received for > 10 seconds", selfTarget.lastSeen);
+        // show error if were not getting gps position updates
+        if (selfTarget.lastSeen > 20) {
+            console.error(`No GPS position received for more than ${selfTarget.lastSeen} seconds`);
             showError(`No GPS position received for more than ${selfTarget.lastSeen} seconds. Verify that you are connected to the 
                 SignalK server and that the SignalK server has a position for your vessel.`);
         }
@@ -942,8 +949,25 @@ function updateUI() {
 
 function updateTableOfTargets() {
     var targetsArray = Array.from(targets.values());
+
     targetsArray.sort(function (a, b) {
-        return a.order - b.order
+        try {
+            if (sortTableBy == "tcpa") {
+                return a.tcpa - b.tcpa
+            } else if (sortTableBy == "cpa") {
+                return a.cpa - b.cpa
+            } else if (sortTableBy == "range") {
+                return a.range - b.range
+            } else if (sortTableBy == "name") {
+                return a.name > b.name ? 1 : -1
+            } else {
+                return a.order - b.order
+            }
+        }
+        catch (error) {
+            console.error(error);
+            return 0;
+        }
     });
 
     var tableBody = '';

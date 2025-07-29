@@ -448,7 +448,7 @@ module.exports = function (app) {
                 sendNotification("normal", "watching");
             }
 
-            app.setPluginStatus("Ok");
+            app.setPluginStatus(`Watching ${targets.size - 1} targets`);
         }
         catch (err) {
             app.debug('error in refreshDataModel', err.message, err);
