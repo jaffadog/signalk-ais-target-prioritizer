@@ -14,13 +14,18 @@
 	},
 	"license": "MIT",
 	"author": "Jeremy Waters <jaffadog@gmail.com>",
-	"type": "commonjs",
-	"main": "index.js",
+	"type": "module",
+	"main": "plugin/index.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"format:check": "biome check",
+		"format": "biome check --write"
 	},
 	"dependencies": {
+		"bootstrap": "^5.3.8",
 		"express": "^4.21.2",
+		"express-sse": "^1.0.0",
+		"leaflet": "^1.9.4",
 		"lodash": "^4.17.21",
 		"multicast-dns": "^7.2.3",
 		"node-tcp-proxy": "^0.0.21"
@@ -32,5 +37,9 @@
 	"bugs": {
 		"url": "https://github.com/jaffadog/signalk-ais-target-prioritizer/issues"
 	},
-	"homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer"
+	"homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer",
+	"devDependencies": {
+		"@biomejs/biome": "2.2.4",
+		"vite": "^7.1.7"
+	}
 }
