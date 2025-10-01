@@ -1,660 +1,694 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
-
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>SignalK AIS Target Prioritizer</title>
-    <!-- <link rel="stylesheet" href="assets/css/bootstrap.min.css"> -->
-    <!-- <link rel="stylesheet" href="assets/css/leaflet.css" /> -->
-    <link rel="stylesheet" href="assets/css/easy-button.css" />
+    <link rel="stylesheet" href="assets/styles/styles.scss" />
+    <script type="module" src="assets/scripts/main.js"></script>
+  </head>
 
-    <link rel="stylesheet" href="styles/styles.scss" />
-    <script type="module" src="scripts/main.js"></script>
-
-    <style>
-        body {
-            padding: 0;
-            margin: 0;
-        }
-
-        html,
-        body,
-        #map {
-            height: 100%;
-            width: 100vw;
-        }
-
-        #map {
-            color: var(--bs-body-color);
-            background-color: var(--bs-body-bg);
-        }
-
-        .leaflet-bar a,
-        .leaflet-bar button,
-        .leaflet-bar button:hover,
-        .leaflet-touch .leaflet-control-layers-toggle,
-        .leaflet-control-layers-expanded,
-        .leaflet-container .leaflet-control-attribution {
-            color: var(--bs-secondary-color);
-            background-color: var(--bs-secondary-bg);
-        }
-
-        .leaflet-bar a:hover,
-        .leaflet-bar a:focus {
-            background-color: var(--bs-tertiary-bg);
-        }
-
-        .leaflet-tooltip {
-            color: var(--bs-body-color);
-        }
-
-        .leaflet-layer {
-            background-color: var(--bs-body-bg);
-        }
-
-        .leaflet-tooltip.map-labels {
-            border: none;
-            background-color: unset;
-            box-shadow: none;
-        }
-
-        .leaflet-tooltip.map-labels::before {
-            opacity: 0;
-        }
-
-        .bi {
-            width: 1em;
-            height: 1em;
-            vertical-align: -.125em;
-            fill: currentcolor;
-        }
-
-        .bi::before,
-        [class^="bi-"]::before,
-        [class*=" bi-"]::before {
-            display: inline-block;
-            font-family: bootstrap-icons !important;
-            font-style: normal;
-            font-weight: normal !important;
-            font-variant: normal;
-            text-transform: none;
-            line-height: 1;
-            vertical-align: -.125em;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        button.easy-button-button {
-            padding-inline: 0;
-            padding-block: 0;
-            font-size: 16px;
-        }
-
-        .leaflet-touch .leaflet-control-layers-toggle {
-            /* background-image: url(assets/icons/layers-fill.svg); */
-            background-image: unset;
-            /* fill: currentcolor; */
-            /* background-size: 16px; */
-            width: 30px;
-            height: 30px;
-            text-align: center;
-            font-size: 16px;
-            line-height: 30px;
-        }
-
-        #offcanvasEditProfiles {
-            width: 100%;
-        }
-
-        @media screen and (min-width: 768px) {
-            #offcanvasEditProfiles {
-                width: 575px;
-            }
-        }
-
-        #offcanvasTargetList {
-            width: 100%;
-        }
-
-        @media screen and (min-width: 992px) {
-            #offcanvasTargetList {
-                width: 768px;
-            }
-        }
-
-        #tableOfTargetsBody {
-            cursor: pointer;
-        }
-
-        #tableOfTargetsBody td {
-            text-align: right;
-        }
-
-        .blueStuff {
-            z-index: 1000;
-        }
-
-        #targetCounts {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 7em;
-            z-index: 500;
-        }
-    </style>
-</head>
-
-<body>
-    <div id='map'></div>
+  <body>
+    <div id="map"></div>
 
     <div class="container">
+      <div
+        id="targetCounts"
+        class="text-center user-select-none pe-none"
+        tabindex="-1"
+      >
+        <p class="display-3 text-info mb-0" id="totalTargetCountUI">0</p>
+        <p class="text-secondary small">TARGETS</p>
+        <p class="display-3 text-primary mb-0" id="filteredTargetCountUI">0</p>
+        <p class="text-secondary small">FILTERED</p>
+        <p class="display-3 text-danger mb-0" id="alarmTargetCountUI">0</p>
+        <p class="text-secondary small">ALARMS</p>
+      </div>
 
-        <div id='targetCounts' class="text-center user-select-none pe-none" tabindex="-1">
-            <p class="display-3 text-info mb-0" id="totalTargetCountUI">0</p>
-            <p class="text-secondary small">TARGETS</p>
-            <p class="display-3 text-primary mb-0" id="filteredTargetCountUI">0</p>
-            <p class="text-secondary small">FILTERED</p>
-            <p class="display-3 text-danger mb-0" id="alarmTargetCountUI">0</p>
-            <p class="text-secondary small">ALARMS</p>
+      <!-- ERROR MODAL -->
+      <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+        <symbol id="exclamation-triangle-fill" viewBox="0 0 16 16">
+          <path
+            d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"
+          />
+        </symbol>
+      </svg>
+
+      <div class="modal" tabindex="-1" id="modalAlert">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="alert alert-danger mb-0" role="alert">
+              <div class="alert-dismissible">
+                <span class="h4 alert-heading">
+                  <svg class="bi flex-shrink-0 me-2" role="img">
+                    <use xlink:href="#exclamation-triangle-fill" />
+                  </svg>
+                  Error</span
+                >
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                ></button>
+              </div>
+              <hr />
+              <p class="mb-0" id="errorMessage"></p>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <!-- ERROR MODAL -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
-            <symbol id="exclamation-triangle-fill" viewBox="0 0 16 16">
-                <path
-                    d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
-            </symbol>
-        </svg>
-
-        <div class="modal" tabindex="-1" id="modalAlert">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="alert alert-danger mb-0" role="alert">
-                        <div class="alert-dismissible">
-                            <span class="h4 alert-heading">
-                                <svg class="bi flex-shrink-0 me-2" role="img">
-                                    <use xlink:href="#exclamation-triangle-fill" />
-                                </svg>
-                                Error</span>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <hr>
-                        <p class="mb-0" id="errorMessage"></p>
-                    </div>
-                </div>
+      <div class="modal" tabindex="-1" id="modalAlarm">
+        <div class="modal-dialog modal-dialog-centered">
+          <div
+            class="modal-content bg-danger-subtle text-danger-emphasis border-danger-subtle"
+          >
+            <div class="modal-header border-danger-subtle">
+              <h5 class="modal-title">
+                <svg class="bi flex-shrink-0 me-2" role="img">
+                  <use xlink:href="#exclamation-triangle-fill" />
+                </svg>
+                Alarm
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
             </div>
+
+            <div class="modal-body" id="alarmDiv"></div>
+
+            <div class="modal-footer border-danger-subtle">
+              <button
+                type="button"
+                class="btn btn-outline-danger"
+                data-bs-dismiss="modal"
+                id="buttonMuteAllAlarms"
+              >
+                Mute All Alarms
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div class="modal" tabindex="-1" id="modalAlarm">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content bg-danger-subtle text-danger-emphasis border-danger-subtle">
-
-                    <div class="modal-header border-danger-subtle">
-                        <h5 class="modal-title"> <svg class="bi flex-shrink-0 me-2" role="img">
-                                <use xlink:href="#exclamation-triangle-fill" />
-                            </svg>
-                            Alarm</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-
-                    <div class="modal-body" id="alarmDiv">
-                    </div>
-
-                    <div class="modal-footer border-danger-subtle">
-                        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal"
-                            id="buttonMuteAllAlarms">Mute All Alarms</button>
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-
-                </div>
-            </div>
+      <div class="modal" tabindex="-1" id="modalClosebyBoats">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content">
+            <div class="list-group" id="listOfClosebyBoats"></div>
+          </div>
         </div>
+      </div>
 
-        <div class="modal" tabindex="-1" id="modalClosebyBoats">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
-                <div class="modal-content">
-                    <div class="list-group" id="listOfClosebyBoats">
-                    </div>
-                </div>
+      <div class="modal" tabindex="-1" id="modalSelectedVesselProperties">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content">
+            <div class="modal-header">
+              <div class="col-2">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  id="buttonMuteToggle"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    class="bi bi-volume-up-fill"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      d="M11.536 14.01A8.47 8.47 0 0 0 14.026 8a8.47 8.47 0 0 0-2.49-6.01l-.708.707A7.48 7.48 0 0 1 13.025 8c0 2.071-.84 3.946-2.197 5.303z"
+                    ></path>
+                    <path
+                      d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.48 5.48 0 0 1 11.025 8a5.48 5.48 0 0 1-1.61 3.89z"
+                    ></path>
+                    <path
+                      d="M8.707 11.182A4.5 4.5 0 0 0 10.025 8a4.5 4.5 0 0 0-1.318-3.182L8 5.525A3.5 3.5 0 0 1 9.025 8 3.5 3.5 0 0 1 8 10.475zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="col">
+                <h5 class="modal-title text-center" id="target.name"></h5>
+              </div>
+              <div class="col-2 text-end">
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                ></button>
+              </div>
             </div>
+            <div class="modal-body">
+              <div id="alertPlaceholder"></div>
+              <h6
+                class="alert alert-warning text-center d-none"
+                role="alert"
+                id="selectedVesselAlert"
+              ></h6>
+              <table class="table table-sm">
+                <tbody>
+                  <tr>
+                    <th scope="row">Last Seen</th>
+                    <td><span id="target.lastSeen"></span> secs</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">CPA</th>
+                    <td><span id="target.cpaFormatted"></span></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">TCPA</th>
+                    <td id="target.tcpaFormatted"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Range</th>
+                    <td><span id="target.rangeFormatted"></span></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Bearing</th>
+                    <td><span id="target.bearingFormatted"></span></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">SOG</th>
+                    <td><span id="target.sogFormatted"></span></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">COG</th>
+                    <td><span id="target.cogFormatted"></span></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">HDG</th>
+                    <td><span id="target.hdgFormatted"></span></td>
+                  </tr>
+                  <!-- ${target.aisClass == 'A' ? ` -->
+                  <tr class="ais-class-a d-none">
+                    <th scope="row">Rate of Turn</th>
+                    <td><span id="target.rotFormatted"></span> deg/s</td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Callsign</th>
+                    <td id="target.callsign"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">MMSI</th>
+                    <td>
+                      <span id="target.mmsi"></span> (<a
+                        href="#"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="right"
+                        data-bs-title=""
+                        id="target.mmsiCountryCode"
+                      ></a
+                      >)
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Type</th>
+                    <td id="target.type"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Class</th>
+                    <td id="target.aisClassFormatted"></td>
+                  </tr>
+                  <tr class="ais-class-a d-none">
+                    <th scope="row">Status</th>
+                    <td id="target.status"></td>
+                  </tr>
+
+                  <tr>
+                    <th scope="row">Size</th>
+                    <td id="target.sizeFormatted"></td>
+                  </tr>
+                  <tr class="ais-class-a d-none">
+                    <th scope="row">Draft</th>
+                    <td id="target.draft"></td>
+                  </tr>
+                  <tr class="ais-class-a d-none">
+                    <th scope="row">Destination</th>
+                    <td id="target.destination"></td>
+                  </tr>
+                  <tr class="ais-class-a d-none">
+                    <th scope="row">ETA</th>
+                    <td id="target.eta"></td>
+                  </tr>
+                  <tr class="ais-class-a d-none">
+                    <th scope="row">IMO</th>
+                    <td id="target.imoFormatted"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Lat</th>
+                    <td id="target.latitudeFormatted"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Lon</th>
+                    <td id="target.longitudeFormatted"></td>
+                  </tr>
+                  <!--navigation.specialManeuver-->
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div class="modal" tabindex="-1" id="modalSelectedVesselProperties">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <div class="col-2">
-                            <button type="button" class="btn btn-outline-secondary" id="buttonMuteToggle">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                                    class="bi bi-volume-up-fill" viewBox="0 0 16 16">
-                                    <path
-                                        d="M11.536 14.01A8.47 8.47 0 0 0 14.026 8a8.47 8.47 0 0 0-2.49-6.01l-.708.707A7.48 7.48 0 0 1 13.025 8c0 2.071-.84 3.946-2.197 5.303z">
-                                    </path>
-                                    <path
-                                        d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.48 5.48 0 0 1 11.025 8a5.48 5.48 0 0 1-1.61 3.89z">
-                                    </path>
-                                    <path
-                                        d="M8.707 11.182A4.5 4.5 0 0 0 10.025 8a4.5 4.5 0 0 0-1.318-3.182L8 5.525A3.5 3.5 0 0 1 9.025 8 3.5 3.5 0 0 1 8 10.475zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06">
-                                    </path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="col">
-                            <h5 class="modal-title text-center" id="target.name"></h5>
-                        </div>
-                        <div class="col-2 text-end">
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                    </div>
-                    <div class="modal-body">
-                        <div id="alertPlaceholder"></div>
-                        <h6 class="alert alert-warning text-center d-none" role="alert" id="selectedVesselAlert">
-                        </h6>
-                        <table class="table table-sm">
-                            <tbody>
-                                <tr>
-                                    <th scope="row">Last Seen</th>
-                                    <td><span id="target.lastSeen"></span> secs</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">CPA</th>
-                                    <td><span id="target.cpaFormatted"></span></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">TCPA</th>
-                                    <td id="target.tcpaFormatted"></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Range</th>
-                                    <td><span id="target.rangeFormatted"></span></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Bearing</th>
-                                    <td><span id="target.bearingFormatted"></span></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">SOG</th>
-                                    <td><span id="target.sogFormatted"></span></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">COG</th>
-                                    <td><span id="target.cogFormatted"></span></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">HDG</th>
-                                    <td><span id="target.hdgFormatted"></span></td>
-                                </tr>
-                                <!-- ${target.aisClass == 'A' ? ` -->
-                                <tr class="ais-class-a d-none">
-                                    <th scope="row">Rate of Turn</th>
-                                    <td><span id="target.rotFormatted"></span> deg/s</td>
-                                <tr>
-                                    <th scope="row">Callsign</th>
-                                    <td id="target.callsign"></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">MMSI</th>
-                                    <td><span id="target.mmsi"></span> (<a href="#" data-bs-toggle="tooltip"
-                                            data-bs-placement="right" data-bs-title="" id="target.mmsiCountryCode"></a>)
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Type</th>
-                                    <td id="target.type"></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Class</th>
-                                    <td id="target.aisClassFormatted"></td>
-                                </tr>
-                                <tr class="ais-class-a d-none">
-                                    <th scope="row">Status</th>
-                                    <td id="target.status"></td>
-                                <tr>
-                                    <th scope="row">Size</th>
-                                    <td id="target.sizeFormatted"></td>
-                                </tr>
-                                <tr class="ais-class-a d-none">
-                                    <th scope="row">Draft</th>
-                                    <td id="target.draft"></td>
-                                </tr>
-                                <tr class="ais-class-a d-none">
-                                    <th scope="row">Destination</th>
-                                    <td id="target.destination"></td>
-                                </tr>
-                                <tr class="ais-class-a d-none">
-                                    <th scope="row">ETA</th>
-                                    <td id="target.eta"></td>
-                                </tr>
-                                <tr class="ais-class-a d-none">
-                                    <th scope="row">IMO</th>
-                                    <td id="target.imoFormatted"></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Lat</th>
-                                    <td id="target.latitudeFormatted"></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Lon</th>
-                                    <td id="target.longitudeFormatted"></td>
-                                </tr>
-                                <!--navigation.specialManeuver-->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+      <div
+        class="offcanvas offcanvas-start"
+        tabindex="-1"
+        id="offcanvasTargetInfo"
+      >
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title">Target Info</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+          ></button>
         </div>
+        <div class="offcanvas-body" id="offcanvasTargetInfoBody"></div>
+      </div>
 
-        <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasTargetInfo">
-            <div class="offcanvas-header">
-                <h5 class="offcanvas-title">Target Info</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-            </div>
-            <div class="offcanvas-body" id="offcanvasTargetInfoBody">
-            </div>
+      <div
+        class="offcanvas offcanvas-start"
+        tabindex="-1"
+        id="offcanvasTargetList"
+      >
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title">
+            AIS Targets (<span id="numberOfAisTargets"></span>)
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+          ></button>
         </div>
+        <div class="offcanvas-body">
+          <div class="mb-3">
+            <label for="selectTableSort" class="form-label">Sort By</label>
+            <select class="form-select fw-bold" id="selectTableSort">
+              <option value="priority">Priority</option>
+              <option value="tcpa">TCPA</option>
+              <option value="cpa">CPA</option>
+              <option value="range">Range</option>
+              <option value="name">Name</option>
+            </select>
+          </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">NAME</th>
+                <th scope="col" class="text-end">BRG</th>
+                <th scope="col" class="text-end">RNG</th>
+                <th scope="col" class="text-end">SOG</th>
+                <th scope="col" class="text-end">CPA</th>
+                <th scope="col" class="text-end">TCPA</th>
+                <!-- <th scope="col" class="text-end">ORDER</th> -->
+              </tr>
+            </thead>
+            <tbody id="tableOfTargetsBody" />
+          </table>
+        </div>
+      </div>
 
-        <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasTargetList">
-            <div class="offcanvas-header">
-                <h5 class="offcanvas-title">AIS Targets (<span id="numberOfAisTargets"></span>)</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-            </div>
-            <div class="offcanvas-body">
+      <div
+        class="offcanvas offcanvas-start"
+        tabindex="-1"
+        id="offcanvasSettings"
+      >
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title">Settings</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+          ></button>
+        </div>
+        <div class="offcanvas-body">
+          <div class="collapse multi-collapse show" id="collapseSettings">
+            <div class="card card-body">
+              <form>
                 <div class="mb-3">
-                    <label for="selectTableSort" class="form-label">Sort By</label>
-                    <select class="form-select fw-bold" id="selectTableSort">
-                        <option value="priority">Priority</option>
-                        <option value="tcpa">TCPA</option>
-                        <option value="cpa">CPA</option>
-                        <option value="range">Range</option>
-                        <option value="name">Name</option>
-                    </select>
+                  <label for="selectActiveProfile" class="form-label"
+                    >Active Profile</label
+                  >
+                  <select class="form-select fw-bold" id="selectActiveProfile">
+                    <option value="anchor">Anchored</option>
+                    <option value="harbor">Harbor</option>
+                    <option value="coastal">Coastal</option>
+                    <option value="offshore">Offshore</option>
+                  </select>
                 </div>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col">NAME</th>
-                            <th scope="col" class="text-end">BRG</th>
-                            <th scope="col" class="text-end">RNG</th>
-                            <th scope="col" class="text-end">SOG</th>
-                            <th scope="col" class="text-end">CPA</th>
-                            <th scope="col" class="text-end">TCPA</th>
-                            <!-- <th scope="col" class="text-end">ORDER</th> -->
-                        </tr>
-                    </thead>
-                    <tbody id="tableOfTargetsBody" />
-                </table>
-            </div>
-        </div>
-
-        <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasSettings">
-            <div class="offcanvas-header">
-                <h5 class="offcanvas-title">Settings</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-            </div>
-            <div class="offcanvas-body">
-                <div class="collapse multi-collapse show" id="collapseSettings">
-                    <div class="card card-body">
-                        <form>
-                            <div class="mb-3">
-                                <label for="selectActiveProfile" class="form-label">Active Profile</label>
-                                <select class="form-select fw-bold" id="selectActiveProfile">
-                                    <option value="anchor">Anchored</option>
-                                    <option value="harbor">Harbor</option>
-                                    <option value="coastal">Coastal</option>
-                                    <option value="offshore">Offshore</option>
-                                </select>
-                            </div>
-                            <button type="button" class="btn btn-primary col-12 mb-3" id="buttonEditProfiles">
-                                Edit Profiles
-                            </button>
-                            <button type="button" class="btn btn-danger col-12 mb-3" id="buttonMuteAllAlarms2">
-                                Mute All Alarms
-                            </button>
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="checkNoSleep">
-                                <label class="form-check-label" for="checkNoSleep">
-                                    Prevent screen sleeping in iOS and Android
-                                </label>
-                            </div>
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="checkDarkMode">
-                                <label class="form-check-label" for="checkDarkMode">
-                                    Dark Mode
-                                </label>
-                            </div>
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="checkFullScreen">
-                                <label class="form-check-label" for="checkFullScreen">
-                                    Fullscreen Mode
-                                </label>
-                            </div>
-                        </form>
-                    </div>
+                <button
+                  type="button"
+                  class="btn btn-primary col-12 mb-3"
+                  id="buttonEditProfiles"
+                >
+                  Edit Profiles
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-danger col-12 mb-3"
+                  id="buttonMuteAllAlarms2"
+                >
+                  Mute All Alarms
+                </button>
+                <div class="form-check mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="checkNoSleep"
+                  />
+                  <label class="form-check-label" for="checkNoSleep">
+                    Prevent screen sleeping in iOS and Android
+                  </label>
                 </div>
+                <div class="form-check mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="checkDarkMode"
+                  />
+                  <label class="form-check-label" for="checkDarkMode">
+                    Dark Mode
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="checkFullScreen"
+                  />
+                  <label class="form-check-label" for="checkFullScreen">
+                    Fullscreen Mode
+                  </label>
+                </div>
+              </form>
             </div>
+          </div>
         </div>
+      </div>
 
-        <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasEditProfiles">
-            <div class="offcanvas-header">
-                <h5 class="offcanvas-title">Edit Profiles</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+      <div
+        class="offcanvas offcanvas-start"
+        tabindex="-1"
+        id="offcanvasEditProfiles"
+      >
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title">Edit Profiles</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+          ></button>
+        </div>
+        <div class="offcanvas-body">
+          <label for="selectProfileToEdit" class="form-label"
+            >Select profile to edit</label
+          >
+          <div class="row mb-3">
+            <div class="col-6">
+              <select class="form-select fw-bold" id="selectProfileToEdit">
+                <option value="anchor" selected>Anchored</option>
+                <option value="harbor">Harbor</option>
+                <option value="coastal">Coastal</option>
+                <option value="offshore">Offshore</option>
+              </select>
             </div>
-            <div class="offcanvas-body">
+            <div class="col-6 d-grid">
+              <button
+                type="button"
+                class="btn btn-warning"
+                id="buttonRestoreDefaults"
+              >
+                Restore Defaults
+              </button>
+            </div>
+          </div>
 
-                <label for="selectProfileToEdit" class="form-label">Select profile to edit</label>
+          <div class="card mb-3">
+            <ul class="list-group list-group-flush">
+              <!--collision warning-->
+              <li class="h5 bg-body-secondary list-group-item">
+                Collision Warning
+              </li>
+
+              <li class="list-group-item">
+                <p class="card-text">
+                  Targets that meet all three of the conditions below will be
+                  set to a <code>warning</code> state and shown in
+                  <code>orange</code> in the plotter.
+                </p>
+
                 <div class="row mb-3">
-                    <div class="col-6">
-                        <select class="form-select fw-bold" id="selectProfileToEdit">
-                            <option value="anchor" selected>Anchored</option>
-                            <option value="harbor">Harbor</option>
-                            <option value="coastal">Coastal</option>
-                            <option value="offshore">Offshore</option>
-                        </select>
-                    </div>
-                    <div class="col-6 d-grid">
-                        <button type="button" class="btn btn-warning" id="buttonRestoreDefaults">
-                            Restore Defaults
-                        </button>
-                    </div>
+                  <div class="col-3 pe-0">
+                    <label for="configWarningCpaRange" class="form-label"
+                      >CPA Less Than</label
+                    >
+                  </div>
+                  <div class="col-7">
+                    <input
+                      type="range"
+                      class="form-range"
+                      id="configWarningCpaRange"
+                      min="0"
+                      max="19"
+                      step="1"
+                      data-target="configWarningCpa"
+                      data-alarm-type="warning"
+                      data-alarm-criteria="cpa"
+                    />
+                  </div>
+                  <div class="col-2 text-end">
+                    <span id="configWarningCpa" class="fw-bold">2.0</span
+                    ><span id="configWarningCpaUnits"> NM</span>
+                  </div>
                 </div>
 
-                <div class="card mb-3">
-                    <ul class="list-group list-group-flush">
-
-                        <!--collision warning-->
-                        <li class="h5 bg-body-secondary list-group-item">
-                            Collision Warning
-                        </li>
-
-                        <li class="list-group-item">
-                            <p class="card-text">Targets that meet all three of the
-                                conditions below will be set to a <code>warning</code> state
-                                and shown in <code>orange</code> in the plotter.
-                            </p>
-
-                            <div class="row mb-3">
-                                <div class="col-3 pe-0">
-                                    <label for="configWarningCpaRange" class="form-label">CPA Less
-                                        Than</label>
-                                </div>
-                                <div class="col-7">
-                                    <input type="range" class="form-range" id="configWarningCpaRange" min="0" max="19"
-                                        step="1" data-target="configWarningCpa" data-alarm-type="warning"
-                                        data-alarm-criteria="cpa">
-                                </div>
-                                <div class="col-2 text-end">
-                                    <span id="configWarningCpa" class="fw-bold">2.0</span><span
-                                        id="configWarningCpaUnits">
-                                        NM</span>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-3 pe-0">
-                                    <label for="configWarningTcpaRange" class="form-label">TCPA Less
-                                        Than</label>
-                                </div>
-                                <div class="col-7">
-                                    <input type="range" class="form-range" id="configWarningTcpaRange" min="1" max="12"
-                                        step="1" data-target="configWarningTcpa" data-alarm-type="warning"
-                                        data-alarm-criteria="tcpa">
-                                </div>
-                                <div class="col-2 text-end">
-                                    <span id="configWarningTcpa" class="fw-bold">10</span><span>
-                                        Min</span>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-3 pe-0">
-                                    <label for="configWarningSogRange" class="form-label">Speed
-                                        Exceeds</label>
-                                </div>
-                                <div class="col-7">
-                                    <input type="range" class="form-range" id="configWarningSogRange" min="0" max="10"
-                                        step="1" data-target="configWarningSog" data-alarm-type="warning"
-                                        data-alarm-criteria="speed">
-                                </div>
-                                <div class="col-2 text-end">
-                                    <span id="configWarningSog" class="fw-bold">2.0</span><span>
-                                        Knots</span>
-                                </div>
-                            </div>
-                        </li>
-                        <!--end collision warning-->
-
-                        <!--collision alarm-->
-                        <li class="h5 bg-body-secondary list-group-item">
-                            Collision Alarm
-                        </li>
-
-                        <li class="list-group-item">
-
-                            <p class="card-text">Targets that meet all three of the
-                                conditions
-                                below will be set to a <code>danger</code> state and
-                                shown in
-                                <code>red</code> in the plotter.
-                            </p>
-
-                            <div class="row mb-3">
-                                <div class="col-3 pe-0">
-                                    <label for="configAlarmCpaRange" class="form-label">CPA Less
-                                        Than</label>
-                                </div>
-                                <div class="col-7">
-                                    <input type="range" class="form-range" id="configAlarmCpaRange" min="0" max="19"
-                                        step="1" data-target="configAlarmCpa" data-alarm-type="danger"
-                                        data-alarm-criteria="cpa">
-                                </div>
-                                <div class="col-2 text-end">
-                                    <span id="configAlarmCpa" class="fw-bold">2.0</span><span id="configAlarmCpaUnits">
-                                        NM</span>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-3 pe-0">
-                                    <label for="configAlarmTcpaRange" class="form-label">TCPA Less
-                                        Than</label>
-                                </div>
-                                <div class="col-7">
-                                    <input type="range" class="form-range" id="configAlarmTcpaRange" min="1" max="12"
-                                        step="1" data-target="configAlarmTcpa" data-alarm-type="danger"
-                                        data-alarm-criteria="tcpa">
-                                </div>
-                                <div class="col-2 text-end">
-                                    <span id="configAlarmTcpa" class="fw-bold">10</span><span>
-                                        Min</span>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-3 pe-0">
-                                    <label for="configAlarmSogRange" class="form-label">Speed
-                                        Exceeds</label>
-                                </div>
-                                <div class="col-7">
-                                    <input type="range" class="form-range" id="configAlarmSogRange" min="0" max="10"
-                                        step="1" data-target="configAlarmSog" data-alarm-type="danger"
-                                        data-alarm-criteria="speed">
-                                </div>
-                                <div class="col-2 text-end">
-                                    <span id="configAlarmSog" class="fw-bold">2.0</span><span>
-                                        Knots</span>
-                                </div>
-                            </div>
-                        </li>
-                        <!--end collision alarm-->
-
-                        <!--guard alarm-->
-                        <li class="h5 bg-body-secondary list-group-item">
-                            Guard Alarm
-                        </li>
-
-                        <li class="list-group-item">
-                            <p class="card-text">Targets that meet both of the
-                                conditions below will be
-                                set to a <code>danger</code> state and shown in
-                                <code>red</code> in the
-                                plotter.
-                            </p>
-
-                            <div class="row mb-3">
-                                <div class="col-3 pe-0">
-                                    <label for="configGuardRangeRange" class="form-label">Range
-                                        Within</label>
-                                </div>
-                                <div class="col-7">
-                                    <input type="range" class="form-range" id="configGuardRangeRange" min="0" max="19"
-                                        step="1" data-target="configGuardRange" data-alarm-type="guard"
-                                        data-alarm-criteria="range">
-                                </div>
-                                <div class="col-2 text-end">
-                                    <span id="configGuardRange" class="fw-bold">2.0</span><span
-                                        id="configGuardRangeUnits">
-                                        NM</span>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-3 pe-0">
-                                    <label for="configGuardSogRange" class="form-label">Speed
-                                        Exceeds</label>
-                                </div>
-                                <div class="col-7">
-                                    <input type="range" class="form-range" id="configGuardSogRange" min="0" max="10"
-                                        step="1" data-target="configGuardSog" data-alarm-type="guard"
-                                        data-alarm-criteria="speed">
-                                </div>
-                                <div class="col-2 text-end">
-                                    <span id="configGuardSog" class="fw-bold">2.0</span><span>
-                                        Knots</span>
-                                </div>
-                            </div>
-                        </li>
-                        <!--end guard alarm-->
-                    </ul>
+                <div class="row mb-3">
+                  <div class="col-3 pe-0">
+                    <label for="configWarningTcpaRange" class="form-label"
+                      >TCPA Less Than</label
+                    >
+                  </div>
+                  <div class="col-7">
+                    <input
+                      type="range"
+                      class="form-range"
+                      id="configWarningTcpaRange"
+                      min="1"
+                      max="12"
+                      step="1"
+                      data-target="configWarningTcpa"
+                      data-alarm-type="warning"
+                      data-alarm-criteria="tcpa"
+                    />
+                  </div>
+                  <div class="col-2 text-end">
+                    <span id="configWarningTcpa" class="fw-bold">10</span
+                    ><span> Min</span>
+                  </div>
                 </div>
-                <!--end card-->
-            </div>
-            <!--end offcanvas-body-->
+
+                <div class="row mb-3">
+                  <div class="col-3 pe-0">
+                    <label for="configWarningSogRange" class="form-label"
+                      >Speed Exceeds</label
+                    >
+                  </div>
+                  <div class="col-7">
+                    <input
+                      type="range"
+                      class="form-range"
+                      id="configWarningSogRange"
+                      min="0"
+                      max="10"
+                      step="1"
+                      data-target="configWarningSog"
+                      data-alarm-type="warning"
+                      data-alarm-criteria="speed"
+                    />
+                  </div>
+                  <div class="col-2 text-end">
+                    <span id="configWarningSog" class="fw-bold">2.0</span
+                    ><span> Knots</span>
+                  </div>
+                </div>
+              </li>
+              <!--end collision warning-->
+
+              <!--collision alarm-->
+              <li class="h5 bg-body-secondary list-group-item">
+                Collision Alarm
+              </li>
+
+              <li class="list-group-item">
+                <p class="card-text">
+                  Targets that meet all three of the conditions below will be
+                  set to a <code>danger</code> state and shown in
+                  <code>red</code> in the plotter.
+                </p>
+
+                <div class="row mb-3">
+                  <div class="col-3 pe-0">
+                    <label for="configAlarmCpaRange" class="form-label"
+                      >CPA Less Than</label
+                    >
+                  </div>
+                  <div class="col-7">
+                    <input
+                      type="range"
+                      class="form-range"
+                      id="configAlarmCpaRange"
+                      min="0"
+                      max="19"
+                      step="1"
+                      data-target="configAlarmCpa"
+                      data-alarm-type="danger"
+                      data-alarm-criteria="cpa"
+                    />
+                  </div>
+                  <div class="col-2 text-end">
+                    <span id="configAlarmCpa" class="fw-bold">2.0</span
+                    ><span id="configAlarmCpaUnits"> NM</span>
+                  </div>
+                </div>
+
+                <div class="row mb-3">
+                  <div class="col-3 pe-0">
+                    <label for="configAlarmTcpaRange" class="form-label"
+                      >TCPA Less Than</label
+                    >
+                  </div>
+                  <div class="col-7">
+                    <input
+                      type="range"
+                      class="form-range"
+                      id="configAlarmTcpaRange"
+                      min="1"
+                      max="12"
+                      step="1"
+                      data-target="configAlarmTcpa"
+                      data-alarm-type="danger"
+                      data-alarm-criteria="tcpa"
+                    />
+                  </div>
+                  <div class="col-2 text-end">
+                    <span id="configAlarmTcpa" class="fw-bold">10</span
+                    ><span> Min</span>
+                  </div>
+                </div>
+
+                <div class="row mb-3">
+                  <div class="col-3 pe-0">
+                    <label for="configAlarmSogRange" class="form-label"
+                      >Speed Exceeds</label
+                    >
+                  </div>
+                  <div class="col-7">
+                    <input
+                      type="range"
+                      class="form-range"
+                      id="configAlarmSogRange"
+                      min="0"
+                      max="10"
+                      step="1"
+                      data-target="configAlarmSog"
+                      data-alarm-type="danger"
+                      data-alarm-criteria="speed"
+                    />
+                  </div>
+                  <div class="col-2 text-end">
+                    <span id="configAlarmSog" class="fw-bold">2.0</span
+                    ><span> Knots</span>
+                  </div>
+                </div>
+              </li>
+              <!--end collision alarm-->
+
+              <!--guard alarm-->
+              <li class="h5 bg-body-secondary list-group-item">Guard Alarm</li>
+
+              <li class="list-group-item">
+                <p class="card-text">
+                  Targets that meet both of the conditions below will be set to
+                  a <code>danger</code> state and shown in <code>red</code> in
+                  the plotter.
+                </p>
+
+                <div class="row mb-3">
+                  <div class="col-3 pe-0">
+                    <label for="configGuardRangeRange" class="form-label"
+                      >Range Within</label
+                    >
+                  </div>
+                  <div class="col-7">
+                    <input
+                      type="range"
+                      class="form-range"
+                      id="configGuardRangeRange"
+                      min="0"
+                      max="19"
+                      step="1"
+                      data-target="configGuardRange"
+                      data-alarm-type="guard"
+                      data-alarm-criteria="range"
+                    />
+                  </div>
+                  <div class="col-2 text-end">
+                    <span id="configGuardRange" class="fw-bold">2.0</span
+                    ><span id="configGuardRangeUnits"> NM</span>
+                  </div>
+                </div>
+
+                <div class="row mb-3">
+                  <div class="col-3 pe-0">
+                    <label for="configGuardSogRange" class="form-label"
+                      >Speed Exceeds</label
+                    >
+                  </div>
+                  <div class="col-7">
+                    <input
+                      type="range"
+                      class="form-range"
+                      id="configGuardSogRange"
+                      min="0"
+                      max="10"
+                      step="1"
+                      data-target="configGuardSog"
+                      data-alarm-type="guard"
+                      data-alarm-criteria="speed"
+                    />
+                  </div>
+                  <div class="col-2 text-end">
+                    <span id="configGuardSog" class="fw-bold">2.0</span
+                    ><span> Knots</span>
+                  </div>
+                </div>
+              </li>
+              <!--end guard alarm-->
+            </ul>
+          </div>
+          <!--end card-->
         </div>
-        <!--end offcanvasProfile-->
+        <!--end offcanvas-body-->
+      </div>
+      <!--end offcanvasProfile-->
     </div>
     <!--end container-->
-
-    <!-- <script src="assets/js/bootstrap.bundle.min.js"></script> -->
-    <script src="assets/js/leaflet.js"></script>
-    <script src="assets/js/rbush.min.js"></script>
-    <script src="assets/js/labelgun.min.js"></script>
-    <script src="assets/js/easy-button.js"></script>
-    <script src="assets/js/protomaps-leaflet.js"></script>
-    <script src="assets/js/basemaps.js"></script>
-    <script src="assets/js/NoSleep.min.js"></script>
-    <!-- <script src="assets/js/script.js" type="module"></script> -->
-</body>
-
+  </body>
 </html>
