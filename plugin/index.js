@@ -1,15 +1,18 @@
 import fs from "fs";
 import path from "path";
-import aisUtils from "../src/assets/js/ais-utils.js";
-import defaultCollisionProfiles from "../src/assets/js/defaultCollisionProfiles.json";
-import schema from "./schema";
+import * as aisUtils from "../src/assets/scripts/ais-utils.js";
+import defaultCollisionProfiles from "../src/public/assets/defaultCollisionProfiles.json" with {
+	type: "json",
+};
+
+import schema from "./schema.json" with { type: "json" };
 
 // var aisUtils;
 // import("../public/assets/js/ais-utils.js").then((module) => {
 //     aisUtils = module;
 // });
 
-import vesper from "./vesper-xb8000-emulator.js";
+import * as vesper from "./vesper-xb8000-emulator.js";
 
 const AGE_OUT_OLD_TARGETS = true;
 const TARGET_MAX_AGE = 30 * 60; // max age in seconds - 30 minutes

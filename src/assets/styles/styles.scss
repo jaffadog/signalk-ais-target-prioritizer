@@ -1,0 +1,133 @@
+@import "bootstrap/scss/bootstrap";
+@import "leaflet/dist/leaflet.css";
+@import "leaflet-easybutton/src/easy-button.css";
+
+body {
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body,
+#map {
+  height: 100%;
+  width: 100vw;
+}
+
+#map {
+  color: var(--bs-body-color);
+  background-color: var(--bs-body-bg);
+}
+
+.leaflet-bar a,
+.leaflet-bar button,
+.leaflet-bar button:hover,
+.leaflet-touch .leaflet-control-layers-toggle,
+.leaflet-control-layers-expanded,
+.leaflet-container .leaflet-control-attribution {
+  color: var(--bs-secondary-color);
+  background-color: var(--bs-secondary-bg);
+}
+
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.leaflet-tooltip {
+  color: var(--bs-body-color);
+}
+
+.leaflet-layer {
+  background-color: var(--bs-body-bg);
+}
+
+.leaflet-tooltip.map-labels {
+  border: none;
+  background-color: unset;
+  box-shadow: none;
+}
+
+.leaflet-tooltip.map-labels::before {
+  opacity: 0;
+}
+
+.bi {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  fill: currentcolor;
+}
+
+.bi::before,
+[class^="bi-"]::before,
+[class*=" bi-"]::before {
+  display: inline-block;
+  font-family: bootstrap-icons !important;
+  font-style: normal;
+  font-weight: normal !important;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  vertical-align: -0.125em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button.easy-button-button {
+  padding-inline: 0;
+  padding-block: 0;
+  font-size: 16px;
+}
+
+.leaflet-touch .leaflet-control-layers-toggle {
+  /* background-image: url(assets/icons/layers-fill.svg); */
+  background-image: unset;
+  /* fill: currentcolor; */
+  /* background-size: 16px; */
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 30px;
+}
+
+#offcanvasEditProfiles {
+  width: 100%;
+}
+
+@media screen and (min-width: 768px) {
+  #offcanvasEditProfiles {
+    width: 575px;
+  }
+}
+
+#offcanvasTargetList {
+  width: 100%;
+}
+
+@media screen and (min-width: 992px) {
+  #offcanvasTargetList {
+    width: 768px;
+  }
+}
+
+#tableOfTargetsBody {
+  cursor: pointer;
+}
+
+#tableOfTargetsBody td {
+  text-align: right;
+}
+
+.blueStuff {
+  z-index: 1000;
+}
+
+#targetCounts {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 7em;
+  z-index: 500;
+}

@@ -10,7 +10,15 @@ const TARGET_MAX_AGE = 30 * 60; // max age in seconds - 30 minutes
 const SHOW_ALARMS_INTERVAL = 60 * 1000; // show alarms every 60 seconds
 const PLUGIN_ID = "signalk-ais-target-prioritizer";
 
-import "bootstrap";
+import * as bootstrap from "bootstrap";
+import * as L from "leaflet";
+import * as protomapsL from "protomaps-leaflet";
+// import "rbush";
+import * as labelgun from "labelgun";
+import "leaflet-easybutton";
+import * as basemaps from "@protomaps/basemaps";
+import NoSleep from "nosleep.js";
+
 import {
 	getAtonIcon,
 	getBaseIcon,
@@ -69,10 +77,14 @@ const bsOffcanvasEditProfiles = new bootstrap.Offcanvas(
 );
 const bsOffcanvasTargetList = new bootstrap.Offcanvas("#offcanvasTargetList");
 
-const defaultCollisionProfiles = await getHttpResponse(
-	"./assets/js/defaultCollisionProfiles.json",
-	{ throwErrors: true },
-);
+import defaultCollisionProfiles from "../../public/assets/defaultCollisionProfiles.json" with {
+	type: "json",
+};
+
+// const defaultCollisionProfiles = await getHttpResponse(
+//   "./assets/js/defaultCollisionProfiles.json",
+//   { throwErrors: true }
+// );
 
 // load collisionProfiles
 // /plugins/${PLUGIN_ID}/getCollisionProfiles
@@ -143,8 +155,17 @@ var openTopoMap = L.tileLayer(
 	},
 );
 
+var satLayer = L.tileLayer(
+	"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+	{
+		maxNativeZoom: 17,
+		maxZoom: 20,
+		attribution: "© Esri © OpenStreetMap Contributors",
+	},
+);
+
 var naturalEarth10m = protomapsL.leafletLayer({
-	url: "assets/pmtiles/ne_10m_land.pmtiles",
+	url: "assets/ne_10m_land.pmtiles",
 	maxDataZoom: 5,
 	paintRules: paintRules,
 	labelRules: labelRules,
@@ -154,6 +175,7 @@ var baseMaps = {
 	Empty: L.tileLayer(""),
 	OpenStreetMap: osm,
 	OpenTopoMap: openTopoMap,
+	Satellite: satLayer,
 	"NaturalEarth (offline)": naturalEarth10m,
 };
 
@@ -833,7 +855,7 @@ function showAlarms() {
 				`<div class="alert alert-danger" role="alert">${message}</div>`;
 		});
 		bsModalAlarm.show();
-		new Audio("./assets/audio/horn.mp3").play();
+		new Audio("./assets/horn.mp3").play();
 	}
 }
 
@@ -1124,7 +1146,13 @@ function updateTableOfTargets() {
 	for (var target of targetsArray) {
 		if (target.mmsi != selfMmsi && target.isValid) {
 			tableBody += `
-                <tr class="${target.alarmState == "danger" ? "table-danger" : target.alarmState == "warning" ? "table-warning" : ""}" data-mmsi="${target.mmsi}">
+                <tr class="${
+									target.alarmState == "danger"
+										? "table-danger"
+										: target.alarmState == "warning"
+											? "table-warning"
+											: ""
+								}" data-mmsi="${target.mmsi}">
                 <th scope="row">${target.name}</th>
                 <td>${target.bearingFormatted}</td>
                 <td>${target.rangeFormatted}</td>
@@ -1627,16 +1655,24 @@ async function getHttpResponse(url, options) {
 		}
 	} catch (error) {
 		console.error(
-			`Error in getHttpResponse: url=${url}, options=${options}, status=${response?.status || "none"}`,
+			`Error in getHttpResponse: url=${url}, options=${options}, status=${
+				response?.status || "none"
+			}`,
 			error,
 		);
 		if (options?.throwErrors) {
 			//showError("The SignalK AIS Target Prioritizer plugin is not running. Please check the plugin status.");
 			showError(`Encountered an error retrieving data from the SignalK server. Verify that you are connected to the SignalK server, that the SignalK 
                 server is running, and that the AIS Target Prioritizer plugin is enabled.<br><br>
-                <b>url</b>=${url},<br><b>options</b>=${JSON.stringify(options)},<br><b>status</b>=${response?.status || "none"},<br><b>error</b>=${error.message}`);
+                <b>url</b>=${url},<br><b>options</b>=${JSON.stringify(
+									options,
+								)},<br><b>status</b>=${response?.status || "none"},<br><b>error</b>=${
+									error.message
+								}`);
 			throw new Error(
-				`Error in getHttpResponse: url=${url}, options=${JSON.stringify(options)}, status=${response?.status || "none"}, error=${error.message}`,
+				`Error in getHttpResponse: url=${url}, options=${JSON.stringify(
+					options,
+				)}, status=${response?.status || "none"}, error=${error.message}`,
 			);
 		}
 	}

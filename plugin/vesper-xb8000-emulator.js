@@ -1,19 +1,19 @@
 // FIXME rot coming in in radians now
 
-var aisUtilsPromise = import("../src/assets/js/ais-utils.js");
+var aisUtilsPromise = import("../src/assets/scripts/ais-utils.js");
 let toDegrees;
 
-const express = require("express");
+import express from "express";
 const expressApp = express();
 
-var _ = require("lodash");
+import _ from "lodash";
 
-var SSE = require("express-sse");
+import SSE from "express-sse";
 var sse = new SSE();
 
-const proxy = require("node-tcp-proxy");
-//const { clearInterval } = require("timers");
-const mdns = require("multicast-dns")();
+import proxy from "node-tcp-proxy";
+//import { clearInterval } from "timers";
+import mdns from "multicast-dns";
 
 const METERS_PER_NM = 1852;
 const KNOTS_PER_M_PER_S = 1.94384;
@@ -369,15 +369,28 @@ function getAnchorWatchModelXml() {
             <AnchorWatch>
                 <setAnchor>${anchorWatchControl.setAnchor}</setAnchor>
                 <alarmRadius>${anchorWatchControl.alarmRadius}</alarmRadius>
-                <alarmsEnabled>${anchorWatchControl.alarmsEnabled}</alarmsEnabled>
-                <anchorLatitude>${anchorWatchControl.anchorPosition.a}</anchorLatitude>
-                <anchorLongitude>${anchorWatchControl.anchorPosition.o}</anchorLongitude>
+                <alarmsEnabled>${
+									anchorWatchControl.alarmsEnabled
+								}</alarmsEnabled>
+                <anchorLatitude>${
+									anchorWatchControl.anchorPosition.a
+								}</anchorLatitude>
+                <anchorLongitude>${
+									anchorWatchControl.anchorPosition.o
+								}</anchorLongitude>
                 <anchorCorrectedLat></anchorCorrectedLat>
                 <anchorCorrectedLong></anchorCorrectedLong>
                 <usingCorrected>0</usingCorrected>
-                <distanceToAnchor>${formatFixed(anchorWatchControl.distanceToAnchor, 1)}</distanceToAnchor>
-                <bearingToAnchor>${anchorWatchControl.bearingToAnchor || ""}</bearingToAnchor>
-                <alarmTriggered>${anchorWatchControl.alarmTriggered}</alarmTriggered>
+                <distanceToAnchor>${formatFixed(
+									anchorWatchControl.distanceToAnchor,
+									1,
+								)}</distanceToAnchor>
+                <bearingToAnchor>${
+									anchorWatchControl.bearingToAnchor || ""
+								}</bearingToAnchor>
+                <alarmTriggered>${
+									anchorWatchControl.alarmTriggered
+								}</alarmTriggered>
             </AnchorWatch>
         </Watchmate>`;
 }
@@ -401,7 +414,9 @@ function getAlarmsXml() {
 
 	for (var target of targets.values()) {
 		if (target.alarmState) {
-			response += `<Alarm MMSI='${target.mmsi}' state='${translateAlarmState(target.alarmState) || ""}' type='${target.alarmType || ""}'>
+			response += `<Alarm MMSI='${target.mmsi}' state='${
+				translateAlarmState(target.alarmState) || ""
+			}' type='${target.alarmType || ""}'>
 <Name>${xmlescape(target.name) || ""}</Name>
 <COG>${formatCog(target.cog)}</COG>
 <SOG>${formatSog(target.sog)}</SOG>
@@ -495,7 +510,11 @@ function getTargetDetailsXml(mmsi) {
 <longitudeText>${formatLon(target.longitude)}</longitudeText>
 <OffPosition>${target.isOffPosition || "0"}</OffPosition>
 <Virtual>${target.isVirtual || "0"}</Virtual>
-<Dimensions>${target.length && target.width ? target.length + "m x " + target.width + "m" : "---"}</Dimensions >
+<Dimensions>${
+			target.length && target.width
+				? target.length + "m x " + target.width + "m"
+				: "---"
+		}</Dimensions >
 <Draft>${target.draft ? target.draft + "m" : "---"}</Draft>
 <ClassType>${target.aisClass || ""}</ClassType>
 <Destination>${xmlescape(target.destination) || ""}</Destination>
@@ -672,7 +691,9 @@ function setupHttpServer() {
 	expressApp.use((req, res, next) => {
 		if (debugHttpComms)
 			app.debug(
-				`received request ${req.method} ${req.originalUrl} ${JSON.stringify(req.query)} `,
+				`received request ${req.method} ${req.originalUrl} ${JSON.stringify(
+					req.query,
+				)} `,
 			);
 		next();
 	});
@@ -1213,11 +1234,11 @@ function refreshTargetData() {
 	});
 }
 
-module.exports.setCollisionProfiles = (_collisionProfiles) => {
+export function setCollisionProfiles(_collisionProfiles) {
 	collisionProfiles = _collisionProfiles;
-};
+}
 
-module.exports.start = (
+export function start(
 	_app,
 	_collisionProfiles,
 	_selfMmsi,
@@ -1226,7 +1247,7 @@ module.exports.start = (
 	_selfTypeId,
 	_targets,
 	_saveCollisionProfiles,
-) => {
+) {
 	//console.log('vesper.start received:',_collisionProfiles, _selfMmsi, _selfName, _selfCallsign, _selfTypeId, _gps, _targets, _saveCollisionProfiles)
 	app = _app;
 	collisionProfiles = _collisionProfiles;
@@ -1237,6 +1258,7 @@ module.exports.start = (
 	targets = _targets;
 	saveCollisionProfiles = _saveCollisionProfiles;
 
+	// FIXME
 	Promise.resolve(aisUtilsPromise).then((aisUtils) => {
 		toDegrees = aisUtils.toDegrees;
 		app.debug("starting vesper emulator", collisionProfiles);
@@ -1250,9 +1272,9 @@ module.exports.start = (
 			refreshTargetData();
 		}, 1000);
 	});
-};
+}
 
-module.exports.stop = () => {
+export function stop() {
 	if (streamingHeartBeatInterval) clearInterval(streamingHeartBeatInterval);
 	if (streamingVesselPositionUnderwayInterval)
 		clearInterval(streamingVesselPositionUnderwayInterval);
@@ -1284,4 +1306,4 @@ module.exports.stop = () => {
 			app.debug(e);
 		}
 	}
-};
+}
