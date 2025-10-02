@@ -1,2 +1,2 @@
 # when .npmignore is empty, all files are included in the npm pack - overriding .gitignore. 
-# so this is useful for including /dist or /public for example.
+# so this is useful for including /dist or /public for example - when they are excluded by .gitignore.

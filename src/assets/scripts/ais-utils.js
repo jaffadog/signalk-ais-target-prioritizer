@@ -4,9 +4,7 @@ const METERS_PER_NM = 1852;
 const KNOTS_PER_M_PER_S = 1.94384;
 const LOST_TARGET_WARNING_AGE = 10 * 60; // in seconds - 10 minutes
 
-export { updateDerivedData, toRadians, toDegrees };
-
-function updateDerivedData(
+export function updateDerivedData(
 	targets,
 	selfTarget,
 	collisionProfiles,
@@ -52,11 +50,11 @@ function updateDerivedData(
 	});
 }
 
-function toRadians(v) {
+export function toRadians(v) {
 	return (v * Math.PI) / 180;
 }
 
-function toDegrees(v) {
+export function toDegrees(v) {
 	return (v * 180) / Math.PI;
 }
 
@@ -79,7 +77,7 @@ function updateSingleTargetDerivedData(
 		evaluateAlarms(target, collisionProfiles);
 	}
 
-	var lastSeen = Math.round((new Date() - target.lastSeenDate) / 1000);
+	var lastSeen = Math.round((Date.now() - target.lastSeenDate) / 1000);
 	if (lastSeen < 0) {
 		lastSeen = 0;
 	}
@@ -87,25 +85,25 @@ function updateSingleTargetDerivedData(
 	var mmsiMid = getMid(target.mmsi);
 
 	target.lastSeen = lastSeen;
-	target.isLost = lastSeen > LOST_TARGET_WARNING_AGE ? true : false;
+	target.isLost = lastSeen > LOST_TARGET_WARNING_AGE;
 	target.mmsiCountryCode = mmsiMidToCountry.get(mmsiMid)?.code;
 	target.mmsiCountryName = mmsiMidToCountry.get(mmsiMid)?.name;
 	target.cpaFormatted = formatCpa(target.cpa);
 	target.tcpaFormatted = formatTcpa(target.tcpa);
 	target.rangeFormatted =
 		target.range != null
-			? (target.range / METERS_PER_NM).toFixed(2) + " NM"
+			? `${(target.range / METERS_PER_NM).toFixed(2)} NM`
 			: "---";
 	target.bearingFormatted =
-		target.bearing != null ? target.bearing + " T" : "---";
+		target.bearing != null ? `${target.bearing} T` : "---";
 	target.sogFormatted =
 		target.sog != null
-			? (target.sog * KNOTS_PER_M_PER_S).toFixed(1) + " kn"
+			? `${(target.sog * KNOTS_PER_M_PER_S).toFixed(1)} kn`
 			: "---";
 	target.cogFormatted =
-		target.cog != null ? Math.round(toDegrees(target.cog)) + " T" : "---";
+		target.cog != null ? `${Math.round(toDegrees(target.cog))} T` : "---";
 	target.hdgFormatted =
-		target.hdg != null ? Math.round(toDegrees(target.hdg)) + " T" : "---";
+		target.hdg != null ? `${Math.round(toDegrees(target.hdg))} T` : "---";
 	target.rotFormatted = Math.round(toDegrees(target.rot)) || "---";
 	target.aisClassFormatted =
 		target.aisClass + (target.isVirtual ? " (virtual)" : "");
@@ -343,7 +341,7 @@ function evaluateAlarms(target, collisionProfiles) {
 			target.order = 40000;
 		}
 
-		var alarms = [];
+		const alarms = [];
 
 		if (target.guardAlarm) alarms.push("guard");
 		if (target.collisionAlarm || target.collisionWarning) alarms.push("cpa");
@@ -363,7 +361,7 @@ function evaluateAlarms(target, collisionProfiles) {
 			target.order -= 1000;
 			// tcpa of 0 seconds reduces order by 1000 (this is an arbitrary weighting)
 			// tcpa of 60 minutes reduces order by 0
-			var weight = 1000;
+			const weight = 1000;
 			target.order -= Math.max(
 				0,
 				Math.round(weight - (weight * target.tcpa) / 3600),
@@ -374,7 +372,7 @@ function evaluateAlarms(target, collisionProfiles) {
 		if (target.cpa != null && target.cpa > 0) {
 			// cpa of 0 nm reduces order by 2000 (this is an arbitrary weighting)
 			// cpa of 5 nm reduces order by 0
-			var weight = 2000;
+			const weight = 2000;
 			target.order -= Math.max(
 				0,
 				Math.round(weight - (weight * target.cpa) / 5 / METERS_PER_NM),
@@ -468,23 +466,23 @@ function getMid(mmsi) {
 // N 39° 57.0689
 function formatLat(dec) {
 	var decAbs = Math.abs(dec);
-	var deg = ("0" + Math.floor(decAbs)).slice(-2);
-	var min = ("0" + ((decAbs - deg) * 60).toFixed(4)).slice(-7);
-	return (dec > 0 ? "N" : "S") + " " + deg + "° " + min;
+	var deg = `0${Math.floor(decAbs)}`.slice(-2);
+	var min = `0${((decAbs - deg) * 60).toFixed(4)}`.slice(-7);
+	return `${dec > 0 ? "N" : "S"} ${deg}° ${min}`;
 }
 
 // W 075° 08.3692
 function formatLon(dec) {
 	var decAbs = Math.abs(dec);
-	var deg = ("00" + Math.floor(decAbs)).slice(-3);
-	var min = ("0" + ((decAbs - deg) * 60).toFixed(4)).slice(-7);
-	return (dec > 0 ? "E" : "W") + " " + deg + "° " + min;
+	var deg = `00${Math.floor(decAbs)}`.slice(-3);
+	var min = `0${((decAbs - deg) * 60).toFixed(4)}`.slice(-7);
+	return `${dec > 0 ? "E" : "W"} ${deg}° ${min}`;
 }
 
 // 1.53 NM
 function formatCpa(cpa) {
 	// if cpa is null it should be returned as blank. toFixed makes it '0.00'
-	return cpa != null ? (cpa / METERS_PER_NM).toFixed(2) + " NM" : "---";
+	return cpa != null ? `${(cpa / METERS_PER_NM).toFixed(2)} NM` : "---";
 }
 
 // hh:mm:ss or mm:ss e.g. 01:15:23 or 51:37

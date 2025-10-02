@@ -4,16 +4,18 @@ var aisUtilsPromise = import("../src/assets/scripts/ais-utils.js");
 let toDegrees;
 
 import express from "express";
+
 const expressApp = express();
 
+import SSE from "express-sse";
 import _ from "lodash";
 
-import SSE from "express-sse";
 var sse = new SSE();
 
 import proxy from "node-tcp-proxy";
-//import { clearInterval } from "timers";
-import mdns from "multicast-dns";
+
+// import { clearInterval } from "timers";
+// import mdns from "multicast-dns";
 
 const METERS_PER_NM = 1852;
 const KNOTS_PER_M_PER_S = 1.94384;
@@ -103,21 +105,21 @@ const stateMappingTextToNumeric = {
 	default: 15,
 };
 
-const stateMappingNumericToText = {
-	0: "motoring",
-	1: "anchored",
-	2: "not under command",
-	3: "restricted manouverability",
-	4: "constrained by draft",
-	5: "moored",
-	6: "aground",
-	7: "fishing",
-	8: "sailing",
-	9: "hazardous material high speed",
-	10: "hazardous material wing in ground",
-	14: "ais-sart",
-	15: "default",
-};
+// const stateMappingNumericToText = {
+// 	0: "motoring",
+// 	1: "anchored",
+// 	2: "not under command",
+// 	3: "restricted manouverability",
+// 	4: "constrained by draft",
+// 	5: "moored",
+// 	6: "aground",
+// 	7: "fishing",
+// 	8: "sailing",
+// 	9: "hazardous material high speed",
+// 	10: "hazardous material wing in ground",
+// 	14: "ais-sart",
+// 	15: "default",
+// };
 
 // setup auto-discovery
 /*
@@ -197,7 +199,7 @@ function getGpsModelXml() {
 	var xml = `<?xml version='1.0' encoding='ISO-8859-1' ?>
 <Watchmate version='1.0' priority='0'>
 <GPSModel>`;
-	if (gps && gps.isValid) {
+	if (gps?.isValid) {
 		xml += `<hasGPS>1</hasGPS>
 <latitudeText>${formatLat(gps.latitude)}</latitudeText>
 <longitudeText>${formatLon(gps.longitude)}</longitudeText>
@@ -221,7 +223,7 @@ function getGpsModelAdvancedXml() {
 	var xml = `<?xml version = '1.0' encoding = 'ISO-8859-1' ?>
         <Watchmate version='1.0' priority='0'>
             <GPSModel>`;
-	if (gps && gps.isValid) {
+	if (gps?.isValid) {
 		xml += `<hasGPS>1</hasGPS>
                 <latitudeText>${formatLat(gps.latitude)}</latitudeText>
                 <longitudeText>${formatLon(gps.longitude)}</longitudeText>
@@ -452,7 +454,7 @@ function getTargetsXml() {
 `;
 
 	for (var target of targets.values()) {
-		if (target.isValid && target.mmsi != selfMmsi) {
+		if (target.isValid && target.mmsi !== selfMmsi) {
 			response += `<Target>
 <MMSI>${target.mmsi}</MMSI>
 <Name>${xmlescape(target.name) || ""}</Name>
@@ -512,10 +514,10 @@ function getTargetDetailsXml(mmsi) {
 <Virtual>${target.isVirtual || "0"}</Virtual>
 <Dimensions>${
 			target.length && target.width
-				? target.length + "m x " + target.width + "m"
+				? `${target.length}m x ${target.width}m`
 				: "---"
 		}</Dimensions >
-<Draft>${target.draft ? target.draft + "m" : "---"}</Draft>
+<Draft>${target.draft ? `${target.draft}m` : "---"}</Draft>
 <ClassType>${target.aisClass || ""}</ClassType>
 <Destination>${xmlescape(target.destination) || ""}</Destination>
 <ETAText></ETAText>
@@ -563,7 +565,7 @@ function setupSse() {
 	if (enableSse) {
 		// send heartbeat
 		streamingHeartBeatInterval = setInterval(() => {
-			sendSseMsg("HeartBeat", { time: new Date().getTime() });
+			sendSseMsg("HeartBeat", { time: Date.now() });
 		}, 15000);
 
 		// send VesselPositionUnderway - 15s?
@@ -572,8 +574,8 @@ function setupSse() {
 			// 80:VesselPositionUnderway{"a":380704720,"o":-785886085,"cog":220.28,"sog":0,"var":-9.77,"t":1576873731}
 			// sse.send("75:VesselPositionUnderway{\"a\":407106833,\"o\":-740460408,\"cog\":0,\"sog\":0.0,\"var\":-13,\"t\":1576639404}\n\n");
 
-			if (gps && gps.isValid) {
-				var vesselPositionUnderway = {
+			if (gps?.isValid) {
+				const vesselPositionUnderway = {
 					a: Math.round(gps.latitude * 1e7),
 					o: Math.round(gps.longitude * 1e7),
 					cog: toDegrees(gps.cog),
@@ -594,7 +596,7 @@ function setupSse() {
 		// send AnchorWatch
 		streamingAnchorWatchInterval = setInterval(() => {
 			var anchorWatchJson = {
-				outOfBounds: anchorWatchControl.alarmTriggered == 1,
+				outOfBounds: anchorWatchControl.alarmTriggered === 1,
 				// FIXME: should we send "positions" for "anchorPreviousPositions"?
 				anchorPreviousPositions: positions,
 			};
@@ -609,9 +611,9 @@ function setupSse() {
 	}
 
 	function sendSseMsg(name, data) {
-		if (debugSseComms) app.debug("SSE sending " + name);
+		if (debugSseComms) app.debug(`SSE sending ${name}`);
 		var json = JSON.stringify(data);
-		sse.send(json.length + 2 + ":" + name + json + "\n\n");
+		sse.send(`${json.length + 2}:${name}${json}\n\n`);
 	}
 
 	// ******************** END SSE STUFF **********************
@@ -619,7 +621,7 @@ function setupSse() {
 
 // save position - keep up to 2880 positions (24 hours at 30 sec cadence)
 savePositionInterval = setInterval(() => {
-	if (gps && gps.isValid) {
+	if (gps?.isValid) {
 		positions.unshift({
 			a: Math.round(gps.latitude * 1e7),
 			o: Math.round(gps.longitude * 1e7),
@@ -688,7 +690,7 @@ function setupHttpServer() {
 	//expressApp.use(compression());
 
 	// log all requests
-	expressApp.use((req, res, next) => {
+	expressApp.use((req, _res, next) => {
 		if (debugHttpComms)
 			app.debug(
 				`received request ${req.method} ${req.originalUrl} ${JSON.stringify(
@@ -703,7 +705,7 @@ function setupHttpServer() {
 	expressApp.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
 	// sanity
-	expressApp.get("/", (req, res) => res.send("Hello World!"));
+	expressApp.get("/", (_req, res) => res.send("Hello World!"));
 
 	// GET /datamodel/getModel?*****
 	expressApp.get("/datamodel/getModel", (req, res) => {
@@ -773,17 +775,17 @@ function setupHttpServer() {
 	// FIXME: "Hello" 200 text/html ????
 	// not sure what this is supposed to do or what the response is supposed to be
 	// would be nice to get a sample from a real xb-8000
-	expressApp.get("/prefs/start_notifying", (req, res) => {
+	expressApp.get("/prefs/start_notifying", (_req, res) => {
 		res.json();
 	});
 
 	// GET /prefs/getPreferences?accept.demo_mode&profile.current
-	expressApp.get("/prefs/getPreferences", (req, res) => {
+	expressApp.get("/prefs/getPreferences", (_req, res) => {
 		sendXmlResponse(res, getPreferencesXml());
 	});
 
 	// GET /alarms/get_current_list
-	expressApp.get("/alarms/get_current_list", (req, res) => {
+	expressApp.get("/alarms/get_current_list", (_req, res) => {
 		sendXmlResponse(res, getAlarmsXml());
 
 		// FIXME: testing response format when there are no alarms. the ios app makes excessive calls, so i dont think we have this quite right yet.
@@ -794,12 +796,12 @@ function setupHttpServer() {
 	});
 
 	// GET /test/getSimFiles
-	expressApp.get("/test/getSimFiles", (req, res) => {
+	expressApp.get("/test/getSimFiles", (_req, res) => {
 		sendXmlResponse(res, getSimsXml());
 	});
 
 	// GET /targets/getTargets
-	expressApp.get("/targets/getTargets", (req, res) => {
+	expressApp.get("/targets/getTargets", (_req, res) => {
 		sendXmlResponse(res, getTargetsXml());
 	});
 
@@ -831,7 +833,7 @@ function setupHttpServer() {
 	});
 
 	// GET /alarms/mute_alarm
-	expressApp.get("/alarms/mute_alarm", (req, res) => {
+	expressApp.get("/alarms/mute_alarm", (_req, res) => {
 		muteAlarms();
 		res.json();
 	});
@@ -839,9 +841,9 @@ function setupHttpServer() {
 	expressApp.get("/datamodel/propertyEdited", (req, res) => {
 		// GET /datamodel/propertyEdited?AnchorWatch.setAnchor=1
 		if (req.query["AnchorWatch.setAnchor"]) {
-			var setAnchor = req.query["AnchorWatch.setAnchor"];
+			const setAnchor = req.query["AnchorWatch.setAnchor"];
 
-			if (setAnchor == 1) {
+			if (setAnchor === 1) {
 				setAnchored();
 			} else {
 				setUnderway();
@@ -903,13 +905,13 @@ function setupHttpServer() {
 		expressApp.get("/v3/openChannel", sse.init);
 
 		// GET /v3/subscribeChannel?<anything>
-		expressApp.get("/v3/subscribeChannel", (req, res) => {
+		expressApp.get("/v3/subscribeChannel", (_req, res) => {
 			res.json();
 		});
 
 		// GET /v3/watchMate/collisionProfiles
 		// JSON.stringify(collisionProfiles,null,2);
-		expressApp.get("/v3/watchMate/collisionProfiles", (req, res) => {
+		expressApp.get("/v3/watchMate/collisionProfiles", (_req, res) => {
 			res.json(collisionProfiles);
 		});
 
@@ -1012,7 +1014,7 @@ function setupTcpProxyServer() {
 			proxySourceHostname,
 			proxySourcePort,
 		);
-		app.debug("Proxy server listening on port " + nmeaOverTcpServerPort);
+		app.debug(`Proxy server listening on port ${nmeaOverTcpServerPort}`);
 	}
 }
 // ======================= END TCP SERVER ========================
@@ -1102,31 +1104,31 @@ function muteAlarms() {
 	// TODO: or should we just silence the anchor watch for 20 minutes? that
 	// might be better
 	if (
-		anchorWatchControl.alarmsEnabled == 1 &&
-		anchorWatchControl.alarmTriggered == 1
+		anchorWatchControl.alarmsEnabled === 1 &&
+		anchorWatchControl.alarmTriggered === 1
 	) {
 		anchorWatchControl.alarmsEnabled = 0;
 	}
 }
 
 function translateAlarmState(alarmState) {
-	return alarmState == "warning" ? "threat" : alarmState;
+	return alarmState === "warning" ? "threat" : alarmState;
 }
 
 // latitudeText: 'N 39° 57.0689',
 function formatLat(dec) {
 	var decAbs = Math.abs(dec);
-	var deg = ("0" + Math.floor(decAbs)).slice(-2);
-	var min = ("0" + ((decAbs - deg) * 60).toFixed(4)).slice(-7);
-	return (dec > 0 ? "N" : "S") + " " + deg + "° " + min;
+	var deg = `0${Math.floor(decAbs)}`.slice(-2);
+	var min = `0${((decAbs - deg) * 60).toFixed(4)}`.slice(-7);
+	return `${dec > 0 ? "N" : "S"} ${deg}° ${min}`;
 }
 
 // longitudeText: 'W 075° 08.3692',
 function formatLon(dec) {
 	var decAbs = Math.abs(dec);
-	var deg = ("00" + Math.floor(decAbs)).slice(-3);
-	var min = ("0" + ((decAbs - deg) * 60).toFixed(4)).slice(-7);
-	return (dec > 0 ? "E" : "W") + " " + deg + "° " + min;
+	var deg = `00${Math.floor(decAbs)}`.slice(-3);
+	var min = `0${((decAbs - deg) * 60).toFixed(4)}`.slice(-7);
+	return `${dec > 0 ? "E" : "W"} ${deg}° ${min}`;
 }
 
 // return in knots
@@ -1135,15 +1137,15 @@ function formatSog(sog) {
 }
 
 function formatCog(cog) {
-	return cog === undefined ? "" : ("00" + Math.round(toDegrees(cog))).slice(-3);
+	return cog === undefined ? "" : `00${Math.round(toDegrees(cog))}`.slice(-3);
 }
 
 function formatRot(rot) {
 	// sample: 3°/min
 	// to decode the field value, divide by 4.733and then square it. Sign of the field value should be preserved
-	return rot === undefined || rot == 0 || rot == -128
+	return rot === undefined || rot === 0 || rot === -128
 		? ""
-		: Math.round((rot / 4.733) ** 2) + "°/min";
+		: `${Math.round((rot / 4.733) ** 2)}°/min`;
 }
 
 function formatCpa(cpa) {
@@ -1191,9 +1193,9 @@ function xmlescape(string, ignore) {
 	if (string === null || string === undefined) return;
 
 	ignore = (ignore || "").replace(/[^&"<>']/g, "");
-	pattern = "([&\"<>'])".replace(new RegExp("[" + ignore + "]", "g"), "");
+	pattern = "([&\"<>'])".replace(new RegExp(`[${ignore}]`, "g"), "");
 
-	return string.replace(new RegExp(pattern, "g"), (str, item) => map[item]);
+	return string.replace(new RegExp(pattern, "g"), (_str, item) => map[item]);
 }
 
 // derive target data this is only used by the vesper emulator
@@ -1220,11 +1222,11 @@ function refreshTargetData() {
 		}
 		// Aid to Navigation
 		// 99MIDXXXX        Aids to Navigation
-		else if (target.aisClass == "ATON" || mmsi.startsWith("99")) {
+		else if (target.aisClass === "ATON" || mmsi.startsWith("99")) {
 			target.vesperTargetType = 4;
 		}
 		// class A
-		else if (target.aisClass == "A") {
+		else if (target.aisClass === "A") {
 			target.vesperTargetType = 1;
 		}
 		// make evrything else class B
@@ -1290,7 +1292,7 @@ export function stop() {
 	if (tcpProxyServer) {
 		try {
 			app.debug(
-				"Stopping proxy server listening on port " + nmeaOverTcpServerPort,
+				`Stopping proxy server listening on port ${nmeaOverTcpServerPort}`,
 			);
 			tcpProxyServer.end();
 		} catch (e) {
