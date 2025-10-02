@@ -1,17 +1,10 @@
-import fs from "fs";
-import path from "path";
-import * as aisUtils from "../src/assets/scripts/ais-utils.js";
-import defaultCollisionProfiles from "../src/public/assets/defaultCollisionProfiles.json" with {
+import fs from "node:fs";
+import path from "node:path";
+import defaultCollisionProfiles from "../src/assets/defaultCollisionProfiles.json" with {
 	type: "json",
 };
-
+import * as aisUtils from "../src/assets/scripts/ais-utils.js";
 import schema from "./schema.json" with { type: "json" };
-
-// var aisUtils;
-// import("../public/assets/js/ais-utils.js").then((module) => {
-//     aisUtils = module;
-// });
-
 import * as vesper from "./vesper-xb8000-emulator.js";
 
 const AGE_OUT_OLD_TARGETS = true;
@@ -71,7 +64,7 @@ export default function (app) {
 
 	plugin.stop = () => {
 		app.debug(`Stopping plugin ${plugin.id}`);
-		unsubscribes.forEach((f) => f());
+		// unsubscribes.forEach((f) => f());
 		unsubscribes = [];
 		if (refreshDataModelInterval) {
 			clearInterval(refreshDataModelInterval);
@@ -85,7 +78,7 @@ export default function (app) {
 
 	plugin.registerWithRouter = (router) => {
 		// GET /plugins/${plugin.id}/getCollisionProfiles
-		router.get("/getCollisionProfiles", (req, res) => {
+		router.get("/getCollisionProfiles", (_req, res) => {
 			app.debug("getCollisionProfiles", collisionProfiles);
 			res.json(collisionProfiles);
 		});
@@ -117,10 +110,10 @@ export default function (app) {
 		});
 
 		// GET /plugins/${plugin.id}/muteAllAlarms
-		router.get("/muteAllAlarms", (req, res) => {
+		router.get("/muteAllAlarms", (_req, res) => {
 			app.debug("muteAllAlarms");
 			targets.forEach((target, mmsi) => {
-				if (target.alarmState == "danger" && !target.alarmIsMuted) {
+				if (target.alarmState === "danger" && !target.alarmIsMuted) {
 					app.debug(
 						"muting alarm for target",
 						mmsi,
@@ -148,7 +141,7 @@ export default function (app) {
 		});
 
 		// GET /plugins/${plugin.id}/getTargets
-		router.get("/getTargets", (req, res) => {
+		router.get("/getTargets", (_req, res) => {
 			app.debug("getTargets", targets.size);
 			res.json(Object.fromEntries(targets));
 		});
@@ -167,8 +160,8 @@ export default function (app) {
 
 	function getCollisionProfiles() {
 		try {
-			var dataDirPath = app.getDataDirPath();
-			var collisionProfilesPath = path.join(
+			const dataDirPath = app.getDataDirPath();
+			const collisionProfilesPath = path.join(
 				dataDirPath,
 				"collisionProfiles.json",
 			);
@@ -304,7 +297,7 @@ export default function (app) {
 			localSubscription,
 			unsubscribes,
 			(subscriptionError) => {
-				app.error("Error:" + subscriptionError);
+				app.error(`Error:${subscriptionError}`);
 			},
 			(delta) => processDelta(delta),
 		);
@@ -349,15 +342,9 @@ export default function (app) {
 					case "":
 						if (value.value.name) {
 							target.name = value.value.name;
-						} else if (
-							value.value.communication &&
-							value.value.communication.callsignVhf
-						) {
+						} else if (value.value.communication?.callsignVhf) {
 							target.callsign = value.value.communication.callsignVhf;
-						} else if (
-							value.value.registrations &&
-							value.value.registrations.imo
-						) {
+						} else if (value.value.registrations?.imo) {
 							target.imo = value.value.registrations.imo.replace(/imo/i, "");
 						} else if (value.value.mmsi) {
 							// we expected mmsi
@@ -458,17 +445,17 @@ export default function (app) {
 			}
 
 			if (selfTarget.lastSeen > 30) {
-				var message = `No GPS position received for more than ${selfTarget.lastSeen} seconds`;
+				const message = `No GPS position received for more than ${selfTarget.lastSeen} seconds`;
 				app.debug(message); // we use app.debug rather than app.error so that the user can filter these out of the log
 				app.setPluginError(message);
 				sendNotification("alarm", message);
 				return;
 			}
 
-			var isCurrentAlarm = false;
+			let isCurrentAlarm = false;
 
 			targets.forEach((target, mmsi) => {
-				if (options.enableDataPublishing && mmsi != selfMmsi) {
+				if (options.enableDataPublishing && mmsi !== selfMmsi) {
 					pushTargetDataToSignalK(target);
 				}
 
@@ -479,14 +466,14 @@ export default function (app) {
 					target.alarmState &&
 					!target.alarmIsMuted
 				) {
-					var message = (
-						`${target.name || "<" + target.mmsi + ">"} - ` +
+					const message = (
+						`${target.name || `<${target.mmsi}>`} - ` +
 						`${target.alarmType} ` +
-						`${target.alarmState == "danger" ? "alarm" : target.alarmState}`
+						`${target.alarmState === "danger" ? "alarm" : target.alarmState}`
 					).toUpperCase();
-					if (target.alarmState == "warning") {
+					if (target.alarmState === "warning") {
 						sendNotification("warn", message);
-					} else if (target.alarmState == "danger") {
+					} else if (target.alarmState === "danger") {
 						sendNotification("alarm", message);
 					}
 					isCurrentAlarm = true;
@@ -564,7 +551,7 @@ export default function (app) {
 		const notifications = app.getSelfPath(
 			"notifications.navigation.closestApproach",
 		);
-		return notifications?.value?.state == "alarm" ? true : false;
+		return notifications?.value?.state === "alarm";
 	}
 
 	return plugin;

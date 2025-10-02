@@ -11,32 +11,18 @@ const SHOW_ALARMS_INTERVAL = 60 * 1000; // show alarms every 60 seconds
 const PLUGIN_ID = "signalk-ais-target-prioritizer";
 
 import * as bootstrap from "bootstrap";
+import * as labelgun from "labelgun";
 import * as L from "leaflet";
 import * as protomapsL from "protomaps-leaflet";
-// import "rbush";
-import * as labelgun from "labelgun";
 import "leaflet-easybutton";
 import * as basemaps from "@protomaps/basemaps";
 import NoSleep from "nosleep.js";
-
-import {
-	getAtonIcon,
-	getBaseIcon,
-	getBlueBoxIcon,
-	getClassAIcon,
-	getClassBIcon,
-	getSartIcon,
-	getSelfIcon,
-} from "./ais-icons.js";
+import defaultCollisionProfiles from "../defaultCollisionProfiles.json";
+import hornMp3Url from "../horn.mp3";
+import pmtilesUrl from "../ne_10m_land.pmtiles?url&no-inline";
+import * as aisIons from "./ais-icons.js";
 import { toDegrees, toRadians, updateDerivedData } from "./ais-utils.js";
-import {
-	biCursorFill,
-	biGearFill,
-	biLayersFill,
-	biListOl,
-	biVolumeMuteFill,
-	biVolumeUpFill,
-} from "./bi-icons.js";
+import * as biIcons from "./bi-icons.js";
 
 var noSleep = new NoSleep();
 var collisionProfiles;
@@ -59,7 +45,7 @@ var validTargetCount;
 var filteredTargetCount;
 var alarmTargetCount;
 var lastAlarmTime;
-var tooltipList;
+// var tooltipList;
 var sortTableBy = "priority";
 
 var blueLayerGroup = L.layerGroup();
@@ -77,15 +63,6 @@ const bsOffcanvasEditProfiles = new bootstrap.Offcanvas(
 );
 const bsOffcanvasTargetList = new bootstrap.Offcanvas("#offcanvasTargetList");
 
-import defaultCollisionProfiles from "../../public/assets/defaultCollisionProfiles.json" with {
-	type: "json",
-};
-
-// const defaultCollisionProfiles = await getHttpResponse(
-//   "./assets/js/defaultCollisionProfiles.json",
-//   { throwErrors: true }
-// );
-
 // load collisionProfiles
 // /plugins/${PLUGIN_ID}/getCollisionProfiles
 collisionProfiles = await getHttpResponse(
@@ -93,7 +70,7 @@ collisionProfiles = await getHttpResponse(
 	{ throwErrors: true },
 );
 
-console.log("collisionProfiles", collisionProfiles);
+// console.log("collisionProfiles", collisionProfiles);
 if (!collisionProfiles.current) {
 	console.log("using default collisionProfiles");
 	collisionProfiles = structuredClone(defaultCollisionProfiles);
@@ -103,7 +80,7 @@ if (!collisionProfiles.current) {
 document.getElementById("selectActiveProfile").value =
 	collisionProfiles.current;
 document.getElementById("checkNoSleep").checked =
-	localStorage.getItem("checkNoSleep") == "true";
+	localStorage.getItem("checkNoSleep") === "true";
 configureNoSleep();
 
 var charts = await getHttpResponse("/signalk/v1/api/resources/charts", {
@@ -125,7 +102,7 @@ const map = L.map("map", {
 	maxZoom: 18,
 });
 
-L.easyButton(biCursorFill, (btn, map) => {
+L.easyButton(biIcons.biCursorFill, (_btn, map) => {
 	if (selfTarget.isValid) {
 		map.panTo([selfTarget.latitude, selfTarget.longitude]);
 		offsetLatitude = 0;
@@ -165,7 +142,7 @@ var satLayer = L.tileLayer(
 );
 
 var naturalEarth10m = protomapsL.leafletLayer({
-	url: "assets/ne_10m_land.pmtiles",
+	url: pmtilesUrl,
 	maxDataZoom: 5,
 	paintRules: paintRules,
 	labelRules: labelRules,
@@ -179,10 +156,11 @@ var baseMaps = {
 	"NaturalEarth (offline)": naturalEarth10m,
 };
 
+var chart;
+var layer;
 for (const key in charts) {
-	var chart = charts[key];
-	var layer;
-	if (chart.format == "mvt") {
+	chart = charts[key];
+	if (chart.format === "mvt") {
 		layer = protomapsL.leafletLayer({
 			url: chart.tilemapUrl,
 			maxDataZoom: chart.maxzoom,
@@ -216,14 +194,14 @@ var layerControlLayersToggleEl = document.getElementsByClassName(
 	"leaflet-control-layers-toggle",
 )[0];
 
-layerControlLayersToggleEl.innerHTML = biLayersFill;
+layerControlLayersToggleEl.innerHTML = biIcons.biLayersFill;
 
-L.easyButton(biListOl, (btn, map) => {
+L.easyButton(biIcons.biListOl, () => {
 	bsOffcanvasTargetList.show();
 }).addTo(map);
 
 // '<span data-bs-toggle="offcanvas" href="#offcanvasSettings">Settings</span>'
-L.easyButton(biGearFill, (btn, map) => {
+L.easyButton(biIcons.biGearFill, () => {
 	bsOffcanvasSettings.show();
 }).addTo(map);
 
@@ -239,7 +217,7 @@ if (overlay && overlayMaps[overlay]) {
 }
 
 blueBoxIcon = L.marker([], {
-	icon: getBlueBoxIcon(),
+	icon: aisIons.getBlueBoxIcon(),
 });
 
 blueCircle1 = L.circleMarker([], {
@@ -310,7 +288,7 @@ document.getElementById("buttonEditProfiles").addEventListener("click", () => {
 	bsOffcanvasEditProfiles.show();
 });
 
-document.getElementById("checkNoSleep").addEventListener("change", (event) => {
+document.getElementById("checkNoSleep").addEventListener("change", () => {
 	configureNoSleep();
 });
 
@@ -318,23 +296,21 @@ document
 	.getElementById("checkDarkMode")
 	.addEventListener("change", applyColorMode);
 
-document
-	.getElementById("checkFullScreen")
-	.addEventListener("change", (event) => {
-		if (checkFullScreen.checked) {
-			if (!document.fullscreenElement) {
-				document.documentElement.requestFullscreen();
-			} else if (!document.webkitFullscreenElement) {
-				document.documentElement.webkitRequestFullscreen();
-			}
-		} else {
-			if (document.exitFullscreen) {
-				document.exitFullscreen();
-			} else if (document.webkitExitFullscreen) {
-				document.webkitExitFullscreen();
-			}
+document.getElementById("checkFullScreen").addEventListener("change", () => {
+	if (checkFullScreen.checked) {
+		if (!document.fullscreenElement) {
+			document.documentElement.requestFullscreen();
+		} else if (!document.webkitFullscreenElement) {
+			document.documentElement.webkitRequestFullscreen();
 		}
-	});
+	} else {
+		if (document.exitFullscreen) {
+			document.exitFullscreen();
+		} else if (document.webkitExitFullscreen) {
+			document.webkitExitFullscreen();
+		}
+	}
+});
 
 document.addEventListener("fullscreenchange", fullscreenchangeHandler);
 
@@ -389,11 +365,11 @@ configAlarmSogRange.addEventListener("input", processSpeedRangeControl);
 configGuardRangeRange.addEventListener("input", processDistanceRangeControl);
 configGuardSogRange.addEventListener("input", processSpeedRangeControl);
 
-map.on("movestart", (e) => {
+map.on("movestart", () => {
 	disableMapPanTo = true;
 });
 
-map.on("moveend", (e) => {
+map.on("moveend", () => {
 	disableMapPanTo = false;
 
 	if (disableMoveend) {
@@ -402,13 +378,13 @@ map.on("moveend", (e) => {
 
 	// if the map was panned, store the offsets from selfTarget
 	if (selfTarget.isValid) {
-		var mapCenter = map.getCenter();
+		const mapCenter = map.getCenter();
 		offsetLatitude = mapCenter.lat - selfTarget.latitude;
 		offsetLongitude = mapCenter.lng - selfTarget.longitude;
 	}
 });
 
-map.on("zoomend", (e) => {
+map.on("zoomend", () => {
 	drawRangeRings();
 	labelToCollisionController.update();
 });
@@ -430,16 +406,16 @@ function applyColorMode() {
 	if (checkDarkMode.checked) {
 		// dark mode
 		document.documentElement.setAttribute("data-bs-theme", "dark");
-		var elements = document.querySelectorAll(".leaflet-layer");
-		for (var i = 0; i < elements.length; i++) {
+		const elements = document.querySelectorAll(".leaflet-layer");
+		for (let i = 0; i < elements.length; i++) {
 			elements[i].style.filter =
 				"invert(1) hue-rotate(180deg) brightness(0.8) contrast(1.2)";
 		}
 	} else {
 		// light mode
 		document.documentElement.setAttribute("data-bs-theme", "light");
-		var elements = document.querySelectorAll(".leaflet-layer");
-		for (var i = 0; i < elements.length; i++) {
+		const elements = document.querySelectorAll(".leaflet-layer");
+		for (let i = 0; i < elements.length; i++) {
 			elements[i].style.filter = "none";
 		}
 	}
@@ -464,7 +440,7 @@ function handleOverlayAdd(event) {
 	applyColorMode();
 }
 
-function handleOverlayRemove(event) {
+function handleOverlayRemove() {
 	localStorage.removeItem("overlay");
 }
 
@@ -472,7 +448,7 @@ function handleOverlayRemove(event) {
 setupProfileEditView("anchor");
 
 refresh();
-var refreshInterval = setInterval(refresh, 1000);
+setInterval(refresh, 1000);
 
 function setupProfileEditView(profile) {
 	configWarningCpaRange.value = distanceToTick(
@@ -528,7 +504,7 @@ async function saveCollisionProfiles() {
 			"Content-Type": "application/json",
 		},
 	});
-	if (response.status == 401) {
+	if (response.status === 401) {
 		location.href = "/admin/#/login";
 	}
 	if (!response.ok) {
@@ -577,9 +553,9 @@ function processDistanceRangeControl(ev) {
 	// 0 - 10   correspond to   0 - 1.0
 	// 11 - 19  correspond to   2 - 10
 	var distance = tickToDistance(tick);
-	var unitsSpan = document.getElementById(dataset.target + "Units");
+	var unitsSpan = document.getElementById(`${dataset.target}Units`);
 
-	if (distance == 0) {
+	if (distance === 0) {
 		unitsSpan.hidden = true;
 	} else {
 		unitsSpan.hidden = false;
@@ -693,7 +669,7 @@ function drawRangeRings() {
 		step = 2 * Math.round(step / 2);
 	}
 
-	for (var i = 1; i <= 6; i++) {
+	for (let i = 1; i <= 6; i++) {
 		rangeRings.addLayer(
 			L.circle([selfTarget.latitude, selfTarget.longitude], {
 				radius: i * step * METERS_PER_NM,
@@ -708,7 +684,7 @@ function drawRangeRings() {
 
 		rangeRings.addLayer(
 			L.tooltip([selfTarget.latitude + (i * step) / 60, selfTarget.longitude], {
-				content: i * step + " NM",
+				content: `${i * step} NM`,
 				permanent: true,
 				direction: "center",
 				opacity: 0.7,
@@ -721,7 +697,7 @@ function drawRangeRings() {
 
 		rangeRings.addLayer(
 			L.tooltip([selfTarget.latitude - (i * step) / 60, selfTarget.longitude], {
-				content: i * step + " NM",
+				content: `${i * step} NM`,
 				permanent: true,
 				direction: "center",
 				opacity: 0.7,
@@ -738,17 +714,17 @@ function drawRangeRings() {
 
 async function refresh() {
 	try {
-		var startTime = new Date();
+		const startTime = new Date();
 
 		// FIXME switch to the streaming api? does it send atons?
 
-		var vessels = await getHttpResponse("/signalk/v1/api/vessels", {
+		let vessels = await getHttpResponse("/signalk/v1/api/vessels", {
 			throwErrors: true,
 		});
 		//console.log(vessels);
 
 		// we expect 404s from this when there are no atons:
-		var atons = await getHttpResponse("/signalk/v1/api/atons", {
+		const atons = await getHttpResponse("/signalk/v1/api/atons", {
 			ignore404: true,
 		});
 		vessels = Object.assign(vessels, atons);
@@ -802,7 +778,7 @@ async function refresh() {
 		map.eachLayer(() => {
 			layers++;
 		});
-		var updateTimeInMillisecs = new Date().getTime() - startTime.getTime();
+		const updateTimeInMillisecs = Date.now() - startTime.getTime();
 		//console.log(updateTimeInMillisecs + ' msecs');
 		// FIXME this does not work in ios: performance.memory.usedJSHeapSize
 		// map.attributionControl.setPrefix(`${updateTimeInMillisecs} msecs / ${layers} layers / ${(performance.memory.usedJSHeapSize / Math.pow(1000, 2)).toFixed(1)} MB`);
@@ -823,7 +799,7 @@ function UpdateTargetsWithMuteDataFromPlugin() {
 	targets.forEach((target, mmsi) => {
 		pluginTarget = pluginTargets[mmsi];
 
-		if (pluginTarget && pluginTarget.alarmIsMuted) {
+		if (pluginTarget?.alarmIsMuted) {
 			console.log(
 				`setting target ${mmsi} ${target.name} to muted because it is muted in the plugin`,
 			);
@@ -835,8 +811,7 @@ function UpdateTargetsWithMuteDataFromPlugin() {
 
 function showAlarms() {
 	var targetsWithAlarms = [];
-	targets.forEach((target, mmsi) => {
-		//console.log(target.mmsi, target.name, target.alarmState, target.alarmIsMuted);
+	targets.forEach((target) => {
 		if (target.isValid && target.alarmState && !target.alarmIsMuted) {
 			targetsWithAlarms.push(target);
 		}
@@ -855,14 +830,14 @@ function showAlarms() {
 				`<div class="alert alert-danger" role="alert">${message}</div>`;
 		});
 		bsModalAlarm.show();
-		new Audio("./assets/horn.mp3").play();
+		new Audio(hornMp3Url).play();
 	}
 }
 
 async function muteAllAlarms() {
 	console.log("muting all alarms");
 	targets.forEach((target, mmsi) => {
-		if (target.alarmState == "danger" && !target.alarmIsMuted) {
+		if (target.alarmState === "danger" && !target.alarmIsMuted) {
 			console.log(
 				"muting alarm for target",
 				mmsi,
@@ -904,9 +879,11 @@ async function handleButtonMuteToggle() {
 
 function updateButtonMuteToggleIcon(target) {
 	if (target.alarmIsMuted) {
-		document.getElementById("buttonMuteToggle").innerHTML = biVolumeMuteFill;
+		document.getElementById("buttonMuteToggle").innerHTML =
+			biIcons.biVolumeMuteFill;
 	} else {
-		document.getElementById("buttonMuteToggle").innerHTML = biVolumeUpFill;
+		document.getElementById("buttonMuteToggle").innerHTML =
+			biIcons.biVolumeUpFill;
 	}
 }
 
@@ -923,16 +900,16 @@ function showAlert(message, type) {
 // values in their original data types - no text formatting of numeric values here
 function ingestRawVesselData(vessels) {
 	for (var vesselId in vessels) {
-		var vessel = vessels[vesselId];
+		const vessel = vessels[vesselId];
 
-		var target = targets.get(vessel.mmsi);
+		let target = targets.get(vessel.mmsi);
 		if (!target) {
 			target = {};
 		}
 
 		target.lastSeenDate = new Date(vessel.navigation?.position?.timestamp);
 
-		var lastSeen = Math.round((new Date() - target.lastSeenDate) / 1000);
+		const lastSeen = Math.round((Date.now() - target.lastSeenDate) / 1000);
 
 		// dont add targets that have already aged out
 		if (lastSeen >= TARGET_MAX_AGE) {
@@ -940,7 +917,7 @@ function ingestRawVesselData(vessels) {
 		}
 
 		target.mmsi = vessel.mmsi;
-		target.name = vessel.name || "<" + vessel.mmsi + ">";
+		target.name = vessel.name || `<${vessel.mmsi}>`;
 		target.sog = vessel.navigation?.speedOverGround?.value;
 		target.cog = vessel.navigation?.courseOverGroundTrue?.value;
 		target.hdg = vessel.navigation?.headingTrue?.value;
@@ -1023,7 +1000,7 @@ function updateSelectedVesselProperties(target) {
 	var classARows = document.querySelectorAll(".ais-class-a");
 
 	// show/hide class A fields:
-	if (target.aisClass == "A") {
+	if (target.aisClass === "A") {
 		[...classARows].map((row) => row.classList.remove("d-none"));
 	} else {
 		[...classARows].map((row) => row.classList.add("d-none"));
@@ -1032,38 +1009,36 @@ function updateSelectedVesselProperties(target) {
 	// show/hide alert:
 	var selectedVesselAlert = document.getElementById("selectedVesselAlert");
 
-	if (target.alarmState == "danger") {
+	if (target.alarmState === "danger") {
 		selectedVesselAlert.classList.remove("alert-warning");
 		selectedVesselAlert.classList.add("alert-danger");
-		selectedVesselAlert.textContent = (
-			target.alarmType + " alarm"
-		).toUpperCase();
+		selectedVesselAlert.textContent = `${target.alarmType} alarm`.toUpperCase();
 		selectedVesselAlert.classList.remove("d-none");
-	} else if (target.alarmState == "warning") {
+	} else if (target.alarmState === "warning") {
 		selectedVesselAlert.classList.remove("alert-danger");
 		selectedVesselAlert.classList.add("alert-warning");
-		selectedVesselAlert.textContent = (
-			target.alarmType + " warning"
-		).toUpperCase();
+		selectedVesselAlert.textContent =
+			`${target.alarmType} warning`.toUpperCase();
 		selectedVesselAlert.classList.remove("d-none");
 	} else {
 		selectedVesselAlert.classList.add("d-none");
 	}
 }
 
-function deactivateToolTips() {
-	if (tooltipList) {
-		tooltipList.forEach((tooltip) => {
-			tooltip.dispose();
-		});
-	}
-}
+// function deactivateToolTips() {
+// 	if (tooltipList) {
+// 		tooltipList.forEach((tooltip) => {
+// 			tooltip.dispose();
+// 		});
+// 	}
+// }
 
 function activateToolTips() {
 	const tooltipTriggerList = document.querySelectorAll(
 		'[data-bs-toggle="tooltip"]',
 	);
-	tooltipList = [...tooltipTriggerList].map(
+	// const tooltipList =
+	[...tooltipTriggerList].map(
 		(tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl),
 	);
 }
@@ -1094,12 +1069,12 @@ function updateUI() {
 		drawRangeRings();
 	}
 
-	targets.forEach((target, mmsi) => {
+	targets.forEach((target) => {
 		//console.log(target);
 		updateSingleVesselUI(target);
 
 		// update data shown in modal properties screen
-		if (target.mmsi == selectedVesselMmsi) {
+		if (target.mmsi === selectedVesselMmsi) {
 			updateSelectedVesselProperties(target);
 		}
 	});
@@ -1119,13 +1094,13 @@ function updateTableOfTargets() {
 
 	targetsArray.sort((a, b) => {
 		try {
-			if (sortTableBy == "tcpa") {
+			if (sortTableBy === "tcpa") {
 				return a.tcpa - b.tcpa;
-			} else if (sortTableBy == "cpa") {
+			} else if (sortTableBy === "cpa") {
 				return a.cpa - b.cpa;
-			} else if (sortTableBy == "range") {
+			} else if (sortTableBy === "range") {
 				return a.range - b.range;
-			} else if (sortTableBy == "name") {
+			} else if (sortTableBy === "name") {
 				return a.name > b.name ? 1 : -1;
 			} else {
 				return a.order - b.order;
@@ -1144,16 +1119,16 @@ function updateTableOfTargets() {
 	var rowCount = 0;
 
 	for (var target of targetsArray) {
-		if (target.mmsi != selfMmsi && target.isValid) {
+		if (target.mmsi !== selfMmsi && target.isValid) {
 			tableBody += `
                 <tr class="${
-									target.alarmState == "danger"
+									target.alarmState === "danger"
 										? "table-danger"
-										: target.alarmState == "warning"
+										: target.alarmState === "warning"
 											? "table-warning"
 											: ""
 								}" data-mmsi="${target.mmsi}">
-                <th scope="row">${target.name}</th>
+                <th scope="row">${target.name} ${target.alarmIsMuted ? biIcons.biVolumeMuteFill : ""}</th>
                 <td>${target.bearingFormatted}</td>
                 <td>${target.rangeFormatted}</td>
                 <td>${target.sogFormatted}</td>
@@ -1179,7 +1154,7 @@ function updateSingleVesselUI(target) {
 	var boatProjectedCourseLine = boatProjectedCourseLines.get(target.mmsi);
 
 	if (!boatMarker) {
-		var icon = getTargetIcon(target, false, "gray");
+		const icon = getTargetIcon(target, false, "gray");
 
 		boatMarker = L.marker([0, 0], { icon: icon, riseOnHover: true }).addTo(map);
 		boatMarkers.set(target.mmsi, boatMarker);
@@ -1194,7 +1169,7 @@ function updateSingleVesselUI(target) {
 			zIndexOffset: -999,
 		});
 
-		if (target.mmsi != selfMmsi) {
+		if (target.mmsi !== selfMmsi) {
 			boatMarker.on("click", boatClicked);
 		}
 
@@ -1213,13 +1188,13 @@ function updateSingleVesselUI(target) {
 	var vesselIconColor;
 	var vesselIconIsLarge;
 
-	if (target.mmsi == selectedVesselMmsi) {
+	if (target.mmsi === selectedVesselMmsi) {
 		vesselIconColor = "blue";
 		vesselIconIsLarge = true;
-	} else if (target.alarmState == "danger") {
+	} else if (target.alarmState === "danger") {
 		vesselIconColor = "red";
 		vesselIconIsLarge = true;
-	} else if (target.alarmState == "warning") {
+	} else if (target.alarmState === "warning") {
 		vesselIconColor = "orange";
 		vesselIconIsLarge = true;
 	} else {
@@ -1230,7 +1205,7 @@ function updateSingleVesselUI(target) {
 	boatMarker.setIcon(getTargetIcon(target, vesselIconIsLarge, vesselIconColor));
 
 	// move the blue box with the selected boat over time
-	if (target.mmsi == selectedVesselMmsi && blueBoxIcon) {
+	if (target.mmsi === selectedVesselMmsi && blueBoxIcon) {
 		blueBoxIcon.setLatLng([target.latitude, target.longitude]);
 	}
 
@@ -1239,23 +1214,23 @@ function updateSingleVesselUI(target) {
 
 	// FIXME add aton data for popup: isOffposition? or do the yellow box?
 
-	if (target.mmsi != selfMmsi) {
+	if (target.mmsi !== selfMmsi) {
 		// update counts
 		validTargetCount++;
 		if (target.alarmState) {
 			filteredTargetCount++;
-			if (target.alarmState == "danger") {
+			if (target.alarmState === "danger") {
 				alarmTargetCount++;
 			}
 		}
 
 		// add tooltip text
-		var tooltipText = target.name + "<br/>";
+		let tooltipText = `${target.name}<br/>`;
 		if (target.sog > 0.1) {
-			tooltipText += target.sogFormatted + " ";
+			tooltipText += `${target.sogFormatted} `;
 		}
 		if (target.cpa) {
-			tooltipText += target.cpaFormatted + " ";
+			tooltipText += `${target.cpaFormatted} `;
 		}
 		if (target.tcpa > 0 && target.tcpa < 3600) {
 			tooltipText += target.tcpaFormatted;
@@ -1269,9 +1244,9 @@ function updateSingleVesselUI(target) {
 	// if this is our vessel and another vessel has been selected
 	// draw a solid blue line to cpa point from our vessel
 	// FIXME: the problem with this is that we process our vessel first. so the selected vessel wont be in targets yet: & targets.has(selectedVesselMmsi)
-	if (target.mmsi == selfMmsi && selectedVesselMmsi) {
+	if (target.mmsi === selfMmsi && selectedVesselMmsi) {
 		//console.log(selectedVesselMmsi, targets.get(selectedVesselMmsi));
-		var projectedCpaLocation = projectedLocation(
+		const projectedCpaLocation = projectedLocation(
 			[target.latitude, target.longitude],
 			target.cog || 0,
 			(target.sog || 0) * (targets.get(selectedVesselMmsi).tcpa || 0),
@@ -1299,8 +1274,8 @@ function updateSingleVesselUI(target) {
 
 	// if this is the selected vessel
 	// draw solid blue line to the cpa point from selected vessel
-	else if (selectedVesselMmsi == target.mmsi) {
-		var projectedCpaLocation = projectedLocation(
+	else if (selectedVesselMmsi === target.mmsi) {
+		const projectedCpaLocation = projectedLocation(
 			[target.latitude, target.longitude],
 			target.cog || 0,
 			(target.sog || 0) * (target.tcpa || 0),
@@ -1351,7 +1326,7 @@ function updateSingleVesselUI(target) {
 function ageOutOldTargets() {
 	targets.forEach((target, mmsi) => {
 		// dont age ourselves out. should never happen, but...
-		if (mmsi == selfMmsi) {
+		if (mmsi === selfMmsi) {
 			return;
 		}
 
@@ -1364,7 +1339,7 @@ function ageOutOldTargets() {
 				target.lastSeen / 60,
 			);
 
-			if (mmsi == selectedVesselMmsi) {
+			if (mmsi === selectedVesselMmsi) {
 				blueBoxIcon.removeFrom(map);
 				blueCircle1.removeFrom(map);
 				blueCircle2.removeFrom(map);
@@ -1394,10 +1369,10 @@ function boatClicked(event) {
 	if (closebyBoatMarkers.length > 1) {
 		closebyBoatMarkers.sort((a, b) => a.distanceInPixels - b.distanceInPixels);
 
-		var div = document.getElementById("listOfClosebyBoats");
+		const div = document.getElementById("listOfClosebyBoats");
 		div.innerHTML = "";
-		var target;
-		var a;
+		let target;
+		let a;
 
 		closebyBoatMarkers.forEach((closebyBoatMarker, i) => {
 			target = targets.get(closebyBoatMarker.mmsi);
@@ -1408,12 +1383,12 @@ function boatClicked(event) {
 			a.setAttribute("data-mmsi", target.mmsi);
 			// list-group-item-danger list-group-item-warning
 			a.classList = "list-group-item list-group-item-action";
-			if (i == 0) {
+			if (i === 0) {
 				a.classList.add("active");
 			}
-			if (target.alarmState == "danger") {
+			if (target.alarmState === "danger") {
 				a.classList.add("list-group-item-danger");
-			} else if (target.alarmState == "warning") {
+			} else if (target.alarmState === "warning") {
 				a.classList.add("list-group-item-warning");
 			}
 			a.appendChild(document.createTextNode(target.name));
@@ -1466,7 +1441,7 @@ function findClosebyBoats(latLng) {
 	var mapScaleMetersPerPixel = mapHeightInMeters / mapHeightInPixels;
 	var closebyBoatMarkers = [];
 	boatMarkers.forEach((boatMarker, mmsi) => {
-		if (mmsi == selfMmsi) {
+		if (mmsi === selfMmsi) {
 			return;
 		}
 		var distanceInMeters = latLng.distanceTo(boatMarker.getLatLng());
@@ -1489,7 +1464,7 @@ function handleListOfClosebyBoatsClick(event) {
 function selectBoatMarker(boatMarker) {
 	// if my own boat was selected - quit
 	// if clicking on the boat that is already selected - quit
-	if (boatMarker.mmsi == selfMmsi || boatMarker.mmsi == selectedVesselMmsi) {
+	if (boatMarker.mmsi === selfMmsi || boatMarker.mmsi === selectedVesselMmsi) {
 		return;
 	}
 
@@ -1525,7 +1500,7 @@ function selectBoatMarker(boatMarker) {
 	// FIXME blueLayerGroup.addTo(map);
 }
 
-function handleMapClick(event) {
+function handleMapClick() {
 	blueBoxIcon.removeFrom(map);
 	blueCircle1.removeFrom(map);
 	blueCircle2.removeFrom(map);
@@ -1533,7 +1508,7 @@ function handleMapClick(event) {
 
 	if (selectedVesselMmsi) {
 		// update selected vessel (remove blue):
-		var savedSelectedVesselMmsi = selectedVesselMmsi;
+		const savedSelectedVesselMmsi = selectedVesselMmsi;
 		selectedVesselMmsi = null;
 		updateSingleVesselUI(targets.get(savedSelectedVesselMmsi));
 		// update own vessel (remove blue):
@@ -1543,8 +1518,8 @@ function handleMapClick(event) {
 
 function getTargetIcon(target, isLarge, color) {
 	// self
-	if (target.mmsi == selfMmsi) {
-		return getSelfIcon();
+	if (target.mmsi === selfMmsi) {
+		return aisIons.getSelfIcon();
 	}
 	// 111MIDXXX        SAR (Search and Rescue) aircraft
 	// 970MIDXXX        AIS SART (Search and Rescue Transmitter)
@@ -1556,34 +1531,34 @@ function getTargetIcon(target, isLarge, color) {
 		target.mmsi.startsWith("972") ||
 		target.mmsi.startsWith("974")
 	) {
-		getSartIcon();
+		aisIons.getSartIcon();
 	}
 	// 99MIDXXXX        Aids to Navigation
-	else if (target.aisClass == "ATON" || target.mmsi.startsWith("99")) {
-		return getAtonIcon(target, isLarge, color);
+	else if (target.aisClass === "ATON" || target.mmsi.startsWith("99")) {
+		return aisIons.getAtonIcon(target, isLarge, color);
 	}
 	// class A
-	else if (target.aisClass == "A") {
-		return getClassAIcon(target, isLarge, color);
+	else if (target.aisClass === "A") {
+		return aisIons.getClassAIcon(target, isLarge, color);
 	}
 	// BASE
-	else if (target.aisClass == "BASE") {
-		return getBaseIcon(target, isLarge, color);
+	else if (target.aisClass === "BASE") {
+		return aisIons.getBaseIcon(target, isLarge, color);
 	}
 	// class B
 	else {
-		return getClassBIcon(target, isLarge, color);
+		return aisIons.getClassBIcon(target, isLarge, color);
 	}
 }
 
 function addLabelToCollisionController(layer, id, weight) {
 	var label = layer.getTooltip()._source._tooltip._container;
 	if (label) {
-		var rect = label.getBoundingClientRect();
+		const rect = label.getBoundingClientRect();
 
-		var bottomLeft = map.containerPointToLatLng([rect.left, rect.bottom]);
-		var topRight = map.containerPointToLatLng([rect.right, rect.top]);
-		var boundingBox = {
+		const bottomLeft = map.containerPointToLatLng([rect.left, rect.bottom]);
+		const topRight = map.containerPointToLatLng([rect.right, rect.top]);
+		const boundingBox = {
 			bottomLeft: [bottomLeft.lng, bottomLeft.lat],
 			topRight: [topRight.lng, topRight.lat],
 		};
@@ -1629,15 +1604,15 @@ function projectedLocation(start, θ, distance) {
 }
 
 async function getHttpResponse(url, options) {
-	var jsonResponse;
-	var response;
+	let response;
+	let jsonResponse;
 	try {
 		response = await fetch(url, { credentials: "include" });
-		if (response.status == 401) {
+		if (response.status === 401) {
 			location.href = "/admin/#/login";
 		}
 		if (!response.ok) {
-			if (response.status == 404 && options?.ignore404) {
+			if (response.status === 404 && options?.ignore404) {
 				//  ignore 404s if so directed
 			} else {
 				console.error(`Response status: ${response.status} from ${url}`);
@@ -1646,7 +1621,7 @@ async function getHttpResponse(url, options) {
 				}
 			}
 		} else {
-			var textResponse = await response.text();
+			const textResponse = await response.text();
 			if (textResponse) {
 				jsonResponse = JSON.parse(textResponse);
 			} else if (!options?.ignoreEmptyResponse) {
@@ -1663,12 +1638,13 @@ async function getHttpResponse(url, options) {
 		if (options?.throwErrors) {
 			//showError("The SignalK AIS Target Prioritizer plugin is not running. Please check the plugin status.");
 			showError(`Encountered an error retrieving data from the SignalK server. Verify that you are connected to the SignalK server, that the SignalK 
-                server is running, and that the AIS Target Prioritizer plugin is enabled.<br><br>
-                <b>url</b>=${url},<br><b>options</b>=${JSON.stringify(
-									options,
-								)},<br><b>status</b>=${response?.status || "none"},<br><b>error</b>=${
-									error.message
-								}`);
+                server is running, and that the AIS Target Prioritizer plugin is enabled.`);
+			// <br><br>
+			// 	<b>url</b>=${url},<br><b>options</b>=${JSON.stringify(
+			// 	options,
+			// 	)},<br><b>status</b>=${response?.status || "none"},<br><b>error</b>=${
+			// 	error.message
+			// 	}`);
 			throw new Error(
 				`Error in getHttpResponse: url=${url}, options=${JSON.stringify(
 					options,

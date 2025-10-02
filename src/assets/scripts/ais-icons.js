@@ -1,16 +1,6 @@
-export {
-	getClassBIcon,
-	getClassAIcon,
-	getBlueBoxIcon,
-	getAtonIcon,
-	getBaseIcon,
-	getSartIcon,
-	getSelfIcon,
-};
-
 import { toDegrees } from "./ais-utils.js";
 
-function getClassBIcon(target, isLarge, color) {
+export function getClassBIcon(target, isLarge, color) {
 	var boxSize = 50;
 	var strokeWidth = 2;
 	if (isLarge) {
@@ -58,7 +48,7 @@ function getClassBIcon(target, isLarge, color) {
 	});
 }
 
-function getClassAIcon(target, isLarge, color) {
+export function getClassAIcon(target, isLarge, color) {
 	var boxSize = 50;
 	var strokeWidth = 2;
 	if (isLarge) {
@@ -109,7 +99,7 @@ function getClassAIcon(target, isLarge, color) {
 	});
 }
 
-function getBlueBoxIcon() {
+export function getBlueBoxIcon() {
 	var boxSize = 80;
 	var margin = 10;
 	var blueBoxSize = boxSize - 2 * margin;
@@ -130,7 +120,7 @@ function getBlueBoxIcon() {
 	});
 }
 
-function getAtonIcon(target, isLarge, color) {
+export function getAtonIcon(target, isLarge, color) {
 	var boxSize = 40;
 	var strokeWidth = 2;
 	if (isLarge) {
@@ -178,7 +168,7 @@ function getAtonIcon(target, isLarge, color) {
 	});
 }
 
-function getBaseIcon(target, isLarge, color) {
+export function getBaseIcon(target, isLarge, color) {
 	var boxSize = 40;
 	var strokeWidth = 2;
 	if (isLarge) {
@@ -224,7 +214,7 @@ function getBaseIcon(target, isLarge, color) {
 	});
 }
 
-function getSartIcon() {
+export function getSartIcon() {
 	var boxSize = 40;
 	var strokeWidth = 2;
 	var radius = 15;
@@ -251,7 +241,7 @@ function getSartIcon() {
 	});
 }
 
-function getSelfIcon() {
+export function getSelfIcon() {
 	var boxSize = 40;
 	var strokeWidth = 2;
 

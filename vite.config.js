@@ -8,4 +8,10 @@ export default defineConfig({
 		outDir: "../public",
 		emptyOutDir: true,
 	},
+	server: {
+		proxy: {
+			"/plugins": "http://127.0.0.1:3000",
+			"/signalk": "http://127.0.0.1:3000",
+		},
+	},
 });
