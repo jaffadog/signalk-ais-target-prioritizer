@@ -29,23 +29,13 @@
       </div>
 
       <!-- ERROR MODAL -->
-      <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
-        <symbol id="exclamation-triangle-fill" viewBox="0 0 16 16">
-          <path
-            d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"
-          />
-        </symbol>
-      </svg>
-
       <div class="modal" tabindex="-1" id="modalAlert">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="alert alert-danger mb-0" role="alert">
               <div class="alert-dismissible">
                 <span class="h4 alert-heading">
-                  <svg class="bi flex-shrink-0 me-2" role="img">
-                    <use xlink:href="#exclamation-triangle-fill" />
-                  </svg>
+                  <i class="bi bi-exclamation-triangle-fill"></i>
                   Error</span
                 >
                 <button
@@ -68,9 +58,7 @@
           >
             <div class="modal-header border-danger-subtle">
               <h5 class="modal-title">
-                <svg class="bi flex-shrink-0 me-2" role="img">
-                  <use xlink:href="#exclamation-triangle-fill" />
-                </svg>
+                <i class="bi bi-exclamation-triangle-fill"></i>
                 Alarm
               </h5>
               <button
@@ -122,24 +110,7 @@
                   class="btn btn-outline-secondary"
                   id="buttonMuteToggle"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    class="bi bi-volume-up-fill"
-                    viewBox="0 0 16 16"
-                  >
-                    <path
-                      d="M11.536 14.01A8.47 8.47 0 0 0 14.026 8a8.47 8.47 0 0 0-2.49-6.01l-.708.707A7.48 7.48 0 0 1 13.025 8c0 2.071-.84 3.946-2.197 5.303z"
-                    ></path>
-                    <path
-                      d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.48 5.48 0 0 1 11.025 8a5.48 5.48 0 0 1-1.61 3.89z"
-                    ></path>
-                    <path
-                      d="M8.707 11.182A4.5 4.5 0 0 0 10.025 8a4.5 4.5 0 0 0-1.318-3.182L8 5.525A3.5 3.5 0 0 1 9.025 8 3.5 3.5 0 0 1 8 10.475zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06"
-                    ></path>
-                  </svg>
+                  <i class="bi bi-volume-mute-fill"></i>
                 </button>
               </div>
               <div class="col">
@@ -311,12 +282,12 @@
           <table class="table">
             <thead>
               <tr>
-                <th scope="col">NAME</th>
-                <th scope="col" class="text-end">BRG</th>
-                <th scope="col" class="text-end">RNG</th>
-                <th scope="col" class="text-end">SOG</th>
-                <th scope="col" class="text-end">CPA</th>
-                <th scope="col" class="text-end">TCPA</th>
+                <th scope="col" class="" colspan="2">NAME</th>
+                <th scope="col" class="text-end col-1">BRG</th>
+                <th scope="col" class="text-end col-2">RNG</th>
+                <th scope="col" class="text-end col-2">SOG</th>
+                <th scope="col" class="text-end col-2">CPA</th>
+                <th scope="col" class="text-end col-2">TCPA</th>
                 <!-- <th scope="col" class="text-end">ORDER</th> -->
               </tr>
             </thead>

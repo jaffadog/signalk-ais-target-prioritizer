@@ -9,6 +9,8 @@ export default defineConfig({
 		emptyOutDir: true,
 	},
 	server: {
+		host: true,
+		allowedHosts: true,
 		proxy: {
 			"/plugins": "http://127.0.0.1:3000",
 			"/signalk": "http://127.0.0.1:3000",

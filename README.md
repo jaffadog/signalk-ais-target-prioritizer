@@ -101,3 +101,11 @@ Not implemented, but possible:
 * Activate a piezo buffer on the Raspberry Pi running SignalK when an alarm is triggered
 * Use a physical momentary switch on the Raspberry Pi to ack and hush alarms
 * Automatically switch from an underway profile (e.g. coastal) to the anchored profile when the vessel stops moving. Could also automatically turn on the anchor alarm as well. And vice-versa - turn off the anchor alarm and switch back to an underway profile when you get going again. 
+
+
+## Attribution
+
+Ship and boat icons created by Peter van Driel - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+Buoy icon created by sentya irma - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+Life Buoy icon created by Alex Podolsky - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+UFO icon created by Dian Chandra Lesmono - [The Noun Project](https://thenounproject.com) CC BY 3.0.
