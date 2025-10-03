@@ -521,8 +521,9 @@ function showError(message) {
 
 function handleTableOfTargetsBodyClick(ev) {
 	bsOffcanvasTargetList.hide();
-	var mmsi = ev.target.parentNode.dataset.mmsi;
-	var boatMarker = boatMarkers.get(mmsi);
+	const tr = ev.target.closest("tr");
+	const mmsi = tr.dataset.mmsi;
+	const boatMarker = boatMarkers.get(mmsi);
 	selectBoatMarker(boatMarker);
 	// FIXME: maybe use blueLayerGroup here. looks like L.featureGroup would be what we need.
 	map.fitBounds([
