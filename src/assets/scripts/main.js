@@ -1,6 +1,5 @@
 // FIXME: need map rotation option to toggle between north-up and cog-up
 // FIXME need to investigate node OOM issues - leak?
-// FIXME look at natural earth maps for better map data - https://www.naturalearthdata.com/downloads/10m-raster-data/10m-physical-map/
 
 const DEFAULT_MAP_ZOOM = 14; // 14 gives us 2+ NM
 const METERS_PER_NM = 1852;
@@ -22,7 +21,7 @@ import hornMp3Url from "../horn.mp3";
 import pmtilesUrl from "../ne_10m_land.pmtiles?url&no-inline";
 import * as aisIons from "./ais-icons.js";
 import { toDegrees, toRadians, updateDerivedData } from "./ais-utils.js";
-import * as biIcons from "./bi-icons.js";
+import * as targetSvgs from "./ship-icons.js";
 
 var noSleep = new NoSleep();
 var collisionProfiles;
@@ -102,7 +101,7 @@ const map = L.map("map", {
 	maxZoom: 18,
 });
 
-L.easyButton(biIcons.biCursorFill, (_btn, map) => {
+L.easyButton("bi bi-cursor-fill", (_btn, map) => {
 	if (selfTarget.isValid) {
 		map.panTo([selfTarget.latitude, selfTarget.longitude]);
 		offsetLatitude = 0;
@@ -194,14 +193,13 @@ var layerControlLayersToggleEl = document.getElementsByClassName(
 	"leaflet-control-layers-toggle",
 )[0];
 
-layerControlLayersToggleEl.innerHTML = biIcons.biLayersFill;
+layerControlLayersToggleEl.classList.add("bi", "bi-layers-fill");
 
-L.easyButton(biIcons.biListOl, () => {
+L.easyButton("bi bi-list-ul", () => {
 	bsOffcanvasTargetList.show();
 }).addTo(map);
 
-// '<span data-bs-toggle="offcanvas" href="#offcanvasSettings">Settings</span>'
-L.easyButton(biIcons.biGearFill, () => {
+L.easyButton("bi bi-gear-fill", () => {
 	bsOffcanvasSettings.show();
 }).addTo(map);
 
@@ -879,11 +877,11 @@ async function handleButtonMuteToggle() {
 
 function updateButtonMuteToggleIcon(target) {
 	if (target.alarmIsMuted) {
-		document.getElementById("buttonMuteToggle").innerHTML =
-			biIcons.biVolumeMuteFill;
+		document.querySelector("#buttonMuteToggle > i").className =
+			"bi bi-volume-mute-fill";
 	} else {
-		document.getElementById("buttonMuteToggle").innerHTML =
-			biIcons.biVolumeUpFill;
+		document.querySelector("#buttonMuteToggle > i").className =
+			"bi bi-volume-up-fill";
 	}
 }
 
@@ -923,6 +921,8 @@ function ingestRawVesselData(vessels) {
 		target.hdg = vessel.navigation?.headingTrue?.value;
 		target.rot = vessel.navigation?.rateOfTurn?.value;
 		target.callsign = vessel.communication?.callsignVhf || "---";
+		target.typeId =
+			vessel.design?.aisShipType?.value.id || vessel.atonType?.value.id;
 		target.type =
 			(vessel.design?.aisShipType?.value.name || vessel.atonType?.value.name) ??
 			"---";
@@ -940,7 +940,7 @@ function ingestRawVesselData(vessels) {
 		target.latitude = vessel.navigation?.position?.value.latitude;
 		target.longitude = vessel.navigation?.position?.value.longitude;
 
-		// FIXME - override gps to testing with signalk team sample data (netherlands)
+		// FIXME - override gps for testing with signalk team sample data (netherlands)
 		// if (target.mmsi == selfMmsi) {
 		//     target.latitude = 53.44;
 		//     target.longitude = 4.86 //5.07;
@@ -1092,6 +1092,24 @@ function updateUI() {
 function updateTableOfTargets() {
 	var targetsArray = Array.from(targets.values());
 
+	// FIXME - for testing table column widths
+	// targetsArray.push({
+	// 	mmsi: "111999111",
+	// 	name: "RAVEN",
+	// 	isValid: true,
+	// 	cpa: 99999,
+	// 	tcpa: 99999,
+	// 	range: 99999,
+	// 	order: 99999,
+	// 	alarmState: null,
+	// 	cpaFormatted: "99.9 NM",
+	// 	tcpaFormatted: "9:99:99",
+	// 	rangeFormatted: "99.99 NM",
+	// 	bearingFormatted: "999 T",
+	// 	sogFormatted: "99.9 kn",
+	// 	cogFormatted: "999 T",
+	// });
+
 	targetsArray.sort((a, b) => {
 		try {
 			if (sortTableBy === "tcpa") {
@@ -1116,6 +1134,34 @@ function updateTableOfTargets() {
 	// FIXME add target icons to table: sail, pleasure, ship, tug, fishing, sart, aton
 	// https://www.flaticon.com/search?word=ship
 
+	// design.aisShipType.id = 30 = fishing		fishingboat icon
+	// design.aisShipType.id = 36 = sailing		sailboat icon
+	// design.aisShipType.id = 37 = pleasure	powerboat icon
+	// design.aisShipType.id = 51 = sar			sar icon
+	// design.aisShipType.id = 52 = tug			tug icon
+
+	// other sensors.ais.class = A				ship icon
+	// other									no icon
+
+	/*
+    design.aisShipType:
+    0 = default
+    20 = wig
+    30 = fishing
+    31 = towing
+    33 = dredge
+    35 = military
+    36 = sailing
+    37 = pleasure
+    40 = high speed
+    50 = pilot
+    51 = sar
+    52 = tug
+    60 = passenger
+    70 = cargo
+    80 = tanker
+	*/
+
 	var rowCount = 0;
 
 	for (var target of targetsArray) {
@@ -1128,12 +1174,17 @@ function updateTableOfTargets() {
 											? "table-warning"
 											: ""
 								}" data-mmsi="${target.mmsi}">
-                <th scope="row">${target.name} ${target.alarmIsMuted ? biIcons.biVolumeMuteFill : ""}</th>
-                <td>${target.bearingFormatted}</td>
-                <td>${target.rangeFormatted}</td>
-                <td>${target.sogFormatted}</td>
-                <td>${target.cpa ? target.cpaFormatted : ""}</td>
-                <td>${target.cpa ? target.tcpaFormatted : ""}</td>
+					<td scope="row">
+						${getTargetSvg(target)}
+					</td>
+					<th>
+						${target.name} ${target.alarmIsMuted ? '<i class="bi bi-volume-mute-fill"></i>' : ""}
+					</th>
+					<td class="text-end">${target.bearingFormatted}</td>
+					<td class="text-end">${target.rangeFormatted}</td>
+					<td class="text-end">${target.sogFormatted}</td>
+					<td class="text-end">${target.cpa ? target.cpaFormatted : ""}</td>
+					<td class="text-end">${target.cpa ? target.tcpaFormatted : ""}</td>
                 </tr>`;
 			rowCount++;
 			// <td>${target.order}</td>
@@ -1142,6 +1193,49 @@ function updateTableOfTargets() {
 
 	document.getElementById("tableOfTargetsBody").innerHTML = tableBody;
 	document.getElementById("numberOfAisTargets").textContent = rowCount;
+}
+
+function getTargetSvg(target) {
+	// fishing
+	if (target.typeId === 30) {
+		targetSvgs.fishingboatSvg;
+	}
+
+	// sailing
+	else if (target.typeId === 36) {
+		return targetSvgs.sailboatSvg;
+	}
+
+	// pleasure
+	else if (target.typeId === 37) {
+		return targetSvgs.powerboatSvg;
+	}
+
+	// sar
+	else if (
+		target.typeId === 51 ||
+		target.mmsi.startsWith("111") ||
+		target.mmsi.startsWith("970") ||
+		target.mmsi.startsWith("972") ||
+		target.mmsi.startsWith("974")
+	) {
+		return targetSvgs.sarSvg;
+	}
+
+	// tug
+	else if (target.typeId === 52) {
+		return targetSvgs.tugboatSvg;
+	}
+
+	// other class A
+	else if (target.aisClass === "A") {
+		return targetSvgs.shipSvg;
+	}
+
+	// aton
+	else if (target.aisClass === "ATON" || target.mmsi.startsWith("99")) {
+		return targetSvgs.atonSvg;
+	} else return targetSvgs.ufoSvg;
 }
 
 function updateSingleVesselUI(target) {

@@ -1,4 +1,7 @@
+$bootstrap-icons-font-dir: "bootstrap-icons/font/fonts";
+
 @import "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons";
 @import "leaflet/dist/leaflet.css";
 @import "leaflet-easybutton/src/easy-button.css";
 
@@ -52,39 +55,12 @@ body,
   opacity: 0;
 }
 
-.bi {
-  width: 1em;
-  height: 1em;
-  vertical-align: -0.125em;
-  fill: currentcolor;
-}
-
-.bi::before,
-[class^="bi-"]::before,
-[class*=" bi-"]::before {
-  display: inline-block;
-  font-family: bootstrap-icons !important;
-  font-style: normal;
-  font-weight: normal !important;
-  font-variant: normal;
-  text-transform: none;
-  line-height: 1;
-  vertical-align: -0.125em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 button.easy-button-button {
-  padding-inline: 0;
-  padding-block: 0;
   font-size: 16px;
 }
 
 .leaflet-touch .leaflet-control-layers-toggle {
-  /* background-image: url(assets/icons/layers-fill.svg); */
   background-image: unset;
-  /* fill: currentcolor; */
-  /* background-size: 16px; */
   width: 30px;
   height: 30px;
   text-align: center;
@@ -114,10 +90,18 @@ button.easy-button-button {
 
 #tableOfTargetsBody {
   cursor: pointer;
+  vertical-align: middle;
 }
 
-#tableOfTargetsBody td {
-  text-align: right;
+// width of column that holds the icon
+#tableOfTargetsBody > tr > td:nth-child(1) {
+  width: 50px;
+}
+
+// dims of the icon
+#tableOfTargetsBody svg {
+  height: 40px;
+  width: 40px;
 }
 
 .blueStuff {
