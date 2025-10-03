@@ -1093,10 +1093,10 @@ function updateUI() {
 function updateTableOfTargets() {
 	var targetsArray = Array.from(targets.values());
 
-	// FIXME - for testing table column widths
+	// NOTE - For testing table column widths
 	// targetsArray.push({
-	// 	mmsi: "111999111",
-	// 	name: "RAVEN",
+	// 	mmsi: "333333333",
+	// 	name: "ADRIATIC HIGHWAY",
 	// 	isValid: true,
 	// 	cpa: 99999,
 	// 	tcpa: 99999,
@@ -1104,7 +1104,7 @@ function updateTableOfTargets() {
 	// 	order: 99999,
 	// 	alarmState: null,
 	// 	cpaFormatted: "99.9 NM",
-	// 	tcpaFormatted: "9:99:99",
+	// 	tcpaFormatted: "99:99:99",
 	// 	rangeFormatted: "99.99 NM",
 	// 	bearingFormatted: "999 T",
 	// 	sogFormatted: "99.9 kn",
@@ -1131,38 +1131,6 @@ function updateTableOfTargets() {
 	});
 
 	var tableBody = "";
-
-	// FIXME add target icons to table: sail, pleasure, ship, tug, fishing, sart, aton
-	// https://www.flaticon.com/search?word=ship
-
-	// design.aisShipType.id = 30 = fishing		fishingboat icon
-	// design.aisShipType.id = 36 = sailing		sailboat icon
-	// design.aisShipType.id = 37 = pleasure	powerboat icon
-	// design.aisShipType.id = 51 = sar			sar icon
-	// design.aisShipType.id = 52 = tug			tug icon
-
-	// other sensors.ais.class = A				ship icon
-	// other									no icon
-
-	/*
-    design.aisShipType:
-    0 = default
-    20 = wig
-    30 = fishing
-    31 = towing
-    33 = dredge
-    35 = military
-    36 = sailing
-    37 = pleasure
-    40 = high speed
-    50 = pilot
-    51 = sar
-    52 = tug
-    60 = passenger
-    70 = cargo
-    80 = tanker
-	*/
-
 	var rowCount = 0;
 
 	for (var target of targetsArray) {
@@ -1236,7 +1204,10 @@ function getTargetSvg(target) {
 	// aton
 	else if (target.aisClass === "ATON" || target.mmsi.startsWith("99")) {
 		return targetSvgs.atonSvg;
-	} else return targetSvgs.ufoSvg;
+	}
+
+	// everything else
+	else return targetSvgs.ufoSvg;
 }
 
 function updateSingleVesselUI(target) {
