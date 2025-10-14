@@ -6,7 +6,7 @@
 		"useIgnoreFile": false
 	},
 	"files": {
-		"includes": ["**", "!**/public", "!easy-button.*"],
+		"includes": ["**", "!**/public", "!**/plugin"],
 		"ignoreUnknown": false
 	},
 	"formatter": {

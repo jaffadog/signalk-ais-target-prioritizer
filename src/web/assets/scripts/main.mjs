@@ -19,9 +19,9 @@ import NoSleep from "nosleep.js";
 import defaultCollisionProfiles from "../defaultCollisionProfiles.json";
 import hornMp3Url from "../horn.mp3";
 import pmtilesUrl from "../ne_10m_land.pmtiles?url&no-inline";
-import * as aisIons from "./ais-icons.js";
-import { toDegrees, toRadians, updateDerivedData } from "./ais-utils.js";
-import * as targetSvgs from "./ship-icons.js";
+import * as aisIons from "./ais-icons.mjs";
+import { toDegrees, toRadians, updateDerivedData } from "./ais-utils.mjs";
+import * as targetSvgs from "./ship-icons.mjs";
 
 var noSleep = new NoSleep();
 var collisionProfiles;

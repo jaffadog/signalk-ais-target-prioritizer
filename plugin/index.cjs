@@ -980,10 +980,10 @@ function formatTcpa$1(tcpa) {
 }
 
 var aisUtils = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  toDegrees: toDegrees$1,
-  toRadians: toRadians,
-  updateDerivedData: updateDerivedData
+	__proto__: null,
+	toDegrees: toDegrees$1,
+	toRadians: toRadians,
+	updateDerivedData: updateDerivedData
 });
 
 var type = "object";
