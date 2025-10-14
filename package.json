@@ -1,65 +1,61 @@
 {
-  "name": "signalk-ais-target-prioritizer",
-  "version": "0.2.5",
-  "description": "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria.",
-  "keywords": [
-    "signalk-node-server-plugin",
-    "signalk-webapp",
-    "signalk-category-ais"
-  ],
-  "signalk-plugin-enabled-by-default": true,
-  "signalk": {
-    "appIcon": "./assets/icon-120.png",
-    "displayName": "SignalK AIS Target Prioritizer"
-  },
-  "license": "MIT",
-  "author": "Jeremy Waters <jaffadog@gmail.com>",
-  "type": "module",
-  "main": "plugin/index.js",
-  "exports": {
-    "import": "./index.js",
-    "require": "./index.cjs"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint:check": "biome lint",
-    "lint": "biome lint --write",
-    "format:check": "biome format",
-    "format": "biome format --write",
-    "build:web": "vite build",
-    "build:plugin": "rollup -c",
-    "build": "npm run build:web && npm run build:plugin",
-    "dev": "vite",
-    "preview": "vite preview",
-    "prepublishOnly": "npm run build"
-  },
-  "dependencies": {
-    "@protomaps/basemaps": "^5.5.1",
-    "bootstrap": "^5.3.8",
-    "bootstrap-icons": "^1.13.1",
-    "express": "^4.21.2",
-    "express-sse": "^1.0.0",
-    "labelgun": "^6.1.0",
-    "leaflet": "^1.9.4",
-    "leaflet-easybutton": "^2.4.0",
-    "lodash": "^4.17.21",
-    "node-tcp-proxy": "^0.0.21",
-    "nosleep.js": "^0.12.0",
-    "protomaps-leaflet": "^5.1.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jaffadog/signalk-ais-target-prioritizer.git"
-  },
-  "bugs": {
-    "url": "https://github.com/jaffadog/signalk-ais-target-prioritizer/issues"
-  },
-  "homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer",
-  "devDependencies": {
-    "@biomejs/biome": "2.2.4",
-    "@rollup/plugin-json": "^6.1.0",
-    "rollup": "^4.52.4",
-    "sass-embedded": "^1.93.2",
-    "vite": "^7.1.7"
-  }
+	"name": "signalk-ais-target-prioritizer",
+	"version": "0.2.6",
+	"description": "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria.",
+	"keywords": [
+		"signalk-node-server-plugin",
+		"signalk-webapp",
+		"signalk-category-ais"
+	],
+	"signalk-plugin-enabled-by-default": true,
+	"signalk": {
+		"appIcon": "./assets/icon-120.png",
+		"displayName": "SignalK AIS Target Prioritizer"
+	},
+	"license": "MIT",
+	"author": "Jeremy Waters <jaffadog@gmail.com>",
+	"main": "plugin/index.cjs",
+	"type": "commonjs",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"lint:check": "biome lint",
+		"lint": "biome lint --write",
+		"format:check": "biome format",
+		"format": "biome format --write",
+		"build:web": "vite build",
+		"build:plugin": "rollup -c",
+		"build": "npm run build:web && npm run build:plugin",
+		"dev": "vite",
+		"preview": "vite preview",
+		"prepublishOnly": "npm run build"
+	},
+	"dependencies": {
+		"@protomaps/basemaps": "^5.5.1",
+		"bootstrap": "^5.3.8",
+		"bootstrap-icons": "^1.13.1",
+		"express": "^4.21.2",
+		"express-sse": "^1.0.0",
+		"labelgun": "^6.1.0",
+		"leaflet": "^1.9.4",
+		"leaflet-easybutton": "^2.4.0",
+		"lodash": "^4.17.21",
+		"node-tcp-proxy": "^0.0.21",
+		"nosleep.js": "^0.12.0",
+		"protomaps-leaflet": "^5.1.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jaffadog/signalk-ais-target-prioritizer.git"
+	},
+	"bugs": {
+		"url": "https://github.com/jaffadog/signalk-ais-target-prioritizer/issues"
+	},
+	"homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer",
+	"devDependencies": {
+		"@biomejs/biome": "2.2.4",
+		"@rollup/plugin-json": "^6.1.0",
+		"rollup": "^4.52.4",
+		"sass-embedded": "^1.93.2",
+		"vite": "^7.1.7"
+	}
 }

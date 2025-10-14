@@ -2,10 +2,10 @@ import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-	root: "src",
+	root: "src/web",
 	base: "./",
 	build: {
-		outDir: "../public",
+		outDir: "../../public",
 		emptyOutDir: true,
 	},
 	server: {

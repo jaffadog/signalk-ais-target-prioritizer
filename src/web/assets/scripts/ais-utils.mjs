@@ -1,4 +1,4 @@
-import { mmsiMidToCountry } from "./mmsi-mid-decoder.js";
+import { mmsiMidToCountry } from "./mmsi-mid-decoder.mjs";
 
 const METERS_PER_NM = 1852;
 const KNOTS_PER_M_PER_S = 1.94384;
