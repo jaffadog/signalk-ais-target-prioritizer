@@ -916,7 +916,7 @@ function ingestRawVesselData(vessels) {
 		}
 
 		target.mmsi = String(vessel.mmsi);
-		target.name = `${vessel.name} <${vessel.mmsi}>`;
+		target.name = vessel.name || `<${vessel.mmsi}>`;
 		target.sog = vessel.navigation?.speedOverGround?.value;
 		target.cog = vessel.navigation?.courseOverGroundTrue?.value;
 		target.hdg = vessel.navigation?.headingTrue?.value;
