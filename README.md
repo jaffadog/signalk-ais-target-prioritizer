@@ -105,7 +105,7 @@ Not implemented, but possible:
 
 ## Attribution
 
-Ship and boat icons created by Peter van Driel - [The Noun Project](https://thenounproject.com) CC BY 3.0.
-Buoy icon created by sentya irma - [The Noun Project](https://thenounproject.com) CC BY 3.0.
-Life Buoy icon created by Alex Podolsky - [The Noun Project](https://thenounproject.com) CC BY 3.0.
-UFO icon created by Dian Chandra Lesmono - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+* Ship and boat icons created by Peter van Driel - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+* Buoy icon created by sentya irma - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+* Life Buoy icon created by Alex Podolsky - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+* UFO icon created by Dian Chandra Lesmono - [The Noun Project](https://thenounproject.com) CC BY 3.0.

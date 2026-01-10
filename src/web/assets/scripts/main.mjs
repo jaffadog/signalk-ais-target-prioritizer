@@ -916,7 +916,7 @@ function ingestRawVesselData(vessels) {
 		}
 
 		target.mmsi = String(vessel.mmsi);
-		target.name = vessel.name || `<${vessel.mmsi}>`;
+		target.name = `${vessel.name} <${vessel.mmsi}>`;
 		target.sog = vessel.navigation?.speedOverGround?.value;
 		target.cog = vessel.navigation?.courseOverGroundTrue?.value;
 		target.hdg = vessel.navigation?.headingTrue?.value;
@@ -1167,7 +1167,7 @@ function updateTableOfTargets() {
 function getTargetSvg(target) {
 	// fishing
 	if (target.typeId === 30) {
-		targetSvgs.fishingboatSvg;
+		return targetSvgs.fishingboatSvg;
 	}
 
 	// sailing
