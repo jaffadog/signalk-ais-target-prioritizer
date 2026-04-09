@@ -8,6 +8,7 @@ export function updateDerivedData(
 	targets,
 	selfTarget,
 	collisionProfiles,
+	maximumTargetRange,
 	TARGET_MAX_AGE,
 ) {
 	// update self first
@@ -22,12 +23,7 @@ export function updateDerivedData(
 		//return;
 	}
 
-	updateSingleTargetDerivedData(
-		selfTarget,
-		selfTarget,
-		collisionProfiles,
-		TARGET_MAX_AGE,
-	);
+	updateSelfTarget(selfTarget);
 
 	if (!selfTarget.isValid) {
 		console.warn("No GPS position available (data is invalid)", selfTarget);
@@ -40,10 +36,11 @@ export function updateDerivedData(
 	// then update all other targets
 	targets.forEach((target, mmsi) => {
 		if (mmsi !== selfTarget.mmsi) {
-			updateSingleTargetDerivedData(
+			updateTargetDerivedData(
 				target,
 				selfTarget,
 				collisionProfiles,
+				maximumTargetRange,
 				TARGET_MAX_AGE,
 			);
 		}
@@ -58,34 +55,57 @@ export function toDegrees(v) {
 	return (v * 180) / Math.PI;
 }
 
-function updateSingleTargetDerivedData(
+function updateSelfTarget(selfTarget) {
+	calculateXY(selfTarget, selfTarget);
+	if (!selfTarget.latitude || !selfTarget.longitude) {
+		selfTarget.isValid = false;
+	} else {
+		selfTarget.isValid = true;
+	}
+}
+
+function updateTargetDerivedData(
 	target,
 	selfTarget,
 	collisionProfiles,
+	maximumTargetRange,
 	TARGET_MAX_AGE,
 ) {
-	target.y = target.latitude * 111120;
-	// FIXME this might work better using an average of the latitudes of the target and selfTarget
-	target.x =
-		target.longitude * 111120 * Math.cos(toRadians(selfTarget.latitude));
-	target.vy = target.sog * Math.cos(target.cog); // cog is in radians
-	target.vx = target.sog * Math.sin(target.cog); // cog is in radians
+	var lastSeen = Math.max(
+		0,
+		Math.round((Date.now() - target.lastSeenDate) / 1000),
+	);
 
-	if (target.mmsi !== selfTarget.mmsi) {
-		calculateRangeAndBearing(selfTarget, target);
-		updateCpa(selfTarget, target);
-		evaluateAlarms(target, collisionProfiles);
-	}
-
-	var lastSeen = Math.round((Date.now() - target.lastSeenDate) / 1000);
-	if (lastSeen < 0) {
-		lastSeen = 0;
-	}
-
-	var mmsiMid = getMid(target.mmsi);
+	// console.log(target, lastSeen, TARGET_MAX_AGE);
 
 	target.lastSeen = lastSeen;
 	target.isLost = lastSeen > LOST_TARGET_WARNING_AGE;
+
+	if (
+		!target.latitude ||
+		!target.longitude ||
+		target.lastSeen > TARGET_MAX_AGE
+	) {
+		target.isValid = false;
+	} else {
+		target.isValid = true;
+	}
+
+	calculateRangeAndBearing(selfTarget, target);
+	calculateXY(selfTarget, target);
+
+	if (target.range / METERS_PER_NM < maximumTargetRange) {
+		target.ignore = false;
+	} else {
+		// if the target is beyond max range, dont calculate cpa and stop processing it
+		target.ignore = true;
+		return;
+	}
+
+	updateCpa(selfTarget, target);
+	evaluateAlarms(target, collisionProfiles);
+
+	var mmsiMid = getMid(target.mmsi);
 	target.mmsiCountryCode = mmsiMidToCountry.get(mmsiMid)?.code;
 	target.mmsiCountryName = mmsiMidToCountry.get(mmsiMid)?.name;
 	target.cpaFormatted = formatCpa(target.cpa);
@@ -111,17 +131,18 @@ function updateSingleTargetDerivedData(
 	target.imoFormatted = target.imo?.replace(/imo/i, "") || "---";
 	target.latitudeFormatted = formatLat(target.latitude);
 	target.longitudeFormatted = formatLon(target.longitude);
+}
 
-	if (
-		!target.latitude ||
-		!target.longitude ||
-		target.lastSeen > TARGET_MAX_AGE
-	) {
-		//console.log("invalid target", target.mmsi, target.latitude, target.longitude, target.lastSeen);
-		target.isValid = false;
-	} else {
-		target.isValid = true;
-	}
+function calculateXY(selfTarget, target) {
+	target.y = target.latitude * 111120;
+	// FIXME this might work better using an average of the latitudes of the target and selfTarget
+
+	// FIXME this reference to selfTarget blows:
+
+	target.x =
+		target.longitude * 111120 * Math.cos(toRadians(selfTarget.latitude));
+	target.vy = target.sog * Math.cos(target.cog); // cog is in radians
+	target.vx = target.sog * Math.sin(target.cog); // cog is in radians
 }
 
 function calculateRangeAndBearing(selfTarget, target) {
