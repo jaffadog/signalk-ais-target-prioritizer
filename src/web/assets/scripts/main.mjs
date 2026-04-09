@@ -1,5 +1,4 @@
-// FIXME: need map rotation option to toggle between north-up and cog-up
-// FIXME need to investigate node OOM issues - leak?
+// FIXME need map rotation option to toggle between north-up and cog-up
 
 const DEFAULT_MAP_ZOOM = 14; // 14 gives us 2+ NM
 const METERS_PER_NM = 1852;

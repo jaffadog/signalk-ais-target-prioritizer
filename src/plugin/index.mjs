@@ -4,11 +4,17 @@ import defaultCollisionProfiles from "../web/assets/defaultCollisionProfiles.jso
 	type: "json",
 };
 import * as aisUtils from "../web/assets/scripts/ais-utils.mjs";
-import schema from "./schema.json" with { type: "json" };
+//import schema from "./schema.json" with { type: "json" };
 import * as vesper from "./vesper-xb8000-emulator.mjs";
 
 const AGE_OUT_OLD_TARGETS = true;
 const TARGET_MAX_AGE = 30 * 60; // max age in seconds - 30 minutes
+
+const DEFAULT_UPDATE_INTERVAL_DELAY = 3;
+const DEFAULT_MAXIMUM_TARGET_RANGE = 50;
+const DEFAULT_ENABLE_DATA_PUBLISHING = true;
+const DEFAULT_ENABLE_ALARM_PUBLISHING = true;
+const DEFAULT_ENABLE_EMULATOR = false;
 
 var selfMmsi;
 var selfName;
@@ -19,6 +25,11 @@ var selfTarget;
 var targets = new Map();
 var collisionProfiles;
 var options;
+var updateIntervalDelay;
+var maximumTargetRange;
+var enableDataPublishing;
+var enableAlarmPublishing;
+var enableEmulator;
 
 export default function (app) {
 	var plugin = {};
@@ -34,18 +45,23 @@ export default function (app) {
 	plugin.start = (_options) => {
 		app.debug(`*** Starting plugin ${plugin.id} with options=`, _options);
 		options = _options;
+		updateIntervalDelay =
+			options.updateIntervalDelay || DEFAULT_UPDATE_INTERVAL_DELAY;
+		maximumTargetRange =
+			options.maximumTargetRange || DEFAULT_MAXIMUM_TARGET_RANGE;
+		enableDataPublishing =
+			options.enableDataPublishing || DEFAULT_ENABLE_DATA_PUBLISHING;
+		enableAlarmPublishing =
+			options.enableAlarmPublishing || DEFAULT_ENABLE_ALARM_PUBLISHING;
+		enableEmulator = options.enableEmulator || DEFAULT_ENABLE_EMULATOR;
 		getCollisionProfiles();
-		if (
-			options.enableDataPublishing ||
-			options.enableAlarmPublishing ||
-			options.enableEmulator
-		) {
+		if (enableDataPublishing || enableAlarmPublishing || enableEmulator) {
 			enablePluginCpaCalculations();
 		} else {
 			// if plugin was stopped and started again with options set to not perform calculations, then clear out old targets
 			targets.clear();
 		}
-		if (options.enableEmulator) {
+		if (enableEmulator) {
 			//app.debug("collisionProfiles in index.js", collisionProfiles);
 			//vesper.collisionProfiles = collisionProfiles;
 			//vesper.setCollisionProfiles(collisionProfiles);
@@ -69,12 +85,52 @@ export default function (app) {
 		if (refreshDataModelInterval) {
 			clearInterval(refreshDataModelInterval);
 		}
-		if (options?.enableEmulator) {
+		if (enableEmulator) {
 			vesper.stop();
 		}
 	};
 
-	plugin.schema = schema;
+	plugin.schema = {
+		type: "object",
+		description: "Note: edit CPA warning and alarm settings in the webapp.",
+		properties: {
+			updateIntervalDelay: {
+				title: "Update Interval (Seconds)",
+				description: `Number of seconds between target data updates (default is ${DEFAULT_UPDATE_INTERVAL_DELAY} seconds).`,
+				type: "number",
+				minimum: 1,
+				default: DEFAULT_UPDATE_INTERVAL_DELAY,
+			},
+			maximumTargetRange: {
+				title: "Ignore Targets Further Than (NM)",
+				description: `(default is ${DEFAULT_MAXIMUM_TARGET_RANGE} NM).`,
+				type: "number",
+				minimum: 5,
+				default: DEFAULT_MAXIMUM_TARGET_RANGE,
+			},
+			enableDataPublishing: {
+				title:
+					"Publish AIS Target CPA, TCPA, Range, Bearing, Priority, and Alarm Status to SignalK (navigation.closestApproach). This is not required if just using the webapp.",
+				description: `(default is ${DEFAULT_ENABLE_DATA_PUBLISHING}).`,
+				type: "boolean",
+				default: DEFAULT_ENABLE_DATA_PUBLISHING,
+			},
+			enableAlarmPublishing: {
+				title:
+					"Publish AIS Target CPA and Guard warning/alarm notifications to SignalK (notifications.navigation.closestApproach). This is not required if just using the webapp.",
+				description: `(default is ${DEFAULT_ENABLE_ALARM_PUBLISHING}).`,
+				type: "boolean",
+				default: DEFAULT_ENABLE_ALARM_PUBLISHING,
+			},
+			enableEmulator: {
+				title:
+					"Enable Vesper XB-8000 Emulation. Turn this on if you intend to use the Vesper WatchMate mobile apps.",
+				description: `(default is ${DEFAULT_ENABLE_EMULATOR}).`,
+				type: "boolean",
+				default: DEFAULT_ENABLE_EMULATOR,
+			},
+		},
+	};
 
 	plugin.registerWithRouter = (router) => {
 		// GET /plugins/${plugin.id}/getCollisionProfiles
@@ -303,7 +359,10 @@ export default function (app) {
 		);
 
 		// update data model every 1 second
-		refreshDataModelInterval = setInterval(refreshDataModel, 1000);
+		refreshDataModelInterval = setInterval(
+			refreshDataModel,
+			updateIntervalDelay * 1000,
+		);
 	}
 
 	function processDelta(delta) {
@@ -431,6 +490,7 @@ export default function (app) {
 						targets,
 						selfTarget,
 						collisionProfiles,
+						maximumTargetRange,
 						TARGET_MAX_AGE,
 					);
 				} catch (error) {
@@ -455,16 +515,17 @@ export default function (app) {
 			let isCurrentAlarm = false;
 
 			targets.forEach((target, mmsi) => {
-				if (options.enableDataPublishing && mmsi !== selfMmsi) {
+				if (enableDataPublishing && mmsi !== selfMmsi && !target.ignore) {
 					pushTargetDataToSignalK(target);
 				}
 
 				// publish warning/alarm notifications
 				// FIXME - should we send 1 notification for all targets? or separate notifications for each target?
 				if (
-					options.enableAlarmPublishing &&
+					enableAlarmPublishing &&
 					target.alarmState &&
-					!target.alarmIsMuted
+					!target.alarmIsMuted &&
+					!target.ignore
 				) {
 					const message = (
 						`${target.name || `<${target.mmsi}>`} - ` +
