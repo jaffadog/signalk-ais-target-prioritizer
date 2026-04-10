@@ -252,6 +252,31 @@ var labelToCollisionController = new labelgun.default(hideLabel, showLabel);
 
 const alertPlaceholder = document.getElementById("alertPlaceholder");
 
+const selectProfileToEdit = document.getElementById("selectProfileToEdit");
+const selectActiveProfile = document.getElementById("selectProfileToEdit");
+const checkFullScreen = document.getElementById("checkFullScreen");
+const checkDarkMode = document.getElementById("checkDarkMode");
+const checkNoSleep = document.getElementById("checkNoSleep");
+const offcanvasEditProfiles = document.getElementById("offcanvasEditProfiles");
+const modalClosebyBoats = document.getElementById("modalClosebyBoats");
+
+const totalTargetCountUI = document.getElementById("totalTargetCountUI");
+const filteredTargetCountUI = document.getElementById("filteredTargetCountUI");
+const alarmTargetCountUI = document.getElementById("alarmTargetCountUI");
+
+const configWarningCpaRange = document.getElementById("configWarningCpaRange");
+const configWarningTcpaRange = document.getElementById(
+	"configWarningTcpaRange",
+);
+const configWarningSogRange = document.getElementById("configWarningSogRange");
+
+const configAlarmCpaRange = document.getElementById("configAlarmCpaRange");
+const configAlarmTcpaRange = document.getElementById("configAlarmTcpaRange");
+const configAlarmSogRange = document.getElementById("configAlarmSogRange");
+
+const configGuardRangeRange = document.getElementById("configGuardRangeRange");
+const configGuardSogRange = document.getElementById("configGuardSogRange");
+
 // *********************************************************************************************************
 // ** REGISTER EVENT LISTENERS
 

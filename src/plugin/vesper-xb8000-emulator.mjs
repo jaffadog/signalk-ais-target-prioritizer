@@ -2,6 +2,8 @@
 
 var aisUtilsPromise = import("../web/assets/scripts/ais-utils.mjs");
 let toDegrees;
+let getDistanceFromLatLonInMeters;
+let getRhumbLineBearing;
 
 import express from "express";
 
@@ -558,10 +560,9 @@ function getOwnStaticDataXml() {
 </Watchmate>`;
 }
 
+// ******************** SSE STUFF **********************
+// streaming protocol used in lieu of xml or json REST calls
 function setupSse() {
-	// ******************** SSE STUFF **********************
-	// streaming protocol used in lieu of xml or json REST calls
-
 	if (enableSse) {
 		// send heartbeat
 		streamingHeartBeatInterval = setInterval(() => {
@@ -609,15 +610,15 @@ function setupSse() {
 			sendSseMsg("VesselPositionHistory", positions);
 		}, 5000);
 	}
-
-	function sendSseMsg(name, data) {
-		if (debugSseComms) app.debug(`SSE sending ${name}`);
-		var json = JSON.stringify(data);
-		sse.send(`${json.length + 2}:${name}${json}\n\n`);
-	}
-
-	// ******************** END SSE STUFF **********************
 }
+
+function sendSseMsg(name, data) {
+	if (debugSseComms) app.debug(`SSE sending ${name}`);
+	var json = JSON.stringify(data);
+	sse.send(`${json.length + 2}:${name}${json}\n\n`);
+}
+
+// ******************** END SSE STUFF **********************
 
 // save position - keep up to 2880 positions (24 hours at 30 sec cadence)
 savePositionInterval = setInterval(() => {
@@ -1263,6 +1264,8 @@ export function start(
 	// FIXME
 	Promise.resolve(aisUtilsPromise).then((aisUtils) => {
 		toDegrees = aisUtils.toDegrees;
+		getDistanceFromLatLonInMeters = aisUtils.getDistanceFromLatLonInMeters;
+		getRhumbLineBearing = aisUtils.getRhumbLineBearing;
 		app.debug("starting vesper emulator", collisionProfiles);
 		refreshTargetData();
 		setupHttpServer();
