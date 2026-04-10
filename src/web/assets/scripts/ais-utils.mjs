@@ -419,7 +419,7 @@ function evaluateAlarms(target, collisionProfiles) {
 	}
 }
 
-function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+export function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
 	var R = 6371000; // Radius of the earth in meters
 	var dLat = toRadians(lat2 - lat1);
 	var dLon = toRadians(lon2 - lon1);
@@ -434,7 +434,7 @@ function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
 	return d;
 }
 
-function getRhumbLineBearing(lat1, lon1, lat2, lon2) {
+export function getRhumbLineBearing(lat1, lon1, lat2, lon2) {
 	// difference of longitude coords
 	var diffLon = toRadians(lon2 - lon1);
 
