@@ -5,19 +5,21 @@ let toDegrees;
 let getDistanceFromLatLonInMeters;
 let getRhumbLineBearing;
 
+import { Bonjour } from "bonjour-service";
 import express from "express";
 
 const expressApp = express();
+const bonjour = new Bonjour();
 
 import SSE from "express-sse";
 import _ from "lodash";
 
 var sse = new SSE();
 
-import proxy from "node-tcp-proxy";
+// import proxy from "node-tcp-proxy";
+import net from "net";
 
 // import { clearInterval } from "timers";
-// import mdns from "multicast-dns";
 
 const METERS_PER_NM = 1852;
 const KNOTS_PER_M_PER_S = 1.94384;
@@ -30,9 +32,9 @@ const proxySourceHostname = "127.0.0.1"; // signalk server address (localhost - 
 const proxySourcePort = 10110; // signalk nmea over tcp port
 
 const enableV3 = true; // ios app will keep on reinitializing without this
-const enableSse = true; // ios app will keep on reinitializing without this
-const debugSseComms = false;
-const debugHttpComms = false;
+const enableSse = false; // ios app will keep on reinitializing without this
+const debugSseComms = true;
+const debugHttpComms = true;
 
 var gps = {};
 var targets = new Map();
@@ -43,6 +45,7 @@ var selfMmsi, selfName, selfCallsign, selfTypeId;
 
 var httpServer;
 var tcpProxyServer;
+var mdnsService;
 
 var streamingHeartBeatInterval;
 var streamingVesselPositionUnderwayInterval;
@@ -75,9 +78,11 @@ var anchorWatchControl = {
 var saveCollisionProfiles;
 
 // save position every 2 seconds when underway. this changes to every 30 seconds when anchored.
-const savePositionDelayWhenUnderway = 2000;
+const savePositionDelayWhenUnderway = 30000;
 const savePositionDelayWhenAnchored = 30000;
 var savePositionDelay = savePositionDelayWhenUnderway;
+const maxPositions = 10;
+
 // 86,400 seconds per 24 hour day. 86400/2 = 43200. 86400/30 = 2880.
 
 // the mobile app is picky about the model number and version numbers
@@ -88,7 +93,7 @@ const aisDeviceModel = {
 	connectedDeviceUiVersion: "3.04.17316",
 	connectedDeviceTxVersion: "5.20.17443",
 	connectedDeviceTxBbVersion: "1.2.4.0",
-	connectedDeviceSerialNumber: "KW37001",
+	connectedDeviceSerialNumber: "KW37002",
 };
 
 const stateMappingTextToNumeric = {
@@ -122,67 +127,6 @@ const stateMappingTextToNumeric = {
 // 	14: "ais-sart",
 // 	15: "default",
 // };
-
-// setup auto-discovery
-/*
-mdns.on('query', function(query) {
-    console.log('********** mdns query',query.questions);
-    if (query.questions[0] && query.questions[0].name === '_vesper-nmea0183._tcp.local') {
-        console.log('got a query packet:', query, '\n');
-        mdns.respond({
-            answers: [
-                {
-                    name: '_vesper-nmea0183._tcp.local',
-                    type: 'PTR',
-                    class: 'IN',
-                    ttl: 300,
-                    flush: true,
-                    data: 'ribbit._vesper-nmea0183._tcp.local'
-                }
-            ],
-            additionals: [
-                {
-                    name: 'ribbit.local',
-                    type: 'A',
-                    class: 'IN',
-                    ttl: 300,
-                    flush: true,
-                    data: ip.address()
-                    // FIXME: the ip6 block below result inthe mobile app
-                    // reporting an additional
-                    // discovery with ip 0.0.0.0
-                    // },{
-                    // name: 'ribbit.local',
-                    // type: 'AAAA',
-                    // class: 'IN',
-                    // ttl: 300,
-                    // flush: true,
-                    // data: ip.address('public','ipv6')
-                }, {
-                    name: 'ribbit._vesper-nmea0183._tcp.local',
-                    type: 'SRV',
-                    class: 'IN',
-                    ttl: 300,
-                    flush: true,
-                    data: {
-                        port: 39150,
-                        weigth: 0,
-                        priority: 10,
-                        target: 'ribbit.local'
-                    }
-                }, {
-                    name: 'ribbit._vesper-nmea0183._tcp.local',
-                    type: 'TXT',
-                    class: 'IN',
-                    ttl: 300,
-                    flush: true,
-                    data: 'nm=ribbit'
-                }
-            ]
-        });
-    }
-});
-*/
 
 function getDeviceModelXml() {
 	return `<?xml version='1.0' encoding='ISO-8859-1' ?>
@@ -618,7 +562,25 @@ function sendSseMsg(name, data) {
 	sse.send(`${json.length + 2}:${name}${json}\n\n`);
 }
 
+function sendSseMessage(res, name, data) {
+	if (debugSseComms) app.debug(`SSE sending ${name}`);
+	const payload = JSON.stringify(data);
+	res.write(`${payload.length + 2}:${name}${payload}\n`);
+}
+
 // ******************** END SSE STUFF **********************
+
+function setupMdns() {
+	mdnsService = bonjour.publish({
+		name: "vesper-xb8000-emulator",
+		type: "vesper-nmea0183",
+		port: nmeaOverTcpServerPort,
+	});
+
+	mdnsService.start();
+	console.log("mdns service running");
+	app.debug("mdns service running");
+}
 
 // save position - keep up to 2880 positions (24 hours at 30 sec cadence)
 savePositionInterval = setInterval(() => {
@@ -629,8 +591,8 @@ savePositionInterval = setInterval(() => {
 			t: gps.lastSeenDate.getTime(),
 		});
 
-		if (positions.length > 2880) {
-			positions.length = 2880;
+		if (positions.length > maxPositions) {
+			positions.length = maxPositions;
 		}
 	}
 }, savePositionDelay);
@@ -902,12 +864,60 @@ function setupHttpServer() {
 
 	if (enableV3) {
 		// /v3/openChannel
-		// after adding this, we get poounded with GET /v3/subscribeChannel?VesselPositionUnderway
-		expressApp.get("/v3/openChannel", sse.init);
+		// after adding this, we get pounded with GET /v3/subscribeChannel?VesselPositionUnderway
+
+		// expressApp.get("/v3/openChannel", sse.init);
+
+		expressApp.get("/v3/openChannel", (req, res) => {
+			// Required headers for SSE
+			res.setHeader("Content-Type", "text/event-stream");
+			res.setHeader("Cache-Control", "no-cache");
+			res.setHeader("Connection", "keep-alive");
+
+			// Important for proxies (prevents buffering)
+			res.flushHeaders?.();
+
+			// send heartbeat
+			sendSseMessage(res, "HeartBeat", { time: Date.now() });
+			// 24:HeartBeat{"time":1576639380000}
+			// 24:HeartBeat{"time":1776293259329}
+			// streamingHeartBeatInterval
+			const heartBeatInterval = setInterval(() => {
+				sendSseMessage(res, "HeartBeat", { time: Date.now() });
+			}, 15000);
+
+			// 75:VesselPositionUnderway{"a":407106833,"o":-740460408,"cog":0,"sog":0.0,"var":-13,"t":1576639404}
+			// 76:VesselPositionUnderway{"a":-167208975,"o":-1436086463,"cog":295,"sog":2,"var":13,"t":1776295347}
+			// 80:VesselPositionUnderway{"a":380704720,"o":-785886085,"cog":220.28,"sog":0,"var":-9.77,"t":1576873731}
+			// 122:VesselPositionUnderway{"a":-167234987,"o":-1435993293,"cog":286.8500000654964,"sog":2.336387688888889,"var":12.860000002936319,"t":1776294279}
+			// sse.send("75:VesselPositionUnderway{\"a\":407106833,\"o\":-740460408,\"cog\":0,\"sog\":0.0,\"var\":-13,\"t\":1576639404}\n\n");
+			const vesselPositionUnderwayInterval = setInterval(() => {
+				if (gps?.isValid) {
+					const vesselPositionUnderway = {
+						a: Math.round(gps.latitude * 1e7),
+						o: Math.round(gps.longitude * 1e7),
+						cog: Math.round(toDegrees(gps.cog)),
+						sog: Math.round(gps.sog * KNOTS_PER_M_PER_S),
+						var: Math.round(toDegrees(gps.magvar)),
+						t: gps.lastSeenDate.getTime() / 1000,
+					};
+
+					// sendSseMsg("VesselPositionUnderway", vesselPositionUnderway);
+					sendSseMessage(res, "VesselPositionUnderway", vesselPositionUnderway);
+				}
+			}, 500);
+
+			// Cleanup on client disconnect
+			req.on("close", () => {
+				clearInterval(heartBeatInterval);
+				clearInterval(vesselPositionUnderwayInterval);
+				res.end();
+			});
+		});
 
 		// GET /v3/subscribeChannel?<anything>
 		expressApp.get("/v3/subscribeChannel", (_req, res) => {
-			res.json();
+			res.sendStatus(200);
 		});
 
 		// GET /v3/watchMate/collisionProfiles
@@ -983,7 +993,7 @@ function setupHttpServer() {
 
 			res.json();
 		});
-	}
+	} // end enableV3
 
 	// catchall 404
 	expressApp.all("*", (req, res) => {
@@ -1010,18 +1020,71 @@ function setupHttpServer() {
 // what it perceives as lost connectivity with the Vesper AIS unit.
 function setupTcpProxyServer() {
 	if (enableNmeaOverTcpServer) {
-		tcpProxyServer = proxy.createProxy(
-			nmeaOverTcpServerPort,
-			proxySourceHostname,
-			proxySourcePort,
-		);
-		app.debug(`Proxy server listening on port ${nmeaOverTcpServerPort}`);
+		// tcpProxyServer = proxy.createProxy(
+		// 	nmeaOverTcpServerPort,
+		// 	proxySourceHostname,
+		// 	proxySourcePort,
+		// );
+		// tcpProxyServer.on("listening", () => {
+		// 	app.debug(`Proxy server listening on port ${nmeaOverTcpServerPort}`);
+		// });
+
+		// tcpProxyServer.on("error", (err) => {
+		// 	console.error("Proxy error:", err);
+		// });
+
+		const server = net.createServer((clientSocket) => {
+			const targetSocket = net.connect(10110, "127.0.0.1");
+
+			clientSocket.pipe(targetSocket);
+			targetSocket.pipe(clientSocket);
+
+			targetSocket.on("error", (err) => {
+				console.error("Target error:", err.message);
+				clientSocket.destroy();
+			});
+		});
+
+		server.listen(39150, () => {
+			console.log("Proxy listening on 39150");
+		});
+
+		// const server = net.createServer((client) => {
+		// 	let upstream;
+
+		// 	function connect() {
+		// 		upstream = net.connect(10110, "127.0.0.1");
+
+		// 		upstream.pipe(client);
+		// 		client.pipe(upstream);
+
+		// 		upstream.on("error", (err) => {
+		// 			console.error("Upstream error:", err.message);
+		// 		});
+
+		// 		upstream.on("close", () => {
+		// 			console.log("Upstream closed, retrying in 1s...");
+		// 			setTimeout(connect, 1000);
+		// 		});
+		// 	}
+
+		// 	connect();
+
+		// 	client.on("close", () => {
+		// 		if (upstream) upstream.destroy();
+		// 	});
+		// });
+
+		// server.listen(39150, () => {
+		// 	console.log("Proxy listening on 39150");
+		// });
 	}
 }
 // ======================= END TCP SERVER ========================
 
 function sendXmlResponse(res, xml) {
-	res.set("Content-Type", "application/xml").send(Buffer.from(xml, "latin1"));
+	res.type("application/xml; charset=ISO-8859-1");
+	res.send(Buffer.from(xml, "latin1"));
 }
 
 function mergePutData(req, originalObject) {
@@ -1271,6 +1334,7 @@ export function start(
 		setupHttpServer();
 		setupTcpProxyServer();
 		setupSse();
+		setupMdns();
 
 		// update the data model every 1000 ms
 		refreshInterval = setInterval(() => {
@@ -1307,6 +1371,17 @@ export function stop() {
 		try {
 			app.debug(`Stopping HTTP server listening on port ${httpPort}`);
 			httpServer.close();
+		} catch (e) {
+			app.debug(e);
+		}
+	}
+
+	if (mdnsService) {
+		try {
+			app.debug(`Stopping mdnsService`);
+			bonjour.unpublishAll(() => {
+				bonjour.destroy();
+			});
 		} catch (e) {
 			app.debug(e);
 		}
