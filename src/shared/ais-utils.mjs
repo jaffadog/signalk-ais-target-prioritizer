@@ -1,16 +1,17 @@
+import { isFiniteCoord } from "./guards.mjs";
 import { mmsiMidToCountry } from "./mmsi-mid-decoder.mjs";
 
 const METERS_PER_NM = 1852;
 const KNOTS_PER_M_PER_S = 1.94384;
 const LOST_TARGET_WARNING_AGE = 10 * 60; // in seconds - 10 minutes
 
-export function updateDerivedData(
+export function updateDerivedData({
 	targets,
 	selfTarget,
 	collisionProfiles,
 	maximumTargetRange,
-	TARGET_MAX_AGE,
-) {
+	targetMaxAge,
+}) {
 	// update self first
 	if (!selfTarget) {
 		console.warn(
@@ -36,13 +37,13 @@ export function updateDerivedData(
 	// then update all other targets
 	targets.forEach((target, mmsi) => {
 		if (mmsi !== selfTarget.mmsi) {
-			updateTargetDerivedData(
+			updateTargetDerivedData({
 				target,
 				selfTarget,
 				collisionProfiles,
 				maximumTargetRange,
-				TARGET_MAX_AGE,
-			);
+				targetMaxAge,
+			});
 		}
 	});
 }
@@ -57,34 +58,29 @@ export function toDegrees(v) {
 
 function updateSelfTarget(selfTarget) {
 	calculateXY(selfTarget, selfTarget);
-	if (!selfTarget.latitude || !selfTarget.longitude) {
-		selfTarget.isValid = false;
-	} else {
-		selfTarget.isValid = true;
-	}
+	selfTarget.isValid = isFiniteCoord(selfTarget.latitude, selfTarget.longitude);
 }
 
-function updateTargetDerivedData(
+function updateTargetDerivedData({
 	target,
 	selfTarget,
 	collisionProfiles,
 	maximumTargetRange,
-	TARGET_MAX_AGE,
-) {
+	targetMaxAge,
+}) {
 	var lastSeen = Math.max(
 		0,
 		Math.round((Date.now() - target.lastSeenDate) / 1000),
 	);
 
-	// console.log(target, lastSeen, TARGET_MAX_AGE);
+	// console.log(target, lastSeen, targetMaxAge);
 
 	target.lastSeen = lastSeen;
 	target.isLost = lastSeen > LOST_TARGET_WARNING_AGE;
 
 	if (
-		!target.latitude ||
-		!target.longitude ||
-		target.lastSeen > TARGET_MAX_AGE
+		!isFiniteCoord(target.latitude, target.longitude) ||
+		target.lastSeen > targetMaxAge
 	) {
 		target.isValid = false;
 	} else {
@@ -99,6 +95,7 @@ function updateTargetDerivedData(
 	} else {
 		// if the target is beyond max range, dont calculate cpa and stop processing it
 		target.ignore = true;
+		// console.log("ignore", target);
 		return;
 	}
 
@@ -146,7 +143,10 @@ function calculateXY(selfTarget, target) {
 }
 
 function calculateRangeAndBearing(selfTarget, target) {
-	if (!selfTarget.isValid || !target.latitude || !target.longitude) {
+	if (
+		!selfTarget.isValid ||
+		!isFiniteCoord(target.latitude, target.longitude)
+	) {
 		target.range = null;
 		target.bearing = null;
 		// console.log('cant calc range bearing', selfTarget, target);

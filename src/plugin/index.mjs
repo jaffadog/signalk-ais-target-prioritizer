@@ -3,7 +3,9 @@ import path from "node:path";
 import defaultCollisionProfiles from "../web/assets/defaultCollisionProfiles.json" with {
 	type: "json",
 };
-import * as aisUtils from "../web/assets/scripts/ais-utils.mjs";
+import { assertCollisionProfiles } from "../shared/guards.mjs";
+import * as aisUtils from "../shared/ais-utils.mjs";
+import { applyDeltaValue, createTarget } from "../shared/target-model.mjs";
 //import schema from "./schema.json" with { type: "json" };
 import * as vesper from "./vesper-xb8000-emulator.mjs";
 
@@ -15,6 +17,19 @@ const DEFAULT_MAXIMUM_TARGET_RANGE = 50;
 const DEFAULT_ENABLE_DATA_PUBLISHING = true;
 const DEFAULT_ENABLE_ALARM_PUBLISHING = true;
 const DEFAULT_ENABLE_EMULATOR = false;
+
+function normalizeOptions(raw = {}) {
+	return {
+		updateIntervalDelay:
+			raw.updateIntervalDelay ?? DEFAULT_UPDATE_INTERVAL_DELAY,
+		maximumTargetRange: raw.maximumTargetRange ?? DEFAULT_MAXIMUM_TARGET_RANGE,
+		enableDataPublishing:
+			raw.enableDataPublishing ?? DEFAULT_ENABLE_DATA_PUBLISHING,
+		enableAlarmPublishing:
+			raw.enableAlarmPublishing ?? DEFAULT_ENABLE_ALARM_PUBLISHING,
+		enableEmulator: raw.enableEmulator ?? DEFAULT_ENABLE_EMULATOR,
+	};
+}
 
 var selfMmsi;
 var selfName;
@@ -44,16 +59,12 @@ export default function (app) {
 
 	plugin.start = (_options) => {
 		app.debug(`*** Starting plugin ${plugin.id} with options=`, _options);
-		options = _options;
-		updateIntervalDelay =
-			options.updateIntervalDelay || DEFAULT_UPDATE_INTERVAL_DELAY;
-		maximumTargetRange =
-			options.maximumTargetRange || DEFAULT_MAXIMUM_TARGET_RANGE;
-		enableDataPublishing =
-			options.enableDataPublishing || DEFAULT_ENABLE_DATA_PUBLISHING;
-		enableAlarmPublishing =
-			options.enableAlarmPublishing || DEFAULT_ENABLE_ALARM_PUBLISHING;
-		enableEmulator = options.enableEmulator || DEFAULT_ENABLE_EMULATOR;
+		options = normalizeOptions(_options);
+		updateIntervalDelay = options.updateIntervalDelay;
+		maximumTargetRange = options.maximumTargetRange;
+		enableDataPublishing = options.enableDataPublishing;
+		enableAlarmPublishing = options.enableAlarmPublishing;
+		enableEmulator = options.enableEmulator;
 		getCollisionProfiles();
 		if (enableDataPublishing || enableAlarmPublishing || enableEmulator) {
 			enablePluginCpaCalculations();
@@ -141,28 +152,20 @@ export default function (app) {
 
 		// PUT /plugins/${plugin.id}/setCollisionProfiles
 		router.put("/setCollisionProfiles", (req, res) => {
-			var newCollisionProfiles = req.body;
-			app.debug("setCollisionProfiles", newCollisionProfiles);
-			// do some basic validation to ensure we have some real config data before saving it
-			if (
-				!newCollisionProfiles ||
-				!newCollisionProfiles.current ||
-				!newCollisionProfiles.anchor ||
-				!newCollisionProfiles.harbor ||
-				!newCollisionProfiles.coastal ||
-				!newCollisionProfiles.offshore
-			) {
+			try {
+				const newCollisionProfiles = assertCollisionProfiles(req.body);
+				app.debug("setCollisionProfiles", newCollisionProfiles);
+				// must use Object.assign rather than "collisionProfiles = newCollisionProfiles" to prevent breaking the reference we passed into the vesper emulator
+				Object.assign(collisionProfiles, newCollisionProfiles);
+				saveCollisionProfiles();
+				res.json(collisionProfiles);
+			} catch (error) {
 				app.error(
 					"ERROR - not saving invalid new collision profiles",
-					newCollisionProfiles,
+					req.body,
 				);
-				res.status(500).end();
-				return;
+				res.status(400).json({ error: error.message });
 			}
-			// must use Object.assign rather than "collisionProfiles = newCollisionProfiles" to prevent breaking the reference we passed into the vesper emulator
-			Object.assign(collisionProfiles, newCollisionProfiles);
-			saveCollisionProfiles();
-			res.json(collisionProfiles);
 		});
 
 		// GET /plugins/${plugin.id}/muteAllAlarms
@@ -379,97 +382,17 @@ export default function (app) {
 			return;
 		}
 
-		var target = targets.get(mmsi);
-		if (!target) {
-			target = {
-				// initialize these to zero - because signal k may not set values if the target is stationary
-				// and we may as well start computing CPAs assuming they're stationary
-				sog: 0,
-				cog: 0,
-			};
-			target.mmsi = mmsi;
-		}
+		var target = targets.get(mmsi) ?? createTarget(mmsi);
 
 		target.context = delta.context;
 
 		for (const update of updates) {
-			const values = update.values;
-			for (const value of values) {
-				//app.debug('value', value);
-
-				switch (value.path) {
-					case "":
-						if (value.value.name) {
-							target.name = value.value.name;
-						} else if (value.value.communication?.callsignVhf) {
-							target.callsign = value.value.communication.callsignVhf;
-						} else if (value.value.registrations?.imo) {
-							target.imo = value.value.registrations.imo.replace(/imo/i, "");
-						} else if (value.value.mmsi) {
-							// we expected mmsi
-						} else {
-							//app.debug('received unexpected delta on root path', delta.context, value.path, value.value);
-						}
-						break;
-					case "navigation.position":
-						target.latitude = value.value.latitude;
-						target.longitude = value.value.longitude;
-						target.lastSeenDate = new Date(update.timestamp);
-						break;
-					case "navigation.courseOverGroundTrue":
-						target.cog = value.value;
-						break;
-					case "navigation.speedOverGround":
-						target.sog = value.value;
-						break;
-					case "navigation.magneticVariation":
-						target.magvar = value.value;
-						break;
-					case "navigation.headingTrue":
-						target.hdg = value.value;
-						break;
-					case "navigation.rateOfTurn":
-						target.rot = value.value;
-						break;
-					case "design.aisShipType":
-						target.typeId = value.value.id;
-						target.type = value.value.name;
-						break;
-					case "navigation.state":
-						target.status = value.value;
-						break;
-					case "sensors.ais.class":
-						target.aisClass = value.value;
-						break;
-					case "navigation.destination.commonName":
-						target.destination = value.value;
-						break;
-					case "design.length":
-						target.length = value.value.overall;
-						break;
-					case "design.beam":
-						target.width = value.value;
-						break;
-					case "design.draft":
-						target.draft = value.value.current;
-						break;
-					case "atonType":
-						target.typeId = value.value.id;
-						target.type = value.value.name;
-						if (target.status == null) {
-							target.status = "default"; // 15 = "default"
-						}
-						break;
-					case "offPosition":
-						target.isOffPosition = value.value ? 1 : 0;
-						break;
-					case "virtual":
-						target.isVirtual = value.value ? 1 : 0;
-						break;
-
-					default:
-					//app.debug('received unexpected delta', delta.context, value.path, value.value);
-				}
+			for (const value of update.values) {
+				applyDeltaValue(target, {
+					path: value.path,
+					value: value.value,
+					timestamp: update.timestamp,
+				});
 			}
 		}
 
@@ -486,13 +409,13 @@ export default function (app) {
 
 			if (aisUtils) {
 				try {
-					aisUtils.updateDerivedData(
+					aisUtils.updateDerivedData({
 						targets,
 						selfTarget,
 						collisionProfiles,
 						maximumTargetRange,
-						TARGET_MAX_AGE,
-					);
+						targetMaxAge: TARGET_MAX_AGE,
+					});
 				} catch (error) {
 					app.debug(error); // we use app.debug rather than app.error so that the user can filter these out of the log
 					app.setPluginError(error.message);

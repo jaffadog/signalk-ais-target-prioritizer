@@ -1,6 +1,7 @@
 // FIXME need map rotation option to toggle between north-up and cog-up
 
 const DEFAULT_MAP_ZOOM = 14; // 14 gives us 2+ NM
+const DEFAULT_MAXIMUM_TARGET_RANGE = 50;
 const METERS_PER_NM = 1852;
 const COURSE_PROJECTION_MINUTES = 10;
 const AGE_OUT_OLD_TARGETS = true;
@@ -19,7 +20,15 @@ import defaultCollisionProfiles from "../defaultCollisionProfiles.json";
 import hornMp3Url from "../horn.mp3";
 import pmtilesUrl from "../ne_10m_land.pmtiles?url&no-inline";
 import * as aisIons from "./ais-icons.mjs";
-import { toDegrees, toRadians, updateDerivedData } from "./ais-utils.mjs";
+import {
+	toDegrees,
+	toRadians,
+	updateDerivedData,
+} from "../../../shared/ais-utils.mjs";
+import {
+	applySnapshotToTarget,
+	createTarget,
+} from "../../../shared/target-model.mjs";
 import * as targetSvgs from "./ship-icons.mjs";
 
 var noSleep = new NoSleep();
@@ -49,6 +58,47 @@ var sortTableBy = "priority";
 var blueLayerGroup = L.layerGroup();
 //blueLayerGroup.className = 'blueStuff';
 
+function getRequiredElement(id) {
+	const el = document.getElementById(id);
+	if (!el) {
+		throw new Error(`Missing required element: ${id}`);
+	}
+	return el;
+}
+
+const alertPlaceholder = getRequiredElement("alertPlaceholder");
+
+const selectProfileToEdit = getRequiredElement("selectProfileToEdit");
+const selectActiveProfile = getRequiredElement("selectActiveProfile");
+const selectTableSort = getRequiredElement("selectTableSort");
+
+const checkFullScreen = getRequiredElement("checkFullScreen");
+const checkDarkMode = getRequiredElement("checkDarkMode");
+const checkNoSleep = getRequiredElement("checkNoSleep");
+
+const buttonEditProfiles = getRequiredElement("buttonEditProfiles");
+
+const errorMessage = getRequiredElement("errorMessage");
+const alarmDiv = getRequiredElement("alarmDiv");
+
+const offcanvasEditProfiles = getRequiredElement("offcanvasEditProfiles");
+const modalClosebyBoats = getRequiredElement("modalClosebyBoats");
+
+const totalTargetCountUI = getRequiredElement("totalTargetCountUI");
+const filteredTargetCountUI = getRequiredElement("filteredTargetCountUI");
+const alarmTargetCountUI = getRequiredElement("alarmTargetCountUI");
+
+const configWarningCpaRange = getRequiredElement("configWarningCpaRange");
+const configWarningTcpaRange = getRequiredElement("configWarningTcpaRange");
+const configWarningSogRange = getRequiredElement("configWarningSogRange");
+
+const configAlarmCpaRange = getRequiredElement("configAlarmCpaRange");
+const configAlarmTcpaRange = getRequiredElement("configAlarmTcpaRange");
+const configAlarmSogRange = getRequiredElement("configAlarmSogRange");
+
+const configGuardRangeRange = getRequiredElement("configGuardRangeRange");
+const configGuardSogRange = getRequiredElement("configGuardSogRange");
+
 const bsModalAlert = new bootstrap.Modal("#modalAlert");
 const bsModalAlarm = new bootstrap.Modal("#modalAlarm");
 const bsModalClosebyBoats = new bootstrap.Modal("#modalClosebyBoats");
@@ -75,10 +125,9 @@ if (!collisionProfiles.current) {
 	saveCollisionProfiles();
 }
 
-document.getElementById("selectActiveProfile").value =
-	collisionProfiles.current;
-document.getElementById("checkNoSleep").checked =
-	localStorage.getItem("checkNoSleep") === "true";
+selectActiveProfile.value = collisionProfiles.current;
+checkDarkMode.checked = localStorage.getItem("checkDarkMode") === "true";
+checkNoSleep.checked = localStorage.getItem("checkNoSleep") === "true";
 configureNoSleep();
 
 var charts = await getHttpResponse("/signalk/v1/api/resources/charts", {
@@ -250,33 +299,6 @@ var showLabel = (label) => {
 };
 var labelToCollisionController = new labelgun.default(hideLabel, showLabel);
 
-const alertPlaceholder = document.getElementById("alertPlaceholder");
-
-const selectProfileToEdit = document.getElementById("selectProfileToEdit");
-const selectActiveProfile = document.getElementById("selectProfileToEdit");
-const checkFullScreen = document.getElementById("checkFullScreen");
-const checkDarkMode = document.getElementById("checkDarkMode");
-const checkNoSleep = document.getElementById("checkNoSleep");
-const offcanvasEditProfiles = document.getElementById("offcanvasEditProfiles");
-const modalClosebyBoats = document.getElementById("modalClosebyBoats");
-
-const totalTargetCountUI = document.getElementById("totalTargetCountUI");
-const filteredTargetCountUI = document.getElementById("filteredTargetCountUI");
-const alarmTargetCountUI = document.getElementById("alarmTargetCountUI");
-
-const configWarningCpaRange = document.getElementById("configWarningCpaRange");
-const configWarningTcpaRange = document.getElementById(
-	"configWarningTcpaRange",
-);
-const configWarningSogRange = document.getElementById("configWarningSogRange");
-
-const configAlarmCpaRange = document.getElementById("configAlarmCpaRange");
-const configAlarmTcpaRange = document.getElementById("configAlarmTcpaRange");
-const configAlarmSogRange = document.getElementById("configAlarmSogRange");
-
-const configGuardRangeRange = document.getElementById("configGuardRangeRange");
-const configGuardSogRange = document.getElementById("configGuardSogRange");
-
 // *********************************************************************************************************
 // ** REGISTER EVENT LISTENERS
 
@@ -292,33 +314,27 @@ document
 	.getElementById("listOfClosebyBoats")
 	.addEventListener("click", handleListOfClosebyBoatsClick);
 
-document
-	.getElementById("selectActiveProfile")
-	.addEventListener("input", (ev) => {
-		collisionProfiles.current = ev.target.value;
-		saveCollisionProfiles();
-	});
+selectActiveProfile.addEventListener("input", (ev) => {
+	collisionProfiles.current = ev.target.value;
+	saveCollisionProfiles();
+});
 
-document.getElementById("selectTableSort").addEventListener("input", (ev) => {
+selectTableSort.addEventListener("input", (ev) => {
 	sortTableBy = ev.target.value;
 });
 
-document.getElementById("buttonEditProfiles").addEventListener("click", () => {
+buttonEditProfiles.addEventListener("click", () => {
 	bsOffcanvasSettings.hide();
 	selectProfileToEdit.value = selectActiveProfile.value;
 	setupProfileEditView(selectProfileToEdit.value);
 	bsOffcanvasEditProfiles.show();
 });
 
-document.getElementById("checkNoSleep").addEventListener("change", () => {
-	configureNoSleep();
-});
+checkNoSleep.addEventListener("change", configureNoSleep);
 
-document
-	.getElementById("checkDarkMode")
-	.addEventListener("change", applyColorMode);
+checkDarkMode.addEventListener("change", applyColorMode);
 
-document.getElementById("checkFullScreen").addEventListener("change", () => {
+checkFullScreen.addEventListener("change", () => {
 	if (checkFullScreen.checked) {
 		if (!document.fullscreenElement) {
 			document.documentElement.requestFullscreen();
@@ -338,11 +354,9 @@ document.addEventListener("fullscreenchange", fullscreenchangeHandler);
 
 //document.addEventListener("webkitfullscreenchange", fullscreenchangeHandler);
 
-document
-	.getElementById("selectProfileToEdit")
-	.addEventListener("input", (ev) => {
-		setupProfileEditView(ev.target.value);
-	});
+selectProfileToEdit.addEventListener("input", (ev) => {
+	setupProfileEditView(ev.target.value);
+});
 
 document
 	.getElementById("buttonRestoreDefaults")
@@ -441,6 +455,7 @@ function applyColorMode() {
 			elements[i].style.filter = "none";
 		}
 	}
+	localStorage.setItem("checkDarkMode", checkDarkMode.checked);
 }
 
 function configureNoSleep() {
@@ -538,8 +553,7 @@ async function saveCollisionProfiles() {
 }
 
 function showError(message) {
-	//document.getElementById("errorMessage").textContent = message;
-	document.getElementById("errorMessage").innerHTML = message;
+	errorMessage.innerHTML = message;
 	bsModalAlert.show();
 }
 
@@ -761,7 +775,13 @@ async function refresh() {
 		selfTarget = targets.get(selfMmsi);
 
 		try {
-			updateDerivedData(targets, selfTarget, collisionProfiles, TARGET_MAX_AGE);
+			updateDerivedData({
+				targets,
+				selfTarget,
+				collisionProfiles,
+				maximumTargetRange: DEFAULT_MAXIMUM_TARGET_RANGE,
+				targetMaxAge: TARGET_MAX_AGE,
+			});
 		} catch (error) {
 			console.error(error);
 			showError(`No GPS position available. Verify that you are connected to the 
@@ -841,7 +861,7 @@ function showAlarms() {
 	});
 
 	if (targetsWithAlarms.length > 0) {
-		document.getElementById("alarmDiv").innerHTML = " ";
+		alarmDiv.innerHTML = " ";
 		targetsWithAlarms.forEach((target) => {
 			var message = `${target.name} - ${target.alarmType.toUpperCase()} - `;
 			if (target.alarmType.includes("cpa")) {
@@ -849,8 +869,7 @@ function showAlarms() {
 			} else {
 				message += `${target.rangeFormatted}`;
 			}
-			document.getElementById("alarmDiv").innerHTML +=
-				`<div class="alert alert-danger" role="alert">${message}</div>`;
+			alarmDiv.innerHTML += `<div class="alert alert-danger" role="alert">${message}</div>`;
 		});
 		bsModalAlarm.show();
 		new Audio(hornMp3Url).play();
@@ -924,13 +943,10 @@ function showAlert(message, type) {
 function ingestRawVesselData(vessels) {
 	for (var vesselId in vessels) {
 		const vessel = vessels[vesselId];
-
-		let target = targets.get(vessel.mmsi);
-		if (!target) {
-			target = {};
-		}
-
-		target.lastSeenDate = new Date(vessel.navigation?.position?.timestamp);
+		const target = applySnapshotToTarget(
+			targets.get(vessel.mmsi) ?? createTarget(vessel.mmsi),
+			vessel,
+		);
 
 		const lastSeen = Math.round((Date.now() - target.lastSeenDate) / 1000);
 
@@ -938,33 +954,6 @@ function ingestRawVesselData(vessels) {
 		if (lastSeen >= TARGET_MAX_AGE) {
 			continue;
 		}
-
-		target.mmsi = String(vessel.mmsi);
-		target.name = vessel.name || `<${vessel.mmsi}>`;
-		target.sog = vessel.navigation?.speedOverGround?.value;
-		target.cog = vessel.navigation?.courseOverGroundTrue?.value;
-		target.hdg = vessel.navigation?.headingTrue?.value;
-		target.rot = vessel.navigation?.rateOfTurn?.value;
-		target.callsign = vessel.communication?.callsignVhf || "---";
-		target.typeId =
-			vessel.design?.aisShipType?.value.id || vessel.atonType?.value.id;
-		target.type =
-			(vessel.design?.aisShipType?.value.name || vessel.atonType?.value.name) ??
-			"---";
-		target.aisClass = vessel.sensors?.ais?.class?.value || "A";
-		target.isVirtual = vessel.virtual?.value;
-		target.isOffPosition = vessel.offPosition?.value;
-		target.status = vessel.navigation?.state?.value ?? "---";
-		target.length = vessel.design?.length?.value.overall;
-		target.beam = vessel.design?.beam?.value;
-		target.draft = vessel.design?.draft?.current ?? "---";
-		target.destination =
-			vessel.navigation?.destination?.commonName?.value ?? "---";
-		target.eta = vessel.navigation?.destination?.eta?.value ?? "---";
-		target.imo = vessel.registrations?.imo;
-		target.latitude = vessel.navigation?.position?.value.latitude;
-		target.longitude = vessel.navigation?.position?.value.longitude;
-
 		// FIXME - override gps for testing with signalk team sample data (netherlands)
 		// if (target.mmsi == selfMmsi) {
 		//     target.latitude = 53.44;

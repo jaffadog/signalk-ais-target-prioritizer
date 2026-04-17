@@ -1,4 +1,4 @@
-import { toDegrees } from "./ais-utils.mjs";
+import { toDegrees } from "../../../shared/ais-utils.mjs";
 
 export function getClassBIcon(target, isLarge, color) {
 	var boxSize = 50;
