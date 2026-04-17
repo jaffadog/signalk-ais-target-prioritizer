@@ -1,40 +1,27 @@
 // FIXME rot coming in in radians now
 
-var aisUtilsPromise = import("../web/assets/scripts/ais-utils.mjs");
+import net from "node:net";
+import express from "express";
+import _ from "lodash";
+import { Bonjour } from "bonjour-service";
+import { createGPRMC } from "./nmea.mjs";
+
+var aisUtilsPromise = import("../shared/ais-utils.mjs");
 let toDegrees;
 let getDistanceFromLatLonInMeters;
 let getRhumbLineBearing;
 
-import { Bonjour } from "bonjour-service";
-import express from "express";
-
 const expressApp = express();
 const bonjour = new Bonjour();
-
-import SSE from "express-sse";
-import _ from "lodash";
-
-var sse = new SSE();
-
-// import proxy from "node-tcp-proxy";
-import net from "net";
-
-// import { clearInterval } from "timers";
 
 const METERS_PER_NM = 1852;
 const KNOTS_PER_M_PER_S = 1.94384;
 
 const httpPort = 39151;
+const nmeaOverTcpServerPort = 39150; // apps look for nmea traffic on 39150
 
-const enableNmeaOverTcpServer = true; // ios app will not connect without this
-const nmeaOverTcpServerPort = 39150; // apps look for nmea traffic on 39150. this is not confurable in the apps. so we proxy signalk 10110 to 39150.
-const proxySourceHostname = "127.0.0.1"; // signalk server address (localhost - same place this plugin is running)
-const proxySourcePort = 10110; // signalk nmea over tcp port
-
-const enableV3 = true; // ios app will keep on reinitializing without this
-const enableSse = false; // ios app will keep on reinitializing without this
-const debugSseComms = true;
-const debugHttpComms = true;
+const debugSseComms = false;
+const debugHttpComms = false;
 
 var gps = {};
 var targets = new Map();
@@ -44,16 +31,9 @@ var collisionProfiles;
 var selfMmsi, selfName, selfCallsign, selfTypeId;
 
 var httpServer;
-var tcpProxyServer;
+var nmeaOverTcpServer;
 var mdnsService;
-
-var streamingHeartBeatInterval;
-var streamingVesselPositionUnderwayInterval;
-var streamingAnchorWatchControlInterval;
-var streamingAnchorWatchInterval;
-var streamingVesselPositionHistoryInterval;
-var savePositionInterval;
-var anchorWatchInterval;
+var sseClients = new Set();
 var refreshInterval;
 
 var anchorWatchControl = {
@@ -78,12 +58,11 @@ var anchorWatchControl = {
 var saveCollisionProfiles;
 
 // save position every 2 seconds when underway. this changes to every 30 seconds when anchored.
-const savePositionDelayWhenUnderway = 30000;
+const savePositionDelayWhenUnderway = 2000;
 const savePositionDelayWhenAnchored = 30000;
 var savePositionDelay = savePositionDelayWhenUnderway;
-const maxPositions = 10;
-
 // 86,400 seconds per 24 hour day. 86400/2 = 43200. 86400/30 = 2880.
+const maxPositions = 2880;
 
 // the mobile app is picky about the model number and version numbers
 // you dont get all functionality unless you provide valid values
@@ -459,8 +438,8 @@ function getTargetDetailsXml(mmsi) {
 <OffPosition>${target.isOffPosition || "0"}</OffPosition>
 <Virtual>${target.isVirtual || "0"}</Virtual>
 <Dimensions>${
-			target.length && target.width
-				? `${target.length}m x ${target.width}m`
+			target.length && target.beam
+				? `${target.length}m x ${target.beam}m`
 				: "---"
 		}</Dimensions >
 <Draft>${target.draft ? `${target.draft}m` : "---"}</Draft>
@@ -504,72 +483,6 @@ function getOwnStaticDataXml() {
 </Watchmate>`;
 }
 
-// ******************** SSE STUFF **********************
-// streaming protocol used in lieu of xml or json REST calls
-function setupSse() {
-	if (enableSse) {
-		// send heartbeat
-		streamingHeartBeatInterval = setInterval(() => {
-			sendSseMsg("HeartBeat", { time: Date.now() });
-		}, 15000);
-
-		// send VesselPositionUnderway - 15s?
-		streamingVesselPositionUnderwayInterval = setInterval(() => {
-			// 75:VesselPositionUnderway{"a":407106833,"o":-740460408,"cog":0,"sog":0.0,"var":-13,"t":1576639404}
-			// 80:VesselPositionUnderway{"a":380704720,"o":-785886085,"cog":220.28,"sog":0,"var":-9.77,"t":1576873731}
-			// sse.send("75:VesselPositionUnderway{\"a\":407106833,\"o\":-740460408,\"cog\":0,\"sog\":0.0,\"var\":-13,\"t\":1576639404}\n\n");
-
-			if (gps?.isValid) {
-				const vesselPositionUnderway = {
-					a: Math.round(gps.latitude * 1e7),
-					o: Math.round(gps.longitude * 1e7),
-					cog: toDegrees(gps.cog),
-					sog: gps.sog * KNOTS_PER_M_PER_S,
-					var: toDegrees(gps.magvar),
-					t: gps.lastSeenDate.getTime(),
-				};
-
-				sendSseMsg("VesselPositionUnderway", vesselPositionUnderway);
-			}
-		}, 500);
-
-		// send AnchorWatchControl
-		streamingAnchorWatchControlInterval = setInterval(() => {
-			sendSseMsg("AnchorWatchControl", anchorWatchControl);
-		}, 1000);
-
-		// send AnchorWatch
-		streamingAnchorWatchInterval = setInterval(() => {
-			var anchorWatchJson = {
-				outOfBounds: anchorWatchControl.alarmTriggered === 1,
-				// FIXME: should we send "positions" for "anchorPreviousPositions"?
-				anchorPreviousPositions: positions,
-			};
-
-			sendSseMsg("AnchorWatch", anchorWatchJson);
-		}, 1000);
-
-		// send VesselPositionHistory (BIG message)
-		streamingVesselPositionHistoryInterval = setInterval(() => {
-			sendSseMsg("VesselPositionHistory", positions);
-		}, 5000);
-	}
-}
-
-function sendSseMsg(name, data) {
-	if (debugSseComms) app.debug(`SSE sending ${name}`);
-	var json = JSON.stringify(data);
-	sse.send(`${json.length + 2}:${name}${json}\n\n`);
-}
-
-function sendSseMessage(res, name, data) {
-	if (debugSseComms) app.debug(`SSE sending ${name}`);
-	const payload = JSON.stringify(data);
-	res.write(`${payload.length + 2}:${name}${payload}\n`);
-}
-
-// ******************** END SSE STUFF **********************
-
 function setupMdns() {
 	mdnsService = bonjour.publish({
 		name: "vesper-xb8000-emulator",
@@ -578,12 +491,11 @@ function setupMdns() {
 	});
 
 	mdnsService.start();
-	console.log("mdns service running");
 	app.debug("mdns service running");
 }
 
 // save position - keep up to 2880 positions (24 hours at 30 sec cadence)
-savePositionInterval = setInterval(() => {
+const savePositionInterval = setInterval(() => {
 	if (gps?.isValid) {
 		positions.unshift({
 			a: Math.round(gps.latitude * 1e7),
@@ -597,7 +509,7 @@ savePositionInterval = setInterval(() => {
 	}
 }, savePositionDelay);
 
-anchorWatchInterval = setInterval(() => {
+const anchorWatchInterval = setInterval(() => {
 	updateAnchorWatch();
 	// collisionProfiles.setFromEmulator = Math.floor(new Date().getTime() / 1000);
 	// app.debug('emulator: setFromIndex,setFromEmulator', collisionProfiles.setFromIndex, collisionProfiles.setFromEmulator, collisionProfiles.anchor.guard.range);
@@ -862,138 +774,101 @@ function setupHttpServer() {
 	// PUT /v3/anchorwatch/AnchorWatchControl               y
 	// GET /v3/tickle?AnchorWatchControl                    y-all
 
-	if (enableV3) {
-		// /v3/openChannel
-		// after adding this, we get pounded with GET /v3/subscribeChannel?VesselPositionUnderway
+	// /v3/openChannel
+	// after adding this, we get pounded with GET /v3/subscribeChannel?VesselPositionUnderway
+	expressApp.get("/v3/openChannel", (req, res) => {
+		res.setHeader("Content-Type", "text/event-stream");
+		res.setHeader("Cache-Control", "no-cache");
+		res.setHeader("Connection", "keep-alive");
 
-		// expressApp.get("/v3/openChannel", sse.init);
+		res.flushHeaders?.();
 
-		expressApp.get("/v3/openChannel", (req, res) => {
-			// Required headers for SSE
-			res.setHeader("Content-Type", "text/event-stream");
-			res.setHeader("Cache-Control", "no-cache");
-			res.setHeader("Connection", "keep-alive");
+		sseClients.add(res);
 
-			// Important for proxies (prevents buffering)
-			res.flushHeaders?.();
-
-			// send heartbeat
-			sendSseMessage(res, "HeartBeat", { time: Date.now() });
-			// 24:HeartBeat{"time":1576639380000}
-			// 24:HeartBeat{"time":1776293259329}
-			// streamingHeartBeatInterval
-			const heartBeatInterval = setInterval(() => {
-				sendSseMessage(res, "HeartBeat", { time: Date.now() });
-			}, 15000);
-
-			// 75:VesselPositionUnderway{"a":407106833,"o":-740460408,"cog":0,"sog":0.0,"var":-13,"t":1576639404}
-			// 76:VesselPositionUnderway{"a":-167208975,"o":-1436086463,"cog":295,"sog":2,"var":13,"t":1776295347}
-			// 80:VesselPositionUnderway{"a":380704720,"o":-785886085,"cog":220.28,"sog":0,"var":-9.77,"t":1576873731}
-			// 122:VesselPositionUnderway{"a":-167234987,"o":-1435993293,"cog":286.8500000654964,"sog":2.336387688888889,"var":12.860000002936319,"t":1776294279}
-			// sse.send("75:VesselPositionUnderway{\"a\":407106833,\"o\":-740460408,\"cog\":0,\"sog\":0.0,\"var\":-13,\"t\":1576639404}\n\n");
-			const vesselPositionUnderwayInterval = setInterval(() => {
-				if (gps?.isValid) {
-					const vesselPositionUnderway = {
-						a: Math.round(gps.latitude * 1e7),
-						o: Math.round(gps.longitude * 1e7),
-						cog: Math.round(toDegrees(gps.cog)),
-						sog: Math.round(gps.sog * KNOTS_PER_M_PER_S),
-						var: Math.round(toDegrees(gps.magvar)),
-						t: gps.lastSeenDate.getTime() / 1000,
-					};
-
-					// sendSseMsg("VesselPositionUnderway", vesselPositionUnderway);
-					sendSseMessage(res, "VesselPositionUnderway", vesselPositionUnderway);
-				}
-			}, 500);
-
-			// Cleanup on client disconnect
-			req.on("close", () => {
-				clearInterval(heartBeatInterval);
-				clearInterval(vesselPositionUnderwayInterval);
-				res.end();
-			});
+		req.on("close", () => {
+			sseClients.delete(res);
+			res.end();
 		});
+	});
 
-		// GET /v3/subscribeChannel?<anything>
-		expressApp.get("/v3/subscribeChannel", (_req, res) => {
-			res.sendStatus(200);
-		});
+	// GET /v3/subscribeChannel?<anything>
+	expressApp.get("/v3/subscribeChannel", (_req, res) => {
+		res.json();
+	});
 
-		// GET /v3/watchMate/collisionProfiles
-		// JSON.stringify(collisionProfiles,null,2);
-		expressApp.get("/v3/watchMate/collisionProfiles", (_req, res) => {
-			res.json(collisionProfiles);
-		});
+	// GET /v3/watchMate/collisionProfiles
+	// JSON.stringify(collisionProfiles,null,2);
+	expressApp.get("/v3/watchMate/collisionProfiles", (_req, res) => {
+		res.json(collisionProfiles);
+	});
 
-		// PUT /v3/watchMate/collisionProfiles
-		// PUT /v3/watchMate/collisionProfiles { '{"harbor":{"guard":{"range":0.5}}}': '' }
-		// android:
-		//      guard, danger, warning
-		//      'content-type': 'application/x-www-form-urlencoded'
-		// ios:
-		//      guard, danger, warning... PLUS... threat. threat is same as warning.
-		//      'content-type': 'application/json'
-		expressApp.put("/v3/watchMate/collisionProfiles", (req, res) => {
-			app.debug("PUT /v3/watchMate/collisionProfiles", req.body);
-			//app.debug("before merge", collisionProfiles);
-			mergePutData(req, collisionProfiles);
-			//app.debug("after merge", collisionProfiles);
-			// remove "threat" paths that watchmate adds:
-			delete collisionProfiles.anchor.threat;
-			delete collisionProfiles.harbor.threat;
-			delete collisionProfiles.coastal.threat;
-			delete collisionProfiles.offshore.threat;
-			saveCollisionProfiles();
-			res.json();
-		});
+	// PUT /v3/watchMate/collisionProfiles
+	// PUT /v3/watchMate/collisionProfiles { '{"harbor":{"guard":{"range":0.5}}}': '' }
+	// android:
+	//      guard, danger, warning
+	//      'content-type': 'application/x-www-form-urlencoded'
+	// ios:
+	//      guard, danger, warning... PLUS... threat. threat is same as warning.
+	//      'content-type': 'application/json'
+	expressApp.put("/v3/watchMate/collisionProfiles", (req, res) => {
+		app.debug("PUT /v3/watchMate/collisionProfiles", req.body);
+		//app.debug("before merge", collisionProfiles);
+		mergePutData(req, collisionProfiles);
+		//app.debug("after merge", collisionProfiles);
+		// remove "threat" paths that watchmate adds:
+		delete collisionProfiles.anchor.threat;
+		delete collisionProfiles.harbor.threat;
+		delete collisionProfiles.coastal.threat;
+		delete collisionProfiles.offshore.threat;
+		saveCollisionProfiles();
+		res.json();
+	});
 
-		// GET /v3/tickle?xxxx
+	// GET /v3/tickle?xxxx
+	// GET /v3/tickle?AnchorWatch
+	// GET /v3/tickle?AnchorWatchControl
+
+	expressApp.get("/v3/tickle", (req, res) => {
+		//app.debug('req.query', req.query);
+
 		// GET /v3/tickle?AnchorWatch
+		if (req.query.AnchorWatch !== undefined) {
+			// sendSseMsg("VesselPositionHistory", positions);
+			res.json();
+		}
 		// GET /v3/tickle?AnchorWatchControl
+		else if (req.query.AnchorWatchControl !== undefined) {
+			// sendSseMsg("AnchorWatchControl", anchorWatchControl);
+			res.json();
+		}
+		// OTHER
+		else {
+			app.debug(
+				`*** unexpected tickle ${req.method} ${req.originalUrl} ${req.query} `,
+			);
+			res.json();
+		}
+	});
 
-		expressApp.get("/v3/tickle", (req, res) => {
-			//app.debug('req.query', req.query);
+	// PUT /v3/anchorwatch/AnchorWatchControl [object Object]
+	expressApp.put("/v3/anchorwatch/AnchorWatchControl", (req, res) => {
+		app.debug("PUT /v3/anchorwatch/AnchorWatchControl", req.body);
 
-			// GET /v3/tickle?AnchorWatch
-			if (req.query.AnchorWatch !== undefined) {
-				sendSseMsg("VesselPositionHistory", positions);
-				res.json();
-			}
-			// GET /v3/tickle?AnchorWatchControl
-			else if (req.query.AnchorWatchControl !== undefined) {
-				sendSseMsg("AnchorWatchControl", anchorWatchControl);
-				res.json();
-			}
-			// OTHER
-			else {
-				app.debug(
-					`*** unexpected tickle ${req.method} ${req.originalUrl} ${req.query} `,
-				);
-				res.json();
-			}
-		});
+		mergePutData(req, anchorWatchControl);
 
-		// PUT /v3/anchorwatch/AnchorWatchControl [object Object]
-		expressApp.put("/v3/anchorwatch/AnchorWatchControl", (req, res) => {
-			app.debug("PUT /v3/anchorwatch/AnchorWatchControl", req.body);
-
-			mergePutData(req, anchorWatchControl);
-
-			/*
+		/*
             anchorWatchControl.setAnchor = data.setAnchor;
             anchorWatchControl.alarmsEnabled = data.alarmsEnabled;
             anchorWatchControl.anchorPosition = data.anchorPosition;
             */
 
-			anchorWatchControl.anchorLatitude = anchorWatchControl.anchorPosition.a;
-			anchorWatchControl.anchorLongitude = anchorWatchControl.anchorPosition.o;
+		anchorWatchControl.anchorLatitude = anchorWatchControl.anchorPosition.a;
+		anchorWatchControl.anchorLongitude = anchorWatchControl.anchorPosition.o;
 
-			app.debug("anchorWatchControl", anchorWatchControl);
+		app.debug("anchorWatchControl", anchorWatchControl);
 
-			res.json();
-		});
-	} // end enableV3
+		res.json();
+	});
 
 	// catchall 404
 	expressApp.all("*", (req, res) => {
@@ -1012,75 +887,107 @@ function setupHttpServer() {
 }
 // ======================= END HTTP SERVER ========================
 
+const sseInterval = setInterval(() => {
+	const now = Date.now();
+
+	// heartbeat every 15s
+	if (now % 15000 < 500) {
+		broadcastSseMessage("HeartBeat", { time: now });
+	}
+
+	if (gps?.isValid) {
+		broadcastSseMessage("VesselPositionUnderway", {
+			a: Math.round(gps.latitude * 1e7),
+			o: Math.round(gps.longitude * 1e7),
+			cog: Math.round(toDegrees(gps.cog)),
+			sog: gps.sog * KNOTS_PER_M_PER_S,
+			var: Math.round(toDegrees(gps.magvar)),
+			t: gps.lastSeenDate.getTime() / 1000,
+		});
+	}
+
+	// 1s events
+	if (now % 1000 < 500) {
+		broadcastSseMessage("AnchorWatchControl", anchorWatchControl);
+
+		broadcastSseMessage("AnchorWatch", {
+			outOfBounds: anchorWatchControl.alarmTriggered === 1,
+			anchorPreviousPositions: positions,
+		});
+	}
+
+	// 5s event
+	if (now % 5000 < 500) {
+		broadcastSseMessage("VesselPositionHistory", positions);
+	}
+}, 500);
+
+function broadcastSseMessage(event, data) {
+	if (debugSseComms) app.debug(`SSE sending ${event}`);
+	for (const res of sseClients) {
+		sendSseMessage(res, event, data);
+	}
+}
+
+function sendSseMessage(res, event, data) {
+	const payload = JSON.stringify(data);
+	res.write(`${payload.length + 2}:${event}${payload}\n\n`);
+}
+
 // ======================= NMEA OVER TCP SERVER ========================
 // listens to requests from mobile apps on port 39150 (not configurable in the mobile apps - otherwise we'd just point it to 10110)
 // forwards nmea0183 messages to mobile apps
 // the app wants to see traffic on port 39150. if it does not, it will
 // periodically reinitialize. i guess this is a mechanism to try and restore
 // what it perceives as lost connectivity with the Vesper AIS unit.
-function setupTcpProxyServer() {
-	if (enableNmeaOverTcpServer) {
-		// tcpProxyServer = proxy.createProxy(
-		// 	nmeaOverTcpServerPort,
-		// 	proxySourceHostname,
-		// 	proxySourcePort,
-		// );
-		// tcpProxyServer.on("listening", () => {
-		// 	app.debug(`Proxy server listening on port ${nmeaOverTcpServerPort}`);
-		// });
+function setupNmeaOverTcpServer() {
+	const clients = new Set();
 
-		// tcpProxyServer.on("error", (err) => {
-		// 	console.error("Proxy error:", err);
-		// });
+	const server = net.createServer((socket) => {
+		clients.add(socket);
 
-		const server = net.createServer((clientSocket) => {
-			const targetSocket = net.connect(10110, "127.0.0.1");
+		socket.on("close", () => clients.delete(socket));
+		socket.on("error", () => clients.delete(socket));
+	});
 
-			clientSocket.pipe(targetSocket);
-			targetSocket.pipe(clientSocket);
+	server.listen(nmeaOverTcpServerPort, "0.0.0.0");
 
-			targetSocket.on("error", (err) => {
-				console.error("Target error:", err.message);
-				clientSocket.destroy();
-			});
-		});
+	// Emit GPRMC every 1 second
+	const rmcDelay = setInterval(() => {
+		if (gps?.isValid) {
+			const sentence = `${createGPRMC({
+				lat: gps.latitude,
+				lon: gps.longitude,
+				sog: gps.sog * KNOTS_PER_M_PER_S,
+				cog: Math.round(toDegrees(gps.cog)),
+				variation: toDegrees(gps.magvar),
+				variationDir: gps.magvar > 0 ? "E" : "W",
+				date: new Date(),
+			})}\r\n`;
 
-		server.listen(39150, () => {
-			console.log("Proxy listening on 39150");
-		});
+			for (const c of clients) {
+				if (c.writable) c.write(sentence);
+			}
+		}
+	}, 1000);
 
-		// const server = net.createServer((client) => {
-		// 	let upstream;
+	return {
+		server,
+		clients,
+		shutdown() {
+			if (rmcDelay) clearInterval(rmcDelay);
+			server.close();
 
-		// 	function connect() {
-		// 		upstream = net.connect(10110, "127.0.0.1");
+			for (const socket of clients) socket.end();
 
-		// 		upstream.pipe(client);
-		// 		client.pipe(upstream);
-
-		// 		upstream.on("error", (err) => {
-		// 			console.error("Upstream error:", err.message);
-		// 		});
-
-		// 		upstream.on("close", () => {
-		// 			console.log("Upstream closed, retrying in 1s...");
-		// 			setTimeout(connect, 1000);
-		// 		});
-		// 	}
-
-		// 	connect();
-
-		// 	client.on("close", () => {
-		// 		if (upstream) upstream.destroy();
-		// 	});
-		// });
-
-		// server.listen(39150, () => {
-		// 	console.log("Proxy listening on 39150");
-		// });
-	}
+			setTimeout(() => {
+				for (const socket of clients) socket.destroy();
+			}, 3000);
+		},
+	};
 }
-// ======================= END TCP SERVER ========================
+
+// ======================= END NMEA OVER TCP SERVER ========================
 
 function sendXmlResponse(res, xml) {
 	res.type("application/xml; charset=ISO-8859-1");
@@ -1332,8 +1239,7 @@ export function start(
 		app.debug("starting vesper emulator", collisionProfiles);
 		refreshTargetData();
 		setupHttpServer();
-		setupTcpProxyServer();
-		setupSse();
+		nmeaOverTcpServer = setupNmeaOverTcpServer();
 		setupMdns();
 
 		// update the data model every 1000 ms
@@ -1344,36 +1250,34 @@ export function start(
 }
 
 export function stop() {
-	if (streamingHeartBeatInterval) clearInterval(streamingHeartBeatInterval);
-	if (streamingVesselPositionUnderwayInterval)
-		clearInterval(streamingVesselPositionUnderwayInterval);
-	if (streamingAnchorWatchControlInterval)
-		clearInterval(streamingAnchorWatchControlInterval);
-	if (streamingAnchorWatchInterval) clearInterval(streamingAnchorWatchInterval);
-	if (streamingVesselPositionHistoryInterval)
-		clearInterval(streamingVesselPositionHistoryInterval);
+	if (sseInterval) clearInterval(sseInterval);
 	if (savePositionInterval) clearInterval(savePositionInterval);
 	if (anchorWatchInterval) clearInterval(anchorWatchInterval);
 	if (refreshInterval) clearInterval(refreshInterval);
 
-	if (tcpProxyServer) {
+	for (const res of sseClients) {
+		try {
+			app.debug(`Closing SSE connection ${res}`);
+			res.end();
+		} catch {}
+	}
+
+	sseClients.clear();
+
+	if (nmeaOverTcpServer) {
 		try {
 			app.debug(
-				`Stopping proxy server listening on port ${nmeaOverTcpServerPort}`,
+				`Stopping nmea server listening on port ${nmeaOverTcpServerPort}`,
 			);
-			tcpProxyServer.end();
-		} catch (e) {
-			app.debug(e);
-		}
+			nmeaOverTcpServer.shutdown();
+		} catch {}
 	}
 
 	if (httpServer) {
 		try {
 			app.debug(`Stopping HTTP server listening on port ${httpPort}`);
 			httpServer.close();
-		} catch (e) {
-			app.debug(e);
-		}
+		} catch {}
 	}
 
 	if (mdnsService) {
@@ -1382,8 +1286,6 @@ export function stop() {
 			bonjour.unpublishAll(() => {
 				bonjour.destroy();
 			});
-		} catch (e) {
-			app.debug(e);
-		}
+		} catch {}
 	}
 }
