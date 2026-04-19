@@ -6,7 +6,6 @@ import defaultCollisionProfiles from "../web/assets/defaultCollisionProfiles.jso
 import { assertCollisionProfiles } from "../shared/guards.mjs";
 import * as aisUtils from "../shared/ais-utils.mjs";
 import { applyDeltaValue, createTarget } from "../shared/target-model.mjs";
-//import schema from "./schema.json" with { type: "json" };
 import * as vesper from "./vesper-xb8000-emulator.mjs";
 
 const AGE_OUT_OLD_TARGETS = true;
@@ -66,12 +65,23 @@ export default function (app) {
 		enableAlarmPublishing = options.enableAlarmPublishing;
 		enableEmulator = options.enableEmulator;
 		getCollisionProfiles();
+
+		selfMmsi = app.getSelfPath("mmsi");
+		selfName = app.getSelfPath("name");
+		selfCallsign = app.getSelfPath("communication")
+			? app.getSelfPath("communication").callsignVhf
+			: "";
+		selfTypeId = app.getSelfPath("design.aisShipType")
+			? app.getSelfPath("design.aisShipType").value.id
+			: "";
+
 		if (enableDataPublishing || enableAlarmPublishing || enableEmulator) {
 			enablePluginCpaCalculations();
 		} else {
 			// if plugin was stopped and started again with options set to not perform calculations, then clear out old targets
 			targets.clear();
 		}
+
 		if (enableEmulator) {
 			//app.debug("collisionProfiles in index.js", collisionProfiles);
 			//vesper.collisionProfiles = collisionProfiles;
@@ -89,16 +99,17 @@ export default function (app) {
 		}
 	};
 
-	plugin.stop = () => {
+	plugin.stop = async () => {
 		app.debug(`Stopping plugin ${plugin.id}`);
-		// unsubscribes.forEach((f) => f());
+		unsubscribes.forEach((f) => f());
 		unsubscribes = [];
 		if (refreshDataModelInterval) {
 			clearInterval(refreshDataModelInterval);
 		}
 		if (enableEmulator) {
-			vesper.stop();
+			await vesper.stop();
 		}
+		app.debug(`Stopped plugin ${plugin.id}`);
 	};
 
 	plugin.schema = {
@@ -274,15 +285,6 @@ export default function (app) {
 	}
 
 	function enablePluginCpaCalculations() {
-		selfMmsi = app.getSelfPath("mmsi");
-		selfName = app.getSelfPath("name");
-		selfCallsign = app.getSelfPath("communication")
-			? app.getSelfPath("communication").callsignVhf
-			: "";
-		selfTypeId = app.getSelfPath("design.aisShipType")
-			? app.getSelfPath("design.aisShipType").value.id
-			: "";
-
 		// *
 		// atons.*
 		// vessels.*
