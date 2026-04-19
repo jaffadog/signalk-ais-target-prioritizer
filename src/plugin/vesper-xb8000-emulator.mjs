@@ -488,10 +488,25 @@ function setupMdns() {
 		name: "vesper-xb8000-emulator",
 		type: "vesper-nmea0183",
 		port: nmeaOverTcpServerPort,
+		txt: {
+			nm: "vesper-xb8000-emulator",
+		},
+	});
+
+	mdnsService.on("up", () => {
+		app.debug("mDNS service successfully published:", mdnsService);
+
+		bonjour.find({ type: "vesper-nmea0183" }, (service) => {
+			console.log("Found vesper-nmea0183:", service);
+		});
+	});
+
+	mdnsService.on("error", (err) => {
+		app.debug("mDNS publish error:", mdnsService, err);
 	});
 
 	mdnsService.start();
-	app.debug("mdns service running");
+	app.debug("mdns service created", mdnsService);
 }
 
 // save position - keep up to 2880 positions (24 hours at 30 sec cadence)
@@ -974,14 +989,22 @@ function setupNmeaOverTcpServer() {
 	return {
 		server,
 		clients,
-		shutdown() {
+		shutdown(done) {
 			if (rmcDelay) clearInterval(rmcDelay);
+
 			server.close();
 
-			for (const socket of clients) socket.end();
+			for (const socket of clients) {
+				socket.end();
+			}
 
 			setTimeout(() => {
-				for (const socket of clients) socket.destroy();
+				for (const socket of clients) {
+					try {
+						socket.destroy();
+					} catch {}
+				}
+				if (done) done();
 			}, 3000);
 		},
 	};
@@ -1249,7 +1272,7 @@ export function start(
 	});
 }
 
-export function stop() {
+export async function stop() {
 	if (sseInterval) clearInterval(sseInterval);
 	if (savePositionInterval) clearInterval(savePositionInterval);
 	if (anchorWatchInterval) clearInterval(anchorWatchInterval);
@@ -1257,35 +1280,46 @@ export function stop() {
 
 	for (const res of sseClients) {
 		try {
-			app.debug(`Closing SSE connection ${res}`);
+			app.debug(`Closing SSE connection`);
 			res.end();
 		} catch {}
 	}
 
 	sseClients.clear();
 
+	// TCP server (now awaitable via callback wrapper)
 	if (nmeaOverTcpServer) {
 		try {
-			app.debug(
-				`Stopping nmea server listening on port ${nmeaOverTcpServerPort}`,
-			);
-			nmeaOverTcpServer.shutdown();
+			app.debug(`Stopping nmea server`);
+			await new Promise((resolve) => {
+				nmeaOverTcpServer.shutdown(resolve);
+			});
+			app.debug(`Stopped nmea server`);
 		} catch {}
 	}
 
 	if (httpServer) {
 		try {
-			app.debug(`Stopping HTTP server listening on port ${httpPort}`);
-			httpServer.close();
+			app.debug(`Stopping HTTP server`);
+			await new Promise((resolve) => {
+				httpServer.close(() => resolve());
+			});
+			app.debug(`Stopped HTTP server`);
 		} catch {}
 	}
 
 	if (mdnsService) {
 		try {
 			app.debug(`Stopping mdnsService`);
-			bonjour.unpublishAll(() => {
-				bonjour.destroy();
+			await new Promise((resolve) => {
+				mdnsService.stop(() => {
+					try {
+						bonjour.destroy();
+					} catch {}
+					resolve();
+				});
 			});
+			app.debug(`Stopped mdnsService`);
 		} catch {}
 	}
 }
