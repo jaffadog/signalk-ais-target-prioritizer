@@ -1,0 +1,51 @@
+[
+  {
+    "name": "signalk-server",
+    "version": "2.24.0",
+    "self": "vessels.urn:mrn:imo:mmsi:368204530",
+    "roles": ["master", "main"],
+    "timestamp": "2026-05-05T02:07:44.155Z"
+  },
+  {
+    "context": "vessels.urn:mrn:imo:mmsi:368204530",
+    "updates": [
+      {
+        "source": {
+          "sentence": "RMC",
+          "talker": "GP",
+          "type": "NMEA0183",
+          "label": "vesper"
+        },
+        "$source": "vesper.GP",
+        "timestamp": "2026-05-05T02:07:43.000Z",
+        "values": [
+          {
+            "path": "navigation.magneticVariation",
+            "value": 0.2244493418577192
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "context": "vessels.urn:mrn:imo:mmsi:269109280",
+    "updates": [
+      {
+        "source": {
+          "sentence": "VDM",
+          "talker": "AI",
+          "type": "NMEA0183",
+          "label": "vesper"
+        },
+        "$source": "vesper.AI",
+        "timestamp": "2026-05-05T02:07:23.422Z",
+        "values": [
+          {
+            "path": "navigation.courseOverGroundTrue",
+            "value": 5.139994648296914
+          }
+        ]
+      }
+    ]
+  }
+]

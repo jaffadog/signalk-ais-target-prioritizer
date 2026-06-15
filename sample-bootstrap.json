@@ -1,0 +1,498 @@
+{
+  "vessels": {
+    "urn:mrn:imo:mmsi:368204530": {
+      "mmsi": "368204530",
+      "name": "jaffamac 368204530 230035780",
+      "design": {
+        "aisShipType": {
+          "meta": {
+            "description": "The ais ship type see http://www.bosunsmate.org/ais/message5.php",
+            "properties": {
+              "id": {
+                "type": "number",
+                "description": "The ship type number"
+              },
+              "name": {
+                "type": "string",
+                "description": "The ship type name"
+              }
+            }
+          },
+          "value": {
+            "name": "Sailing",
+            "id": 36
+          },
+          "$source": "defaults",
+          "timestamp": "2026-05-05T02:07:20.322Z"
+        }
+      },
+      "navigation": {
+        "position": {
+          "meta": {
+            "description": "The position of the vessel in 2 or 3 dimensions (WGS84 datum)",
+            "properties": {
+              "longitude": {
+                "type": "number",
+                "description": "Longitude",
+                "units": "deg",
+                "example": 4.98765245
+              },
+              "latitude": {
+                "type": "number",
+                "description": "Latitude",
+                "units": "deg",
+                "example": 52.0987654
+              },
+              "altitude": {
+                "type": "number",
+                "description": "Altitude",
+                "units": "m"
+              }
+            }
+          },
+          "value": {
+            "latitude": -16.812318833333332,
+            "longitude": -150.99851966666665
+          },
+          "$source": "vesper.GP",
+          "timestamp": "2026-05-05T02:07:43.000Z",
+          "sentence": "GLL"
+        },
+        "courseOverGroundTrue": {
+          "meta": {
+            "units": "rad",
+            "description": "Course over ground (true)"
+          },
+          "value": 5.547179962880162,
+          "$source": "vesper.GP",
+          "timestamp": "2026-05-05T02:07:43.320Z",
+          "sentence": "VTG"
+        },
+        "speedOverGround": {
+          "meta": {
+            "units": "m/s",
+            "description": "Vessel speed over ground. If converting from AIS 'HIGH' value, set to 102.2 (Ais max value) and add warning in notifications"
+          },
+          "value": 0.0375,
+          "$source": "vesper.GP",
+          "timestamp": "2026-05-05T02:07:43.320Z",
+          "sentence": "VTG"
+        },
+        "magneticVariation": {
+          "meta": {
+            "units": "rad",
+            "description": "The magnetic variation (declination) at the current position that must be added to the magnetic heading to derive the true heading. Easterly variations are positive and Westerly variations are negative (in Radians)."
+          },
+          "value": 0.2244493418577192,
+          "$source": "vesper.GP",
+          "timestamp": "2026-05-05T02:07:43.000Z",
+          "sentence": "RMC"
+        },
+        "magneticVariationAgeOfService": {
+          "meta": {
+            "units": "s",
+            "description": "Seconds since the 1st Jan 1970 that the variation calculation was made"
+          },
+          "value": 1777946863,
+          "$source": "vesper.GP",
+          "timestamp": "2026-05-05T02:07:43.000Z",
+          "sentence": "RMC"
+        },
+        "datetime": {
+          "meta": {
+            "description": "Time and Date from the GNSS Positioning System"
+          },
+          "value": "2026-05-05T02:07:43.000Z",
+          "$source": "vesper.GP",
+          "timestamp": "2026-05-05T02:07:43.000Z",
+          "sentence": "RMC"
+        },
+        "courseOverGroundMagnetic": {
+          "meta": {
+            "units": "rad",
+            "description": "Course over ground (magnetic)"
+          },
+          "value": 5.322730621022444,
+          "$source": "vesper.GP",
+          "timestamp": "2026-05-05T02:07:43.320Z",
+          "sentence": "VTG"
+        },
+        "gnss": {
+          "methodQuality": {
+            "meta": {
+              "description": "Quality of the satellite fix"
+            },
+            "value": "DGNSS fix",
+            "$source": "vesper.GP",
+            "timestamp": "2026-05-05T02:07:43.000Z",
+            "sentence": "GGA"
+          },
+          "satellites": {
+            "meta": {
+              "description": "Number of satellites"
+            },
+            "value": 11,
+            "$source": "vesper.GP",
+            "timestamp": "2026-05-05T02:07:43.000Z",
+            "sentence": "GGA"
+          },
+          "antennaAltitude": {
+            "meta": {
+              "units": "m",
+              "description": "Altitude of antenna"
+            },
+            "value": 9.4,
+            "$source": "vesper.GP",
+            "timestamp": "2026-05-05T02:07:43.000Z",
+            "sentence": "GGA"
+          },
+          "horizontalDilution": {
+            "meta": {
+              "description": "Horizontal Dilution of Precision"
+            },
+            "value": 0.81,
+            "$source": "vesper.GP",
+            "timestamp": "2026-05-05T02:07:43.000Z",
+            "sentence": "GGA"
+          },
+          "geoidalSeparation": {
+            "meta": {
+              "description": "Difference between WGS84 earth ellipsoid and mean sea level"
+            },
+            "value": 1.8,
+            "$source": "vesper.GP",
+            "timestamp": "2026-05-05T02:07:43.000Z",
+            "sentence": "GGA"
+          },
+          "differentialAge": {
+            "meta": {
+              "units": "s",
+              "description": "Age of DGPS data"
+            },
+            "value": 0,
+            "$source": "vesper.GP",
+            "timestamp": "2026-05-05T02:07:43.000Z",
+            "sentence": "GGA"
+          },
+          "differentialReference": {
+            "meta": {
+              "description": "ID of DGPS base station"
+            },
+            "value": 0,
+            "$source": "vesper.GP",
+            "timestamp": "2026-05-05T02:07:43.000Z",
+            "sentence": "GGA"
+          },
+          "satellitesInView": {
+            "meta": {},
+            "value": {
+              "count": 12,
+              "satellites": [
+                {
+                  "id": 2,
+                  "elevation": 0.261799387858926,
+                  "azimuth": 6.248278723566367,
+                  "SNR": 41
+                },
+                {
+                  "id": 3,
+                  "elevation": 0.15707963271535558,
+                  "azimuth": 5.34070751232209,
+                  "SNR": 25
+                },
+                {
+                  "id": 4,
+                  "elevation": 0.8726646261964199,
+                  "azimuth": 4.223696790790672,
+                  "SNR": 29
+                },
+                {
+                  "id": 8,
+                  "elevation": 1.0297442589117756,
+                  "azimuth": 5.5326937300853025,
+                  "SNR": 32
+                },
+                {
+                  "id": 9,
+                  "elevation": 0.33161255795463956,
+                  "azimuth": 3.9269908178838895,
+                  "SNR": 32
+                },
+                {
+                  "id": 16,
+                  "elevation": 0.7504915785289211,
+                  "azimuth": 3.036872899163541,
+                  "SNR": 32
+                },
+                {
+                  "id": 18,
+                  "elevation": 0.052359877571785195,
+                  "azimuth": 2.1642082729671213,
+                  "SNR": 26
+                },
+                {
+                  "id": 26,
+                  "elevation": 0.523598775717852,
+                  "azimuth": 2.443460953349976,
+                  "SNR": 30
+                },
+                {
+                  "id": 27,
+                  "elevation": 1.483529864533914,
+                  "azimuth": 2.6005405860653314,
+                  "SNR": 33
+                },
+                {
+                  "id": 28,
+                  "elevation": 0.41887902057428156,
+                  "azimuth": 1.221730476674988,
+                  "SNR": 33
+                },
+                {
+                  "id": 31,
+                  "elevation": 0.8028514561007063,
+                  "azimuth": 1.6929693748210546,
+                  "SNR": 43
+                },
+                {
+                  "id": 46,
+                  "elevation": 1.012290966387847,
+                  "azimuth": 0.9424777962921335,
+                  "SNR": 41
+                }
+              ],
+              "gnss": "GPS"
+            },
+            "$source": "vesper.GP",
+            "timestamp": "2026-05-05T02:07:43.325Z",
+            "sentence": "GSV"
+          }
+        }
+      }
+    },
+    "urn:mrn:imo:mmsi:546019540": {
+      "mmsi": "546019540",
+      "navigation": {
+        "speedOverGround": {
+          "meta": {
+            "units": "m/s",
+            "description": "Vessel speed over ground. If converting from AIS 'HIGH' value, set to 102.2 (Ais max value) and add warning in notifications"
+          },
+          "value": 0.10288891495408069,
+          "$source": "vesper.AI",
+          "timestamp": "2026-05-05T02:07:22.743Z",
+          "sentence": "VDM"
+        },
+        "position": {
+          "meta": {
+            "description": "The position of the vessel in 2 or 3 dimensions (WGS84 datum)",
+            "properties": {
+              "longitude": {
+                "type": "number",
+                "description": "Longitude",
+                "units": "deg",
+                "example": 4.98765245
+              },
+              "latitude": {
+                "type": "number",
+                "description": "Latitude",
+                "units": "deg",
+                "example": 52.0987654
+              },
+              "altitude": {
+                "type": "number",
+                "description": "Altitude",
+                "units": "m"
+              }
+            }
+          },
+          "value": {
+            "longitude": -150.99276,
+            "latitude": -16.812895
+          },
+          "$source": "vesper.AI",
+          "timestamp": "2026-05-05T02:07:22.743Z",
+          "sentence": "VDM"
+        }
+      },
+      "sensors": {
+        "ais": {
+          "class": {
+            "meta": {
+              "description": "AIS transponder class in sensors.ais.class, A or B"
+            },
+            "value": "B",
+            "$source": "vesper.AI",
+            "timestamp": "2026-05-05T02:07:22.743Z",
+            "sentence": "VDM"
+          }
+        }
+      }
+    },
+    "urn:mrn:imo:mmsi:269109280": {
+      "mmsi": "269109280",
+      "navigation": {
+        "speedOverGround": {
+          "meta": {
+            "units": "m/s",
+            "description": "Vessel speed over ground. If converting from AIS 'HIGH' value, set to 102.2 (Ais max value) and add warning in notifications"
+          },
+          "value": 0.15433337243112102,
+          "$source": "vesper.AI",
+          "timestamp": "2026-05-05T02:07:23.422Z",
+          "sentence": "VDM"
+        },
+        "courseOverGroundTrue": {
+          "meta": {
+            "units": "rad",
+            "description": "Course over ground (true)"
+          },
+          "value": 5.139994648296914,
+          "$source": "vesper.AI",
+          "timestamp": "2026-05-05T02:07:23.422Z",
+          "sentence": "VDM"
+        },
+        "position": {
+          "meta": {
+            "description": "The position of the vessel in 2 or 3 dimensions (WGS84 datum)",
+            "properties": {
+              "longitude": {
+                "type": "number",
+                "description": "Longitude",
+                "units": "deg",
+                "example": 4.98765245
+              },
+              "latitude": {
+                "type": "number",
+                "description": "Latitude",
+                "units": "deg",
+                "example": 52.0987654
+              },
+              "altitude": {
+                "type": "number",
+                "description": "Altitude",
+                "units": "m"
+              }
+            }
+          },
+          "value": {
+            "longitude": -150.99186166666667,
+            "latitude": -16.81123
+          },
+          "$source": "vesper.AI",
+          "timestamp": "2026-05-05T02:07:23.422Z",
+          "sentence": "VDM"
+        }
+      },
+      "sensors": {
+        "ais": {
+          "class": {
+            "meta": {
+              "description": "AIS transponder class in sensors.ais.class, A or B"
+            },
+            "value": "B",
+            "$source": "vesper.AI",
+            "timestamp": "2026-05-05T02:07:23.422Z",
+            "sentence": "VDM"
+          }
+        }
+      }
+    },
+    "urn:mrn:imo:mmsi:546016950": {
+      "mmsi": "546016950",
+      "navigation": {
+        "speedOverGround": {
+          "meta": {
+            "units": "m/s",
+            "description": "Vessel speed over ground. If converting from AIS 'HIGH' value, set to 102.2 (Ais max value) and add warning in notifications"
+          },
+          "value": 0.15433337243112102,
+          "$source": "vesper.AI",
+          "timestamp": "2026-05-05T02:07:32.402Z",
+          "sentence": "VDM"
+        },
+        "headingTrue": {
+          "meta": {
+            "units": "rad",
+            "description": "The current true north heading of the vessel, equals 'headingMagnetic adjusted for magneticVariation'"
+          },
+          "value": 2.094395102871408,
+          "$source": "vesper.AI",
+          "timestamp": "2026-05-05T02:07:32.402Z",
+          "sentence": "VDM"
+        },
+        "position": {
+          "meta": {
+            "description": "The position of the vessel in 2 or 3 dimensions (WGS84 datum)",
+            "properties": {
+              "longitude": {
+                "type": "number",
+                "description": "Longitude",
+                "units": "deg",
+                "example": 4.98765245
+              },
+              "latitude": {
+                "type": "number",
+                "description": "Latitude",
+                "units": "deg",
+                "example": 52.0987654
+              },
+              "altitude": {
+                "type": "number",
+                "description": "Altitude",
+                "units": "m"
+              }
+            }
+          },
+          "value": {
+            "longitude": -150.994245,
+            "latitude": -16.812686666666668
+          },
+          "$source": "vesper.AI",
+          "timestamp": "2026-05-05T02:07:32.402Z",
+          "sentence": "VDM"
+        }
+      },
+      "sensors": {
+        "ais": {
+          "class": {
+            "meta": {
+              "description": "AIS transponder class in sensors.ais.class, A or B"
+            },
+            "value": "B",
+            "$source": "vesper.AI",
+            "timestamp": "2026-05-05T02:07:32.402Z",
+            "sentence": "VDM"
+          }
+        }
+      }
+    }
+  },
+  "self": "vessels.urn:mrn:imo:mmsi:368204530",
+  "version": "0.1.0",
+  "sources": {
+    "defaults": {},
+    "freeboard-sk": {},
+    "vesper": {
+      "label": "vesper",
+      "type": "NMEA0183",
+      "GP": {
+        "talker": "GP",
+        "sentences": {
+          "RMC": "2026-05-05T02:07:43.000Z",
+          "VTG": "2026-05-05T02:07:43.320Z",
+          "GGA": "2026-05-05T02:07:43.000Z",
+          "GSV": "2026-05-05T02:07:43.325Z",
+          "GLL": "2026-05-05T02:07:43.000Z"
+        }
+      },
+      "AI": {
+        "talker": "AI",
+        "sentences": {
+          "VDM": "2026-05-05T02:07:32.402Z"
+        }
+      }
+    }
+  },
+  "meteo": {}
+}

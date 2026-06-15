@@ -1,0 +1,37 @@
+import { defineConfig } from "vite";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+  plugins: [
+    tailwindcss(),
+    svelte(), // <-- Must come after Tailwind
+  ],
+  // root: "src/web",
+  base: "./",
+  build: {
+    outDir: "public",
+    // emptyOutDir: true,
+  },
+
+  publicDir: "src/app/public",
+
+  // build: {
+  //   outDir: "dist/app",
+  // },
+
+  resolve: {
+    alias: {},
+  },
+  server: {
+    host: true,
+    allowedHosts: true,
+    proxy: {
+      "/plugins": "http://127.0.0.1:3000",
+      "/signalk": {
+        target: "http://127.0.0.1:3000",
+        ws: true,
+      },
+    },
+  },
+});

@@ -1,61 +1,69 @@
 {
-	"name": "signalk-ais-target-prioritizer",
-	"version": "0.3.2",
-	"description": "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria.",
-	"keywords": [
-		"signalk-node-server-plugin",
-		"signalk-webapp",
-		"signalk-category-ais"
-	],
-	"signalk-plugin-enabled-by-default": true,
-	"signalk": {
-		"appIcon": "./assets/icon-120.png",
-		"displayName": "SignalK AIS Target Prioritizer"
-	},
-	"license": "MIT",
-	"author": "Jeremy Waters <jaffadog@gmail.com>",
-	"main": "plugin/index.cjs",
-	"type": "commonjs",
-	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"lint:check": "biome lint",
-		"lint": "biome lint --write",
-		"format:check": "biome format",
-		"format": "biome format --write",
-		"build:web": "vite build",
-		"build:plugin": "rollup -c",
-		"build": "npm run build:web && npm run build:plugin",
-		"dev": "vite",
-		"preview": "vite preview",
-		"prepublishOnly": "npm run build"
-	},
-	"dependencies": {
-		"@protomaps/basemaps": "^5.5.1",
-		"bonjour-service": "^1.3.0",
-		"bootstrap": "^5.3.8",
-		"bootstrap-icons": "^1.13.1",
-		"express": "^4.21.2",
-		"labelgun": "^6.1.0",
-		"leaflet": "^1.9.4",
-		"leaflet-easybutton": "^2.4.0",
-		"lodash": "^4.17.21",
-		"node-tcp-proxy": "^0.0.21",
-		"nosleep.js": "^0.12.0",
-		"protomaps-leaflet": "^5.1.0"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/jaffadog/signalk-ais-target-prioritizer.git"
-	},
-	"bugs": {
-		"url": "https://github.com/jaffadog/signalk-ais-target-prioritizer/issues"
-	},
-	"homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer",
-	"devDependencies": {
-		"@biomejs/biome": "2.2.4",
-		"@rollup/plugin-json": "^6.1.0",
-		"rollup": "^4.52.4",
-		"sass-embedded": "^1.93.2",
-		"vite": "^7.1.7"
-	}
+  "name": "signalk-ais-target-prioritizer",
+  "private": true,
+  "version": "0.4.0",
+  "description": "A SignalK plugin that priorizes AIS targets according to guard and CPA criteria.",
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-webapp",
+    "signalk-category-ais"
+  ],
+  "signalk-plugin-enabled-by-default": true,
+  "signalk": {
+    "appIcon": "./assets/icon-120.png",
+    "displayName": "SignalK AIS Target Prioritizer SVELTE"
+  },
+  "license": "MIT",
+  "author": "Jeremy Waters <jaffadog@gmail.com>",
+  "main": "plugin/index.cjs",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "vite",
+    "build:web": "vite build",
+    "build:plugin": "rollup -c",
+    "build": "npm run build:web && npm run build:plugin",
+    "preview": "vite preview",
+    "format": "npx prettier . --write",
+    "format:check": "npx prettier . --check",
+    "lint": "eslint .",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.17.0",
+    "@protomaps/basemaps": "^5.7.2",
+    "@turf/circle": "^7.3.5",
+    "@turf/destination": "^7.3.5",
+    "ky": "^2.0.2",
+    "maplibre-gl": "^5.24.0",
+    "mmsi-country-lookup": "^1.0.2",
+    "nosleep.js": "^0.12.0",
+    "partysocket": "^1.1.19",
+    "pmtiles": "^4.4.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "@skeletonlabs/skeleton": "^4.15.2",
+    "@skeletonlabs/skeleton-svelte": "^4.15.2",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/vite": "^4.3.0",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^24",
+    "eslint": "^10.4.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-svelte": "^3.19.0",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-svelte": "^4.1.0",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "rollup": "^4.61.1",
+    "rollup-plugin-svelte": "^7.2.3",
+    "svelte": "^5.56.1",
+    "tailwindcss": "^4.3.0",
+    "typescript-eslint": "^8.60.1",
+    "vite": "^8.0.12"
+  }
 }
