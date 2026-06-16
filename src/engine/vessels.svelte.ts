@@ -1,61 +1,14 @@
+import type { Vessel } from "../types";
+
 // reactive state objects:
 export const vessels = $state<Record<string, Vessel>>({});
 export const vesselsState = $state<{
-  myVesselMmsi: string | null;
-  selectedVesselMmsi: string | null;
+  myVesselMmsi: string | undefined;
+  selectedVesselMmsi: string | undefined;
 }>({
-  myVesselMmsi: null,
-  selectedVesselMmsi: null,
+  myVesselMmsi: undefined,
+  selectedVesselMmsi: undefined,
 });
-
-// ==============================
-// Vessel factory
-// ==============================
-export interface Vessel {
-  // raw properties from signal k:
-  mmsi: string;
-  context: string;
-  name: string;
-  callsign: string | null;
-  imo: string | null;
-  sog: number | null;
-  cog: number | null;
-  hdg: number | null;
-  rot: number | null;
-  specialManeuver: string | null;
-  magvar: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  lastSeenDate: Date | null;
-  typeId: number | null;
-  type: string;
-  aisClass: string;
-  status: string;
-  length: number | null;
-  beam: number | null;
-  draft: number | null;
-  destination: string;
-  eta: string;
-  isVirtual: number;
-  isOffPosition: number;
-
-  // augmented:
-  alarmIsMuted: boolean;
-
-  // derived:
-  range: number | null;
-  bearing: number | null;
-  cpa: number | null;
-  tcpa: number | null;
-  cpaLocation: [number, number] | null;
-  predictedLocation: [number, number] | null;
-  lastSeenSecondsAgo: number | null;
-  isLost: boolean;
-  isValid: boolean;
-  alarmType: string | null;
-  alarmState: string | null;
-  order: number;
-}
 
 export function createVessel(mmsi: string, context: string): Vessel {
   return {
@@ -86,22 +39,10 @@ export function createVessel(mmsi: string, context: string): Vessel {
     isVirtual: 0,
     isOffPosition: 0,
 
-    // augmented:
+    // default values for optional local properties and derived:
     alarmIsMuted: false,
-
-    // derived:
-    range: null,
-    bearing: null,
-    cpa: null,
-    tcpa: null,
-    cpaLocation: null,
-    predictedLocation: null,
-    lastSeenSecondsAgo: null,
     isLost: false,
-    isValid: true,
-    alarmType: null,
-    alarmState: null,
-    order: 0,
+    isValid: false,
   };
 }
 

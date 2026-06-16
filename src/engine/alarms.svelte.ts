@@ -1,9 +1,6 @@
 // reads vessels, raises notifications
+import type { AlarmsState } from "../types.js";
 import { vessels, vesselsState } from "./vessels.svelte.js";
-
-interface AlarmsState {
-  lastAlarmTime: number | null;
-}
 
 export const alarmsState = $state<AlarmsState>({
   lastAlarmTime: null,

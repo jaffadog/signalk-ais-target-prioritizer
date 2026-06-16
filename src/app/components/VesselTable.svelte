@@ -19,11 +19,8 @@
   } from "../utils/formatUtils";
   import { getVesselSvg } from "../utils/svgUtils";
   import { muteSvg } from "../utils/svg";
-  import {
-    vessels,
-    vesselsState,
-    type Vessel,
-  } from "../../engine/vessels.svelte";
+  import { vessels, vesselsState } from "../../engine/vessels.svelte";
+  import { type Vessel } from "../../types";
   import { ui } from "../ui.svelte";
 
   console.log("TABLE render");

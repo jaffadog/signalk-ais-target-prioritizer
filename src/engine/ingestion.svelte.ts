@@ -30,9 +30,9 @@ const pendingUpdates = new Map();
 // let flushTimer = null;
 
 // context: "vessels.urn:mrn:imo:mmsi:236333000"
-export function extractMmsi(context: string) {
-  if (!context) return null;
-  return context.match(/mmsi:(\d{9})$/)?.[1] ?? null;
+export function extractMmsi(context: string): string | undefined {
+  if (!context) return;
+  return context.match(/mmsi:(\d{9})$/)?.[1];
 }
 
 // ==============================

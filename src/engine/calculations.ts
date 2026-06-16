@@ -6,50 +6,48 @@ import {
   COURSE_PROJECTION_MINUTES,
   LOST_VESSEL_WARNING_AGE,
 } from "./constants";
-import type { Vessel } from "./vessels.svelte";
+import type { Position, Vessel } from "../types";
 import type { Vector2D } from "../types";
-import type { CollisionProfile } from "./collisionProfiles.svelte";
+import type { CollisionProfile } from "../types";
 
-export function toRad(d: number) {
-  return (d * Math.PI) / 180;
+export function toRad(degrees: number): number {
+  return (degrees * Math.PI) / 180;
 }
 
-export function toDeg(r: number) {
-  return (r * 180) / Math.PI;
+export function toDeg(radians: number): number {
+  return (radians * 180) / Math.PI;
 }
 
 // equirectangular projection
-export function calcProjection(t: Vessel, m: Vessel): Vector2D | undefined {
+export function calcProjection(v: Vessel, m: Vessel): Vector2D | undefined {
   if (
-    t.latitude === null ||
-    t.longitude === null ||
+    v.latitude === null ||
+    v.longitude === null ||
     m.latitude === null ||
     m.longitude === null
   )
     return;
-  const x = toRad(t.longitude - m.longitude) * Math.cos(toRad(m.latitude)) * R;
-  const y = toRad(t.latitude - m.latitude) * R;
+  const x = toRad(v.longitude - m.longitude) * Math.cos(toRad(m.latitude)) * R;
+  const y = toRad(v.latitude - m.latitude) * R;
   return { x, y };
 }
 
-export function calcRange(p: Vector2D) {
-  if (!p) return null;
+export function calcRange(p: Vector2D): number {
   return Math.sqrt(p.x * p.x + p.y * p.y);
 }
 
-export function calcBearing(p: Vector2D) {
-  if (!p) return null;
+export function calcBearing(p: Vector2D): number {
   return (toDeg(Math.atan2(p.x, p.y)) + 360) % 360;
 }
 
 // sog in m/s, cog in radians
-export function calcVelocity(t: Vessel): Vector2D {
+export function calcVelocity(v: Vessel): Vector2D {
   // if we dont have sog or cog, assume the vessel is not moving and proceed with cpa calc
-  if (t.sog === null || t.cog === null) return { x: 0, y: 0 };
+  if (v.sog === null || v.cog === null) return { x: 0, y: 0 };
 
   return {
-    x: t.sog * Math.sin(t.cog),
-    y: t.sog * Math.cos(t.cog),
+    x: v.sog * Math.sin(v.cog),
+    y: v.sog * Math.cos(v.cog),
   };
 }
 
@@ -57,7 +55,7 @@ export function calcCpa(
   projection: Vector2D,
   velocity: Vector2D,
   myVelocity: Vector2D,
-) {
+): { tcpa: number; cpa: number } | undefined {
   if (!projection || !velocity || !myVelocity) return;
 
   const v = {
@@ -66,12 +64,12 @@ export function calcCpa(
   };
 
   const v2 = v.x * v.x + v.y * v.y;
-  if (v2 < 0.0001) return null;
+  if (v2 < 0.0001) return;
 
   const t = -(projection.x * v.x + projection.y * v.y) / v2;
   // if cpa was in the past:
   // could set it to 0, or cancel the cpa calc, or leave it as is
-  if (t < 0) return null;
+  if (t < 0) return;
 
   const cx = projection.x + v.x * t;
   const cy = projection.y + v.y * t;
@@ -82,26 +80,26 @@ export function calcCpa(
   };
 }
 
-export function calcCpaLocation(t: Vessel, tcpa: number) {
+export function calcCpaLocation(v: Vessel, tcpa: number): Position | undefined {
   if (
-    t.latitude === null ||
-    t.longitude === null ||
-    t.cog === null ||
-    t.sog === null ||
-    tcpa === null
+    v.latitude === null ||
+    v.longitude === null ||
+    v.cog === null ||
+    v.sog === null ||
+    tcpa === undefined
   )
     return;
 
   const end = destination(
-    [t.longitude, t.latitude],
-    t.sog * tcpa,
-    toDeg(t.cog),
+    [v.longitude, v.latitude],
+    v.sog * tcpa,
+    toDeg(v.cog),
     {
       units: "meters",
     },
   );
 
-  return end.geometry.coordinates;
+  return end.geometry.coordinates as Position;
 }
 
 // export function isCpaAhead() {
@@ -114,7 +112,7 @@ export function calcCpaLocation(t: Vessel, tcpa: number) {
 //   return Math.abs(diff) < 90; // within 90° of heading = ahead
 // }
 
-export function calcPredictedLocation(v: Vessel) {
+export function calcPredictedLocation(v: Vessel): Position | undefined {
   if (
     v.latitude === null ||
     v.longitude === null ||
@@ -132,10 +130,10 @@ export function calcPredictedLocation(v: Vessel) {
     },
   );
 
-  return end.geometry.coordinates;
+  return end.geometry.coordinates as Position;
 }
 
-export function calcLastSeenSecondsAgo(v: Vessel) {
+export function calcLastSeenSecondsAgo(v: Vessel): number | undefined {
   if (!v.lastSeenDate) return;
   const diff = Math.round(
     (new Date().getTime() - new Date(v.lastSeenDate).getTime()) / 1000,
@@ -143,14 +141,14 @@ export function calcLastSeenSecondsAgo(v: Vessel) {
   return diff > 0 ? diff : 0;
 }
 
-export function calcIsLost(lastSeenSecondsAgo: number) {
+export function calcIsLost(lastSeenSecondsAgo: number): boolean {
   return (
     !Number.isFinite(lastSeenSecondsAgo) ||
     lastSeenSecondsAgo > LOST_VESSEL_WARNING_AGE
   );
 }
 
-export function calcIsValid(v: Vessel) {
+export function calcIsValid(v: Vessel): boolean {
   // FIXME add filter for aged out targets
   return Number.isFinite(v.latitude) && Number.isFinite(v.longitude);
 }

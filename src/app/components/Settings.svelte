@@ -11,10 +11,8 @@
   import { ui } from "../ui.svelte";
   import { ns } from "../utils/noSleep.svelte";
   import { pushMuteAllAlarms, saveCollisionProfiles } from "../utils/api";
-  import {
-    collisionProfiles,
-    type ProfileName,
-  } from "../../engine/collisionProfiles.svelte";
+  import { collisionProfiles } from "../../engine/collisionProfiles.svelte";
+  import { type ProfileName } from "../../types";
 
   // console.log("ENTER Settings");
 

@@ -18,13 +18,14 @@ export const CHECK_ONLINE_INTERVAL = 30_000; // every 30 seconds
 export const DEFAULT_BASEMAP = "street";
 export const DEFAULT_OFFLINE_BASEMAP = "empty";
 
-export const COLORS = ["gray", "orange", "red", "blue"];
 export const COLOR_MAP = {
   gray: "#8a8a8a",
   orange: "#f97316",
   red: "#ef4444",
   blue: "#1f78ff",
 };
+
+export const COLORS = Object.keys(COLOR_MAP) as (keyof typeof COLOR_MAP)[];
 
 export const AlarmState = Object.freeze({
   SAFE: "safe",

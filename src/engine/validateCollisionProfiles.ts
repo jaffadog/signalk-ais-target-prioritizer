@@ -1,7 +1,4 @@
-import type {
-  CollisionProfiles,
-  ProfileName,
-} from "./collisionProfiles.svelte";
+import type { CollisionProfiles, ProfileName } from "../types";
 
 const RANGES = {
   cpa: { min: 0, max: 10 },
@@ -61,4 +58,3 @@ export function isValidCollisionProfiles(
     PROFILE_NAMES.every((name) => isValidProfile(d[name]))
   );
 }
-

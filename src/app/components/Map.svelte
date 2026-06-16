@@ -114,6 +114,15 @@
       zoom: 10,
     });
 
+    map.on("error", (e) => {
+      console.error("MapLibre error:", e.error);
+      if (e.error?.message?.includes("Failed to fetch")) return;
+      toaster.error({
+        title: "Map Error",
+        description: e.error?.message ?? "Unknown map error",
+      });
+    });
+
     // button: zoom and rotation
     map.addControl(
       new maplibregl.NavigationControl({ showCompass: false }),

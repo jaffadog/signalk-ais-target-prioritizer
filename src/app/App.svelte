@@ -26,11 +26,11 @@
 
   let ready = $state(false);
 
-  interface Props {
-    children?: Snippet;
-  }
+  // interface Props {
+  //   children?: Snippet;
+  // }
 
-  const props: Props = $props();
+  // const props: Props = $props();
 
   $inspect({ basemapId: mapState.basemapId });
   $inspect({ openSeaMap: mapState.openSeaMap });
@@ -43,6 +43,17 @@
 
   onMount(() => {
     console.log(">>> ONMOUNT app");
+
+    window.onerror = (message, source, line, col, error) => {
+      console.error("Global error:", { message, source, line, col, error });
+      toaster.error({
+        title: "Unexpected Error",
+        description: String(message),
+      });
+    };
+
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+
     // wait on stuff we need before permitting Map to load
     Promise.all([checkConnectivity(), initBasemaps(), initCollisionProfiles()])
       .then(() => {
@@ -63,11 +74,25 @@
     startIngestion(location.host);
 
     console.log(">>> ONMOUNT app exit");
+
     return () => {
       console.log("EXIT App");
       stopIngestion();
+      window.onerror = null;
+      window.removeEventListener(
+        "unhandledrejection",
+        handleUnhandledRejection,
+      );
     };
   });
+
+  const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+    console.error("Unhandled rejection:", event.reason);
+    toaster.error({
+      title: "Unexpected Error",
+      description: String(event.reason),
+    });
+  };
 
   // handle all local storage persistence with effects triggered by the corresponding $state
 
@@ -91,7 +116,7 @@
 <svelte:document bind:visibilityState={ui.visible} />
 <svelte:window bind:innerWidth={ui.width} />
 
-{@render props.children?.()}
+<!-- {@render props.children?.()} -->
 
 <Toast.Group {toaster}>
   {#snippet children(toast)}

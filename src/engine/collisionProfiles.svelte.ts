@@ -2,34 +2,8 @@
 
 import { loadCollisionProfiles, saveCollisionProfiles } from "../app/utils/api";
 import { toaster } from "../app/utils/toaster";
+import type { CollisionProfiles, CollisionProfile } from "../types";
 import { isValidCollisionProfiles } from "./validateCollisionProfiles";
-
-export interface CollisionProfile {
-  warning: {
-    cpa: number;
-    tcpa: number;
-    speed: number;
-  };
-  danger: {
-    cpa: number;
-    tcpa: number;
-    speed: number;
-  };
-  guard: {
-    range: number;
-    speed: number;
-  };
-}
-
-export type ProfileName = "anchor" | "harbor" | "coastal" | "offshore";
-
-export interface CollisionProfiles {
-  current: ProfileName;
-  anchor: CollisionProfile;
-  harbor: CollisionProfile;
-  coastal: CollisionProfile;
-  offshore: CollisionProfile;
-}
 
 const defaultCollisionProfiles: CollisionProfiles = {
   current: "offshore",
@@ -122,7 +96,8 @@ export function getActiveCollisionProfile(): CollisionProfile {
 
 export async function initCollisionProfiles() {
   console.log(">>> ENTER initCollisionProfiles");
-  const loadedCollisionProfiles = await loadCollisionProfiles();
+  const loadedCollisionProfiles: CollisionProfiles | undefined =
+    await loadCollisionProfiles();
   if (isValidCollisionProfiles(loadedCollisionProfiles)) {
     setCollisionProfiles(loadedCollisionProfiles);
   } else {

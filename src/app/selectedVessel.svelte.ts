@@ -14,7 +14,7 @@ export function getSelectedVesselScreenCoordinates() {
     selectedVessel.longitude === null ||
     selectedVessel.latitude === null
   )
-    return null;
+    return;
   return mapState.instance.project([
     selectedVessel.longitude,
     selectedVessel.latitude,

@@ -1,10 +1,4 @@
-// export function getCssColor(varName) {
-//   return getComputedStyle(document.documentElement)
-//     .getPropertyValue(varName)
-//     .trim();
-// }
-
-export function getCssColor(varName) {
+export function getCssColor(varName: string) {
   const value = getComputedStyle(document.documentElement)
     .getPropertyValue(varName)
     .trim();

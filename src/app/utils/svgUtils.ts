@@ -1,4 +1,4 @@
-export function getVesselSvg(mmsi, aisClass, typeId) {
+export function getVesselSvg(mmsi: string, aisClass: string, typeId: number) {
   // fishing
   if (typeId === 30) {
     return fishingboatSvg;

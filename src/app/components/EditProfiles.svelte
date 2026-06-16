@@ -9,8 +9,8 @@
   import {
     collisionProfiles,
     resetCollisionProfiles,
-    type ProfileName,
   } from "../../engine/collisionProfiles.svelte";
+  import { type ProfileName } from "../../types";
   import EditCpaAlarm from "./EditCpaAlarm.svelte";
   import EditGuardAlarm from "./EditGuardAlarm.svelte";
   import { saveCollisionProfiles } from "../utils/api";

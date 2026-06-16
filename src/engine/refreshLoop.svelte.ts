@@ -17,11 +17,18 @@ import {
 import { vessels, vesselsState } from "./vessels.svelte";
 import { flushPendingUpdates } from "./ingestion.svelte";
 import { getActiveCollisionProfile } from "./collisionProfiles.svelte";
+import type { Vessel } from "../types";
 
-const myVessel = $derived(vessels[vesselsState.myVesselMmsi]);
-const selectedVessel = $derived(vessels[vesselsState.selectedVesselMmsi]);
+const myVessel: Vessel | null = $derived(
+  vesselsState.myVesselMmsi ? vessels[vesselsState.myVesselMmsi] : null,
+);
+const selectedVessel: Vessel | null = $derived(
+  vesselsState.selectedVesselMmsi
+    ? vessels[vesselsState.selectedVesselMmsi]
+    : null,
+);
 
-let timeoutId;
+let timeoutId: number | null;
 
 export function start() {
   console.log("start updateVesselsLoop");
@@ -58,12 +65,13 @@ export function updateVessels() {
     const lastSeenSecondsAgo = calcLastSeenSecondsAgo(v);
     const isValid = calcIsValid(v);
     const cpaLocation =
-      vesselsState.selectedVesselMmsi &&
+      selectedVessel &&
+      selectedVessel.tcpa !== undefined &&
       [vesselsState.myVesselMmsi, vesselsState.selectedVesselMmsi].includes(
         mmsi,
       )
         ? calcCpaLocation(v, selectedVessel.tcpa)
-        : null;
+        : undefined;
 
     v.cpaLocation = cpaLocation;
     v.predictedLocation = predictedLocation;
@@ -72,20 +80,29 @@ export function updateVessels() {
 
     // calculated from derived data:
     if (v.mmsi !== vesselsState.myVesselMmsi) {
-      const range = calcRange(projection);
-      const bearing = calcBearing(projection);
-      const { cpa = null, tcpa = null } =
-        calcCpa(projection, velocity, myVelocity) ?? {};
-      const isLost = calcIsLost(lastSeenSecondsAgo);
+      const range = projection ? calcRange(projection) : undefined;
+      const bearing = projection ? calcBearing(projection) : undefined;
+      const { cpa = undefined, tcpa = undefined } = projection
+        ? (calcCpa(projection, velocity, myVelocity) ?? {})
+        : {};
+      const isLost =
+        lastSeenSecondsAgo !== undefined
+          ? calcIsLost(lastSeenSecondsAgo)
+          : false;
       const { alarmType, alarmState, order } =
-        calcAlarms(
-          getActiveCollisionProfile(),
-          range,
-          v.sog,
-          cpa,
-          tcpa,
-          mmsi,
-        ) ?? {};
+        range !== undefined &&
+        v.sog !== null &&
+        cpa !== undefined &&
+        tcpa !== undefined
+          ? (calcAlarms(
+              getActiveCollisionProfile(),
+              range,
+              v.sog,
+              cpa,
+              tcpa,
+              mmsi,
+            ) ?? {})
+          : {};
 
       v.range = range;
       v.bearing = bearing;

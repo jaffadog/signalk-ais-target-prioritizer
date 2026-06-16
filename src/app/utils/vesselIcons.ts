@@ -1,15 +1,19 @@
+import type { Map } from "maplibre-gl";
 import { COLOR_MAP, COLORS } from "../../engine/constants";
 import { vesselsState } from "../../engine/vessels.svelte";
+import type { Vessel } from "../../types";
 
 const LOGICAL_SIZE = 32; // how big the icon appears on the map
 export const PIXEL_RATIO = 2; // for retina/HiDPI
 const CANVAS_SIZE = LOGICAL_SIZE * PIXEL_RATIO; // → 64 canvas pixels
 
-const SHIP_TYPES = ["class-a", "class-b", "aton", "base"];
+const SHIP_TYPES = ["class-a", "class-b", "aton", "base"] as const;
+type ShipType = (typeof SHIP_TYPES)[number];
+
 const LINE_WIDTH = 4;
 const FILL_OPACITY = 0.5;
 
-export function getVesselIconName(vessel) {
+export function getVesselIconName(vessel: Vessel): string {
   let iconType;
   let color;
 
@@ -59,14 +63,14 @@ export function getVesselIconName(vessel) {
   return `vessel-${iconType}-${color}`;
 }
 
-function hexToRgba(hex, alpha) {
+function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-export function registerAllIcons(map) {
+export function registerAllIcons(map: Map) {
   // create gray, orange, red, and blue variants
   // of class A, B, ATON, and BASE vessel icons
   for (const type of SHIP_TYPES) {
@@ -92,7 +96,7 @@ export function registerAllIcons(map) {
   addImage(map, "vessel-selected", createBlueBox());
 }
 
-function addImage(map, imageName, image) {
+function addImage(map: Map, imageName: string, image: ImageData) {
   if (!map.hasImage(imageName)) {
     map.addImage(imageName, image, {
       pixelRatio: PIXEL_RATIO,
@@ -100,12 +104,12 @@ function addImage(map, imageName, image) {
   }
 }
 
-function createVesselIcon(type, hexColor) {
+function createVesselIcon(type: ShipType, hexColor: string) {
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
 
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   ctx.translate(CANVAS_SIZE / 2, CANVAS_SIZE / 2);
 
@@ -135,12 +139,12 @@ function createVesselIcon(type, hexColor) {
   return ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 }
 
-function drawClassA(ctx) {
-  var boatLengthToBeam = 2.2;
-  var bowLengthToBoatLength = 0.4;
-  var margin = 10;
-  var boatLength = CANVAS_SIZE - 2 * margin;
-  var boatBeam = boatLength / boatLengthToBeam;
+function drawClassA(ctx: CanvasRenderingContext2D) {
+  const boatLengthToBeam = 2.2;
+  const bowLengthToBoatLength = 0.4;
+  const margin = 10;
+  const boatLength = CANVAS_SIZE - 2 * margin;
+  const boatBeam = boatLength / boatLengthToBeam;
 
   ctx.beginPath();
   ctx.moveTo(-boatBeam / 2, boatLength / 2);
@@ -157,7 +161,7 @@ function drawClassA(ctx) {
   ctx.closePath();
 }
 
-function drawClassB(ctx) {
+function drawClassB(ctx: CanvasRenderingContext2D) {
   const boatLengthToBeam = 1.8;
   const margin = 10;
   const boatLength = CANVAS_SIZE - 2 * margin;
@@ -171,7 +175,7 @@ function drawClassB(ctx) {
   ctx.closePath();
 }
 
-function drawAton(ctx) {
+function drawAton(ctx: CanvasRenderingContext2D) {
   const margin = 22;
   const atonSize = CANVAS_SIZE - 2 * margin;
   const crosshairLength = atonSize * 0.6;
@@ -188,7 +192,7 @@ function drawAton(ctx) {
   ctx.rect(-atonSize / 2, -atonSize / 2, atonSize, atonSize);
 }
 
-function drawBase(ctx) {
+function drawBase(ctx: CanvasRenderingContext2D) {
   const margin = 20;
   const baseSize = CANVAS_SIZE - 2 * margin;
   const crosshairLength = baseSize * 0.6;
@@ -204,12 +208,12 @@ function drawBase(ctx) {
   ctx.rect(-baseSize / 2, -baseSize / 2, baseSize, baseSize);
 }
 
-function createLostX() {
+function createLostX(): ImageData {
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
 
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   ctx.translate(CANVAS_SIZE / 2, CANVAS_SIZE / 2);
 
@@ -229,12 +233,12 @@ function createLostX() {
   return ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 }
 
-function createMyVessel() {
+function createMyVessel(): ImageData {
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
 
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   ctx.translate(CANVAS_SIZE / 2, CANVAS_SIZE / 2);
 
@@ -252,12 +256,12 @@ function createMyVessel() {
   return ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 }
 
-function createSart() {
+function createSart(): ImageData {
   const canvas = document.createElement("canvas");
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
 
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   ctx.translate(CANVAS_SIZE / 2, CANVAS_SIZE / 2);
 
@@ -283,21 +287,21 @@ function createSart() {
   return ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 }
 
-function createBlueBox() {
+function createBlueBox(): ImageData {
   const size = CANVAS_SIZE * 2;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
 
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, size, size);
   ctx.translate(size / 2, size / 2);
 
   ctx.strokeStyle = COLOR_MAP["blue"];
   ctx.lineWidth = 10;
 
-  var margin = 16;
-  var blueBoxSize = size - 2 * margin;
+  const margin = 16;
+  const blueBoxSize = size - 2 * margin;
 
   ctx.setLineDash([
     (blueBoxSize * 3) / 4,

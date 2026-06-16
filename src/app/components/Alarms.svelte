@@ -20,7 +20,7 @@
   const horn = new Audio(hornMp3Url);
 
   onMount(() => {
-    horn.play();
+    horn.play().catch((e) => console.log("suppressed horn sound:", e.message));
   });
 
   function handleClick(mmsi: string) {
