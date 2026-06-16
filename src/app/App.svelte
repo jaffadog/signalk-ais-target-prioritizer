@@ -70,6 +70,13 @@
         ready = true; // still allow map to load
       });
 
+    // FIXME considering adding detection of protomaps font pack:
+    // const fontsAvailable = await fetch(
+    //   "/plugins/signalk-ais-target-prioritizer/fonts-available",
+    // )
+    //   .then((r) => r.ok)
+    //   .catch(() => false);
+
     // start getting streaming data from signalk
     startIngestion(location.host);
 
