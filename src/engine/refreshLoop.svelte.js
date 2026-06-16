@@ -15,7 +15,7 @@ import {
   calcAlarms,
 } from "./calculations";
 import { vessels, vesselsState } from "./vessels.svelte";
-import { flushPendingUpdates } from "../engine/ingestion.svelte";
+import { flushPendingUpdates } from "./ingestion.svelte";
 import { getActiveCollisionProfile } from "./collisionProfiles.svelte";
 
 const myVessel = $derived(vessels[vesselsState.myVesselMmsi]);

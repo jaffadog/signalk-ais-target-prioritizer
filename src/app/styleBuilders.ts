@@ -6,6 +6,7 @@ import type { StyleSpecification } from "maplibre-gl";
 import { layers, namedFlavor, type Flavor } from "@protomaps/basemaps";
 import darkMatter from "./styles/dark-matter.json";
 import positron from "./styles/positron.json";
+import { name as pluginName } from "../../package.json";
 
 const DEFAULT_DARK_BACKGROUND_COLOR = "#2E353B";
 const DEFAULT_LIGHT_BACKGROUND_COLOR = "#D5DADC";
@@ -13,7 +14,6 @@ const DEFAULT_LIGHT_BACKGROUND_COLOR = "#D5DADC";
 const DEFAULT_DARK_LAND_COLOR = "#0E0E0E";
 const DEFAULT_LIGHT_LAND_COLOR = "#FAFAF8";
 
-// FIXME need to check if we are online or not:
 export function buildCartoDarkStyle() {
   return buildVectorStyle(darkMatter as unknown as StyleSpecification);
 }
@@ -23,14 +23,14 @@ export function buildCartoPositronStyle() {
 }
 
 function buildVectorStyle(style: StyleSpecification) {
-  style.sources = {
-    ...style.sources,
-    ...sharedSources,
+  return {
+    ...style,
+    sources: {
+      ...style.sources,
+      ...sharedSources,
+    },
+    layers: [...style.layers, ...buildSharedLayers()],
   };
-
-  style.layers = [...style.layers, ...buildSharedLayers()];
-
-  return style;
 }
 
 export function buildEsriSatelliteStyle() {
@@ -72,9 +72,8 @@ export function buildPmtilesStyle(url: string, theme: Theme = "light") {
   const flavor: Flavor = namedFlavor(theme);
   return {
     version: 8 as const,
-    // ${window.location.origin}
-    glyphs: `${window.location.origin}/protomaps/fonts/{fontstack}/{range}.pbf`,
-    sprite: `${window.location.origin}/protomaps/sprites/v4/${theme}`,
+    glyphs: `${window.location.origin}/${pluginName}/assets/protomaps/fonts/{fontstack}/{range}.pbf`,
+    sprite: `${window.location.origin}/${pluginName}/assets/protomaps/sprites/v4/${theme}`,
     sources: {
       protomaps: {
         type: "vector" as const,

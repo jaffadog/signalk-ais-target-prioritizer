@@ -35,8 +35,7 @@
     ui.editProfiles.visible = e.open;
     if (!e.open) {
       saveCollisionProfiles(collisionProfiles);
-      toaster.create({
-        type: "success",
+      toaster.success({
         title: "Saving configuration...",
         description: null,
         duration: 5000,

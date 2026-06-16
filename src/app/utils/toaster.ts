@@ -1,2 +1,5 @@
 import { createToaster } from "@skeletonlabs/skeleton-svelte";
-export const toaster = createToaster();
+export const toaster = createToaster({
+  overlap: true,
+  max: 5,
+});

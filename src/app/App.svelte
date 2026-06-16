@@ -18,15 +18,13 @@
     stop as stopIngestion,
   } from "../engine/ingestion.svelte";
   import { ui } from "./ui.svelte";
-  import { loadCollisionProfiles, saveCollisionProfiles } from "./utils/api";
-  import {
-    collisionProfiles,
-    resetCollisionProfiles,
-    setCollisionProfiles,
-  } from "../engine/collisionProfiles.svelte";
-  import { isValidCollisionProfiles } from "../engine/validateCollisionProfiles";
+  import { initCollisionProfiles } from "../engine/collisionProfiles.svelte";
   import { mapState } from "../engine/map.svelte";
   import { checkConnectivity, connectivity } from "./connectivity.svelte";
+  import { CircleCheck, CircleX, Info, TriangleAlert } from "@lucide/svelte";
+  import { basemaps, initBasemaps } from "./basemaps.svelte";
+
+  let ready = $state(false);
 
   interface Props {
     children?: Snippet;
@@ -34,38 +32,37 @@
 
   const props: Props = $props();
 
-  $inspect({ activeBasemapId: mapState.basemapId });
+  $inspect({ basemapId: mapState.basemapId });
   $inspect({ openSeaMap: mapState.openSeaMap });
   $inspect({ styleId: mapState.styleId });
   $inspect({ darkMode: ui.darkMode });
   $inspect({ visible: ui.visible });
   $inspect({ width: ui.width });
   $inspect({ online: connectivity.online });
+  $inspect({ ready: ready });
 
   onMount(() => {
-    // check internet connectivity and disable basemaps that require it
-    checkConnectivity();
+    console.log(">>> ONMOUNT app");
+    // wait on stuff we need before permitting Map to load
+    Promise.all([checkConnectivity(), initBasemaps(), initCollisionProfiles()])
+      .then(() => {
+        console.log(">>> promise all resolved", mapState.basemapId, basemaps);
 
-    // get collision profile data from signalk plugin
-    loadCollisionProfiles().then((loadedCollisionProfiles) => {
-      if (isValidCollisionProfiles(loadedCollisionProfiles)) {
-        setCollisionProfiles(loadedCollisionProfiles);
-      } else {
-        toaster.create({
-          type: "error",
-          title: "Error",
-          description:
-            "Unable to load configuration data from Signal K server. Using default values.",
-          duration: Infinity,
-        });
-        resetCollisionProfiles();
-        saveCollisionProfiles(collisionProfiles);
-      }
-    });
+        // make sure out default/current basemap is valid
+        if (!(mapState.basemapId in basemaps)) {
+          mapState.basemapId = "street";
+        }
+        ready = true;
+      })
+      .catch((err) => {
+        console.error(">>> promise all failed", err);
+        ready = true; // still allow map to load
+      });
 
     // start getting streaming data from signalk
     startIngestion(location.host);
 
+    console.log(">>> ONMOUNT app exit");
     return () => {
       console.log("EXIT App");
       stopIngestion();
@@ -100,7 +97,20 @@
   {#snippet children(toast)}
     <Toast {toast}>
       <Toast.Message>
-        <Toast.Title>{toast.title}</Toast.Title>
+        <Toast.Title>
+          <div class="flex items-center gap-2">
+            {#if toast.type === "info" || toast.type === "loading"}
+              <Info class="size-4" />
+            {:else if toast.type === "warning"}
+              <TriangleAlert class="size-4" />
+            {:else if toast.type === "error"}
+              <CircleX class="size-4" />
+            {:else if toast.type === "success"}
+              <CircleCheck class="size-4" />
+            {/if}
+            {toast.title}
+          </div>
+        </Toast.Title>
         <Toast.Description>{toast.description}</Toast.Description>
       </Toast.Message>
       <Toast.CloseTrigger />
@@ -108,10 +118,10 @@
   {/snippet}
 </Toast.Group>
 
-<div class="relative h-screen w-screen overflow-hidden">
+<div class="relative h-dvh w-screen overflow-hidden">
   <!-- {/* MAP LAYER */} -->
-  <div class="map-wrapper absolute inset-0 z-0">
-    {#if connectivity.online !== undefined}
+  <div class="absolute inset-0 z-0">
+    {#if ready}
       <Map />
     {/if}
   </div>

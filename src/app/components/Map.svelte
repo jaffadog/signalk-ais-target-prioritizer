@@ -25,7 +25,7 @@
     locationSvg,
   } from "../utils/svg";
   import { onMount, untrack } from "svelte";
-  import { ingestion } from "../../engine/ingestion.svelte";
+  import { CONNECTED, ingestion } from "../../engine/ingestion.svelte";
   import { calcCpaLocation, toDeg } from "../../engine/calculations";
   import {
     alarmsState,
@@ -595,8 +595,7 @@
 
           if (isCourseUp && firstNotification) {
             firstNotification = false;
-            toaster.create({
-              type: "success",
+            toaster.success({
               title: "Map Rotation Frozen",
               description: `Map rotation will remain frozen while panning. Click "Center on my vessel" button to recenter your vessel and resume rotation.`,
               duration: 10000,
@@ -749,30 +748,44 @@
     }
   }
 
+  let stickyToaster = null;
+
   function checkForErrors() {
     // dont report any errors until past warmup
     if (performance.now() - startTime < WARM_UP_TIME) return;
 
-    if (ingestion.connectionState !== "Connected") {
+    if (ingestion.connectionState !== CONNECTED) {
       showNotification(
         "Error",
-        `Not connected to Signal-K server.\nCurrent connection status: ${ingestion.connectionState}`,
+        `Not connected to Signal K server.\nCurrent connection status: ${ingestion.connectionState}`,
       );
-    } else if (getCounts().total === 0) {
-      showNotification("Error", "No vessel data redeived from Signal-K server");
     } else if (!vesselsState.myVesselMmsi) {
       showNotification(
         "Error",
-        "No data for out own vessel received from Signal-K server",
+        "No data for our own vessel received from Signal K server",
       );
     } else {
       ui.notification.visible = false;
     }
+
+    if (ingestion.connectionState === CONNECTED && getCounts().total === 0) {
+      if (!stickyToaster) {
+        stickyToaster = toaster.info({
+          title: "No Other Vessels",
+          description:
+            "No AIS data from other vessels has been received by Signal K server. You're all alone out here.",
+        });
+        console.log({ stickyToaster });
+      }
+    } else if (stickyToaster) {
+      console.log("removing skicky toaster");
+      toaster.remove(stickyToaster);
+      stickyToaster = null;
+    }
   }
 </script>
 
-<div bind:this={container} style="width:100%; height:100vh"></div>
-
+<div bind:this={container} class="w-full h-full"></div>
 <LayersMenu />
 
 <div class="pointer-events-none absolute bottom-0 left-0 z-10">

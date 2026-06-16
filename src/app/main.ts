@@ -1,7 +1,5 @@
 import { mount } from "svelte";
 import App from "./App.svelte";
-import "tailwindcss";
-import "./app.css"; // or wherever your global styles are
-// import "./index.css";
+import "./app.css";
 
-mount(App, { target: document.getElementById("app") });
+mount(App, { target: document.getElementById("app")! });

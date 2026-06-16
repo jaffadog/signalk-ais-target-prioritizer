@@ -1,5 +1,9 @@
 // src/engine/collisionProfiles.svelte.ts
 
+import { loadCollisionProfiles, saveCollisionProfiles } from "../app/utils/api";
+import { toaster } from "../app/utils/toaster";
+import { isValidCollisionProfiles } from "./validateCollisionProfiles";
+
 export interface CollisionProfile {
   warning: {
     cpa: number;
@@ -114,4 +118,22 @@ export function getActiveCollisionProfileName(): string {
 
 export function getActiveCollisionProfile(): CollisionProfile {
   return collisionProfiles[collisionProfiles.current];
+}
+
+export async function initCollisionProfiles() {
+  console.log(">>> ENTER initCollisionProfiles");
+  const loadedCollisionProfiles = await loadCollisionProfiles();
+  if (isValidCollisionProfiles(loadedCollisionProfiles)) {
+    setCollisionProfiles(loadedCollisionProfiles);
+  } else {
+    toaster.error({
+      title: "Error",
+      description:
+        "Unable to load configuration data from Signal K server. Using default values.",
+      duration: Infinity,
+    });
+    resetCollisionProfiles();
+    saveCollisionProfiles(collisionProfiles);
+  }
+  console.log(">>> EXIT initCollisionProfiles");
 }

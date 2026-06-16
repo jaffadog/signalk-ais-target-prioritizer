@@ -142,7 +142,21 @@ export const basemaps: Record<string, Basemap> = $state({
 });
 
 // populate pmtiles entries into basemaps on module load
-getPmtiles().then((pmtiles) => {
+export async function initBasemaps() {
+  console.log(">>> ENTER initBasemaps");
+  const pmtiles = await getPmtiles();
+  for (const pmtile of pmtiles) {
+    basemaps[pmtile] = {
+      id: pmtile,
+      label: pmtile,
+      type: "signalk-protomaps-pmtiles",
+      online: false,
+    };
+  }
+  console.log(">>> EXIT initBasemaps");
+}
+
+export const pmtilesReady = getPmtiles().then((pmtiles) => {
   for (const pmtile of pmtiles) {
     basemaps[pmtile] = {
       id: pmtile,

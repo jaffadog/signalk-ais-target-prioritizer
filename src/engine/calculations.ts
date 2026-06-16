@@ -7,7 +7,7 @@ import {
   LOST_VESSEL_WARNING_AGE,
 } from "./constants";
 import type { Vessel } from "./vessels.svelte";
-import type { TwoDim } from "./calculation.types";
+import type { Vector2D } from "../types";
 import type { CollisionProfile } from "./collisionProfiles.svelte";
 
 export function toRad(d: number) {
@@ -19,7 +19,7 @@ export function toDeg(r: number) {
 }
 
 // equirectangular projection
-export function calcProjection(t: Vessel, m: Vessel): TwoDim | undefined {
+export function calcProjection(t: Vessel, m: Vessel): Vector2D | undefined {
   if (
     t.latitude === null ||
     t.longitude === null ||
@@ -32,18 +32,18 @@ export function calcProjection(t: Vessel, m: Vessel): TwoDim | undefined {
   return { x, y };
 }
 
-export function calcRange(p: TwoDim) {
+export function calcRange(p: Vector2D) {
   if (!p) return null;
   return Math.sqrt(p.x * p.x + p.y * p.y);
 }
 
-export function calcBearing(p: TwoDim) {
+export function calcBearing(p: Vector2D) {
   if (!p) return null;
   return (toDeg(Math.atan2(p.x, p.y)) + 360) % 360;
 }
 
 // sog in m/s, cog in radians
-export function calcVelocity(t: Vessel): TwoDim {
+export function calcVelocity(t: Vessel): Vector2D {
   // if we dont have sog or cog, assume the vessel is not moving and proceed with cpa calc
   if (t.sog === null || t.cog === null) return { x: 0, y: 0 };
 
@@ -54,9 +54,9 @@ export function calcVelocity(t: Vessel): TwoDim {
 }
 
 export function calcCpa(
-  projection: TwoDim,
-  velocity: TwoDim,
-  myVelocity: TwoDim,
+  projection: Vector2D,
+  velocity: Vector2D,
+  myVelocity: Vector2D,
 ) {
   if (!projection || !velocity || !myVelocity) return;
 

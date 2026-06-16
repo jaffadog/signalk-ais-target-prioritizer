@@ -34,10 +34,9 @@ export async function getConnectivity(): Promise<boolean> {
 
 let prevOnline: boolean | undefined = undefined;
 
-export function checkConnectivity() {
-  //   console.log("ENTER checkConnectivity");
-
-  getConnectivity().then((online: boolean) => {
+export function checkConnectivity(): Promise<void> {
+  console.log(">>> ENTER checkConnectivity");
+  return getConnectivity().then((online: boolean) => {
     if (!online) {
       if (basemaps[mapState.basemapId]?.online) {
         mapState.basemapId = DEFAULT_OFFLINE_BASEMAP;
@@ -49,16 +48,14 @@ export function checkConnectivity() {
     connectivity.online = online;
 
     if (prevOnline === false && online) {
-      toaster.create({
-        type: "success",
+      toaster.success({
         title: "Online",
         description:
           "Internet access detected. Map layers that require internet access have been enabled",
         duration: 5000,
       });
     } else if (prevOnline !== false && !online) {
-      toaster.create({
-        type: "warning",
+      toaster.warning({
         title: "Offline",
         description:
           "No internet access detected. Map layers that require internet access have been disabled",
@@ -67,7 +64,7 @@ export function checkConnectivity() {
     }
 
     prevOnline = online;
-    // console.log("EXIT checkConnectivity", connectivity.online);
+    console.log(">>> EXIT checkConnectivity", connectivity.online);
   });
 }
 

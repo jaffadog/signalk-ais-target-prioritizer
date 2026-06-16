@@ -1,4 +1,5 @@
-dist
-plugin
-public
-node_modules
+/dist
+/plugin
+/public
+/node_modules
+*.tgz

@@ -44,8 +44,7 @@ export function buildStyle(): StyleSpecification {
     }
   } catch (e) {
     console.error(e);
-    toaster.create({
-      type: "error",
+    toaster.error({
       title: "Error",
       description: `Unable to load ${mapState.basemapId} layer.`,
       duration: Infinity,

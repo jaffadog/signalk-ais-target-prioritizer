@@ -1,31 +1,29 @@
 import type { Map, StyleSpecification } from "maplibre-gl";
-import { basemaps } from "../app/basemaps.svelte";
 import { buildStyle } from "../app/resolveMapConfig";
 import { ui } from "../app/ui.svelte";
+import { DEFAULT_BASEMAP } from "./constants";
 
 export const mapState = $state<{
   instance: Map | null;
   loaded: boolean;
   basemapId: string;
-  styleId: string;
+  styleId: string | null;
   openSeaMap: boolean;
 }>({
   instance: null,
   loaded: false,
-  basemapId: getInitialBasemapId(),
-  styleId: "",
+  basemapId: localStorage.getItem("basemap") ?? DEFAULT_BASEMAP,
+  styleId: null,
   openSeaMap: localStorage.getItem("openseamap") === "true",
 });
 
-function getInitialBasemapId(): string {
-  const basemapId: string | null = localStorage.getItem("basemap");
-  return basemapId && basemapId in basemaps ? basemapId : "street";
-}
-
 export function setStyle() {
   console.log("ENTER setStyle", mapState.basemapId, ui.darkMode);
-  // FIXME style load state?
-  if (!mapState.instance || !mapState.loaded) {
+  if (
+    !mapState.instance ||
+    !mapState.loaded ||
+    !mapState.instance.isStyleLoaded
+  ) {
     console.log("BAIL setStyle", mapState.instance, mapState.loaded);
     return;
   }

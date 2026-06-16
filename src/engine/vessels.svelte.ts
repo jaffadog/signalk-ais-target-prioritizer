@@ -12,7 +12,7 @@ export const vesselsState = $state<{
 // Vessel factory
 // ==============================
 export interface Vessel {
-  // raw properties from signal-k:
+  // raw properties from signal k:
   mmsi: string;
   context: string;
   name: string;
@@ -59,7 +59,7 @@ export interface Vessel {
 
 export function createVessel(mmsi: string, context: string): Vessel {
   return {
-    // raw properties from signal-k:
+    // raw properties from signal k:
     mmsi,
     context,
     name: "",

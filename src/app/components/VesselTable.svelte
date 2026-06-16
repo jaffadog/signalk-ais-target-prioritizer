@@ -167,9 +167,10 @@
                     class={`sticky left-0 z-20 flex items-center text-left  group-hover:bg-surface-raised ${getVesselColor(t)} border-b-0 px-3 py-0.5 font-medium`}
                   >
                     <span
-                      class="me-2 inline-flex h-10 w-10 items-center justify-center"
-                      >{@html getVesselSvg(t.mmsi, t.aisClass, t.typeId)}</span
+                      class="me-2 inline-flex h-10 w-10 items-center justify-center [&>svg]:h-full [&>svg]:w-full"
                     >
+                      {@html getVesselSvg(t.mmsi, t.aisClass, t.typeId)}
+                    </span>
                     {formatName(t.mmsi, t.name)}
                     {#if t.alarmIsMuted}
                       <span class="ms-2 [&>svg]:h-4 [&>svg]:w-auto"

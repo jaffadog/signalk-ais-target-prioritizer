@@ -61,3 +61,4 @@ export function isValidCollisionProfiles(
     PROFILE_NAMES.every((name) => isValidProfile(d[name]))
   );
 }
+

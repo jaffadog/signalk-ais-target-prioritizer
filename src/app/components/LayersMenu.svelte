@@ -14,8 +14,9 @@
 </script>
 
 {#if ui.layersMenu.visible}
+  <!-- backdrop - used to close the layers manu -->
   <button
-    class="fixed inset-0 z-39 cursor-default"
+    class="fixed inset-0 z-39 cursor-default touch-none"
     onclick={() => (ui.layersMenu.visible = false)}
     aria-label="Close layers menu"
   ></button>

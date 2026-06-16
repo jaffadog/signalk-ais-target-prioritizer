@@ -1,28 +1,87 @@
-## Usage
+[![npm version](https://img.shields.io/npm/v/signalk-ais-target-prioritizer.svg)](https://www.npmjs.com/package/signalk-ais-target-prioritizer)
 
-```bash
-$ npm install # or pnpm install or yarn install
-```
+# SignalK AIS Target Prioritizer
 
-### Learn more on the [Solid Website](https://solidjs.com) and come chat with us on our [Discord](https://discord.com/invite/solidjs)
+A [SignalK](https://signalk.org/) plugin that prioritizes AIS targets according to guard and CPA criteria.
 
-## Available Scripts
+## What Does It Do?
 
-In the project directory, you can run:
+The SignalK AIS Target Prioritizer plugin processes SignalK AIS data and applies configurable collision risk criteria to each AIS target. It calculates CPA and time to CPA (TCPA) and establishes a collision risk rating for each AIS target. This rating can be used to rank AIS targets and highlight those targets that represent the most immediate risk/danger. The plugin will also trigger warnings and alarms when AIS target vessels meet the collision risk criteria.
 
-### `npm run dev`
+Sample screenshot of webapp:
 
-Runs the app in the development mode.<br>
-Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
+![](/resources/webapp.png)
 
-### `npm run build`
+## Features
 
-Builds the app for production to the `dist` folder.<br>
-It correctly bundles Solid in production mode and optimizes the build for the best performance.
+- **Webapp**
+  - Plots AIS targets
+  - Different symbols for Class A, Class B, ATONS, BASE, and MOB/EPIRB/SART targets
+  - Show full AIS target details
+  - Configurable CPA and guard warnings and alarms with separate profiles for anchored, Harbor, coastal, and offshore
+  - Restore default CPA and guard warnings and alarms configuration
+  - Select current active profile (anchored, Harbor, coastal, or offshore)
+  - Calculates AIS target range, bearing, CPA, time to CPA (TCPA), collision risk rating, and warning/alarm status
+  - Visual and audible CPA and guard alarm announcements
+  - Visually highlights AIS targets that represent higher collision risk
+  - Visually indicates AIS crossing situation by projecting vessel positions to the moment of CPA. This makes it very easy to understand if the target will pass ahead or behind you.
+  - Lists AIS targets in order of collision risk
+  - Mute alarms - such that muted vessels will no longer raise further alarms
+  - Visually indicates lost AIS targets with red X
+  - Supports tiled (png) and vector (**PMTiles**) maps, including SignalK chart resource API providers such as [Signal K Charts](https://github.com/SignalK/charts-plugin) and [PMTiles Chart provider](https://github.com/panaaj/signalk-pmtiles-plugin). Note that offline charts can be setup using these features. I highly recommend creating your own PMTiles maps using [Protomaps](https://docs.protomaps.com/), as the resulting files are quite small. For example, a PMTiles extracted subset covering all of French polynesia wiht zoom 1-15 comes out at 22MB.
+  - Prevent screen sleep
+  - Dark mode for night time use
+  - Fullscreen mode
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
+- **Plugin**
+  - Calculates AIS target range, bearing, CPA, time to CPA (TCPA), collision risk rating, and warning/alarm status
+  - Publishes SignalK vessel deltas containing range, bearing, CPA, time to CPA (TCPA), collision risk rating, and warning/alarm status
+  - Publishes SignalK notification messages for AIS CPA and gurad warnings and alarms. These can be wired up to produce audible alarms and/or push notifications using various available notification plugins or the Node-RED plugin. This facilitates "headless" alarming.
+  - Notifications can be muted using the webapp or REST API (`GET /plugins/signalk-ais-target-prioritizer/muteAllAlarms`)
+  - Emulates the Vesper XB-8000 AIS - for the purpose of using the very nice Vesper WatchMate mobile apps for iOS and Android (_this may be deprecated soon, as the webapp now provides this functionality_)
 
-## Deployment
+**The Plugin must be running in order to use the webapp.**
 
-Learn more about deploying your application with the [documentations](https://vite.dev/guide/static-deploy.html)
+## Vessel Deltas Published
+
+The plugin emits the following SignalK deltas on the AIS targets in the SignalK data model:
+
+| Data                  | Description                                                                | SignalK Path                                                                                             |
+| --------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| CPA                   | Closest point of approach                                                  | navigation.closestApproach<br/>Object value with property: **distance** (m)                              |
+| TCPA                  | Time to closest point of approach                                          | navigation.closestApproach<br/> Object value with property: **timeTo** (s)                               |
+| Range                 | Current range to target                                                    | navigation.closestApproach<br/>Object value with property: **range** (m)                                 |
+| Bearing               | Current bearing to target                                                  | navigation.closestApproach<br/>Object value with property: **bearing** (rad True)                        |
+| Collision Risk Rating | A numerical rating of collision risk. A low number represents higher risk. | navigation.closestApproach<br/> Object value with property: **collisionRiskRating**                      |
+| Collision Alarm Type  | "guard", "cpa"                                                             | navigation.closestApproach<br>collisionRiskRating<br/>Object value with property: **collisionAlarmType** |
+| Collision Alarm State | "warn", "danger"                                                           | navigation.closestApproach<br/>Object value with property: **collisionAlarmState**                       |
+
+## Configuration
+
+The configuration consists of the **Collision Profile** criteria used to evaluate collision risk:
+
+- **Collision Warning** - Configured using CPA, TCPA, and target SOG threshholds. Trips an **CPA Warning** when a target vessel meets these conditions. Intended to warn you of targets approaching your **Collision Alarm** thresholds.
+- **Collision Alarm** - Configured using CPA, TCPA, and target SOG threshholds. Trips an **CPA Alarm** when a target vessel meets these conditions.
+- **Guard Alarm** - Configured using target Range and SOG threshholds. Trips an **Guard Alarm** when a target vessel meets these conditions.
+
+There are four sets of the above criteria for different navigation situations:
+
+- **Anchored**
+- **Harbor**
+- **Coastal**
+- **Offshore**
+
+## Other Ideas
+
+Not implemented, but possible:
+
+- Activate a piezo buffer on the Raspberry Pi running SignalK when an alarm is triggered
+- Use a physical momentary switch on the Raspberry Pi to ack and hush alarms
+- Automatically switch from an underway profile (e.g. coastal) to the anchored profile when the vessel stops moving. Could also automatically turn on the anchor alarm as well. And vice-versa - turn off the anchor alarm and switch back to an underway profile when you get going again.
+
+## Attribution
+
+- Ship and boat icons created by Peter van Driel - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+- Buoy icon created by sentya irma - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+- Life Buoy icon created by Alex Podolsky - [The Noun Project](https://thenounproject.com) CC BY 3.0.
+- UFO icon created by Dian Chandra Lesmono - [The Noun Project](https://thenounproject.com) CC BY 3.0.

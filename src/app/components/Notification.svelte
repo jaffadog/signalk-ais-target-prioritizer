@@ -1,7 +1,7 @@
 <script>
   import { notificationState } from "../notification.svelte";
   import { Dialog, Portal } from "@skeletonlabs/skeleton-svelte";
-  import { TriangleAlert } from "@lucide/svelte";
+  import { CircleX } from "@lucide/svelte";
   import { ui } from "../ui.svelte";
 </script>
 
@@ -21,7 +21,7 @@
         class="card preset-filled-error-500 w-md p-4 space-y-2 shadow-xl"
       >
         <Dialog.Title class="text-xl font-semibold flex items-center gap-2"
-          ><TriangleAlert />{notificationState.title}</Dialog.Title
+          ><CircleX />{notificationState.title}</Dialog.Title
         >
         <Dialog.Description>
           {notificationState.message}
