@@ -4,10 +4,12 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
 
 export default {
-  input: "src/plugin/index.svelte.js",
+  input: "src/plugin/index.svelte.ts",
   output: {
     file: "plugin/index.cjs",
     format: "cjs",
+    sourcemap: false,
+    exports: "named",
   },
   plugins: [
     svelte(),
@@ -22,5 +24,5 @@ export default {
     }),
     json(),
   ],
-  external: [/^node:/],
+  external: [/^node:/, "@signalk/server-api"],
 };

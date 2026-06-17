@@ -1,5 +1,5 @@
 import ky from "ky";
-import { name as pluginName } from "../../../package.json";
+import { name as PLUGIN_ID } from "../../../package.json";
 import type { CollisionProfiles } from "../../types";
 import { isValidCollisionProfiles } from "../../engine/validateCollisionProfiles";
 import { toaster } from "./toaster";
@@ -8,7 +8,7 @@ export async function loadCollisionProfiles() {
   console.log("loading collision profiles");
   try {
     const data: CollisionProfiles = await ky(
-      `/plugins/${pluginName}/loadCollisionProfiles`,
+      `/plugins/${PLUGIN_ID}/loadCollisionProfiles`,
       {
         credentials: "include",
       },
@@ -33,7 +33,7 @@ export async function saveCollisionProfiles(data: CollisionProfiles) {
     return;
   }
 
-  ky.put(`/plugins/${pluginName}/saveCollisionProfiles`, {
+  ky.put(`/plugins/${PLUGIN_ID}/saveCollisionProfiles`, {
     credentials: "include",
     json: data,
   });
@@ -61,20 +61,20 @@ export async function getSelf() {
 }
 
 export async function getTargets() {
-  const data = await ky(`/plugins/${pluginName}/getTargets`, {
+  const data = await ky(`/plugins/${PLUGIN_ID}/getTargets`, {
     credentials: "include",
   }).json();
   return data;
 }
 
 export async function pushMuteAllAlarms() {
-  await ky(`/plugins/${pluginName}/muteAllAlarms`, {
+  await ky(`/plugins/${PLUGIN_ID}/muteAllAlarms`, {
     credentials: "include",
   });
 }
 
 export async function pushAlarmIsMuted(mmsi: string, alarmIsMuted: boolean) {
-  await ky(`/plugins/${pluginName}/setAlarmIsMuted/${mmsi}/${alarmIsMuted}`, {
+  await ky(`/plugins/${PLUGIN_ID}/setAlarmIsMuted/${mmsi}/${alarmIsMuted}`, {
     credentials: "include",
   });
 }

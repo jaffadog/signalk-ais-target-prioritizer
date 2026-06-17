@@ -11,7 +11,15 @@
     "allowJs": false,
     // "checkJs": false,
     "strict": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node"]
   },
-  "exclude": ["node_modules", "dist", ".svelte-kit", ".vite"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "public",
+    "plugin",
+    ".svelte-kit",
+    ".vite"
+  ]
 }

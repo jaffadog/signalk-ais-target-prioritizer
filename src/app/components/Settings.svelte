@@ -1,6 +1,7 @@
 <script lang="ts">
   import { XIcon } from "@lucide/svelte";
   import { Dialog, Portal, Switch } from "@skeletonlabs/skeleton-svelte";
+  import { name as PLUGIN_ID } from "../../../package.json";
 
   // The following animation is optional.
   // This may also be included inline.
@@ -13,10 +14,15 @@
   import { pushMuteAllAlarms, saveCollisionProfiles } from "../utils/api";
   import { collisionProfiles } from "../../engine/collisionProfiles.svelte";
   import { type ProfileName } from "../../types";
+  import { onMount } from "svelte";
 
   // console.log("ENTER Settings");
 
   let fullScreen = $state<boolean>(false);
+
+  onMount(() => {
+    checkFontsAvailable();
+  });
 
   function handleActiveProfileChange(e: Event) {
     collisionProfiles.current = (e.currentTarget as HTMLSelectElement)
@@ -62,15 +68,34 @@
       document.exitFullscreen();
     }
   }
+
+  let fontsAvailable = $state<boolean | undefined>(undefined);
+  let fontsDownloading = $state(false);
+
+  async function checkFontsAvailable() {
+    const res = await fetch(`/plugins/${PLUGIN_ID}/fonts-available`).catch(
+      () => null,
+    );
+    fontsAvailable = res?.ok ?? false;
+  }
+
+  async function handleDownloadFonts() {
+    fontsDownloading = true;
+    await fetch(`/plugins/${PLUGIN_ID}/download-fonts`, { method: "POST" });
+    fontsDownloading = false;
+    await checkFontsAvailable();
+  }
+
+  async function handleRemoveFonts() {
+    await fetch(`/plugins/${PLUGIN_ID}/remove-fonts`, { method: "POST" });
+    await checkFontsAvailable();
+  }
 </script>
 
 <Dialog
   open={ui.settings.visible}
   onOpenChange={(e) => {
     ui.settings.visible = e.open;
-    // if (!e.open) {
-    //   close();
-    // }
   }}
 >
   <Portal>
@@ -157,6 +182,37 @@
               <Switch.Thumb />
             </Switch.Control>
           </Switch>
+
+          <!-- map labels / font pack -->
+          {#if fontsAvailable === undefined}
+            <div class="flex items-center gap-2 p-2">
+              <span class="text-sm">Checking map labels...</span>
+            </div>
+          {:else if fontsAvailable}
+            <div class="flex justify-between items-center p-2">
+              <span class="text-sm">Map Labels Installed</span>
+              <button
+                type="button"
+                class="btn btn-sm preset-outlined-error-500"
+                onclick={handleRemoveFonts}>Remove</button
+              >
+            </div>
+          {:else}
+            <div class="flex justify-between items-center p-2">
+              <div class="flex flex-col">
+                <span class="text-sm">Map Labels</span>
+                <span class="text-xs text-surface-400">~28MB download</span>
+              </div>
+              <button
+                type="button"
+                class="btn btn-sm preset-filled-primary-500"
+                onclick={handleDownloadFonts}
+                disabled={fontsDownloading}
+              >
+                {fontsDownloading ? "Downloading..." : "Download"}
+              </button>
+            </div>
+          {/if}
         </Dialog.Description>
       </Dialog.Content>
     </Dialog.Positioner>

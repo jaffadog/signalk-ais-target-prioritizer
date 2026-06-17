@@ -38,7 +38,8 @@
     "mmsi-country-lookup": "^1.0.2",
     "nosleep.js": "^0.12.0",
     "partysocket": "^1.2.0",
-    "pmtiles": "^4.4.1"
+    "pmtiles": "^4.4.1",
+    "tar": "^7.5.16"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -52,7 +53,9 @@
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/vite": "^4.3.1",
     "@tsconfig/svelte": "^5.0.8",
-    "@types/node": "^25",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.3",
+    "@types/tar": "^6.1.13",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.19.0",

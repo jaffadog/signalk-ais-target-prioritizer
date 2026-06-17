@@ -2,6 +2,16 @@ export const METERS_PER_NM = 1852;
 export const KNOTS_PER_M_PER_S = 1.94384;
 export const R = 6371000; // meters
 
+//plugin options defaults
+export const DEFAULT_UPDATE_INTERVAL_DELAY = 3; // seconds
+export const DEFAULT_MAXIMUM_TARGET_RANGE = 50; // NM
+export const DEFAULT_ENABLE_DATA_PUBLISHING = true;
+export const DEFAULT_ENABLE_ALARM_PUBLISHING = true;
+
+export const AGE_OUT_OLD_TARGETS = true;
+export const TARGET_MAX_AGE = 30 * 60; // max age in seconds - 30 minutes
+export const NO_GPS_FIX_WARNING = 30; // seconds
+
 export const COURSE_PROJECTION_MINUTES = 10; // 10 minutes
 export const LOST_VESSEL_WARNING_AGE = 10 * 60; // 10 minutes
 export const LOST_VESSEL_DELETE_AGE = 30 * 60; // 30 minutes

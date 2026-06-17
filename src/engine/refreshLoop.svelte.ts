@@ -28,7 +28,7 @@ const selectedVessel: Vessel | null = $derived(
     : null,
 );
 
-let timeoutId: number | null;
+let timeoutId: ReturnType<typeof setTimeout> | null;
 
 export function start() {
   console.log("start updateVesselsLoop");

@@ -2,7 +2,13 @@
 
 import { WebSocket } from "partysocket";
 import { createVessel, vessels, vesselsState } from "./vessels.svelte";
-import type { Context, Delta, PathValue, Update } from "@signalk/server-api";
+import type {
+  Context,
+  Delta,
+  PathValue,
+  SubscribeMessage,
+  Update,
+} from "@signalk/server-api";
 
 const hasValues = (
   update: Update,
@@ -196,7 +202,7 @@ export const subscription = {
     { path: "offPosition", period: 1000, policy: "fixed" },
     { path: "virtual", period: 1000, policy: "fixed" },
   ],
-};
+} as SubscribeMessage;
 
 // ==============================
 // Streaming with reconnect

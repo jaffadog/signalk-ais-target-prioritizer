@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, type Snippet } from "svelte";
+  import { onMount } from "svelte";
   import { toaster } from "./utils/toaster";
   import { Toast } from "@skeletonlabs/skeleton-svelte";
 

@@ -1,3 +1,11 @@
+import {
+  type Plugin,
+  type ServerAPI,
+  type Context,
+  type Path,
+  type Unsubscribes,
+  type Notification,
+} from "@signalk/server-api";
 import fs from "node:fs";
 import path from "node:path";
 import * as npmPackage from "../../package.json";
@@ -14,57 +22,76 @@ import {
   setCollisionProfiles,
 } from "../engine/collisionProfiles.svelte";
 import { muteAllAlarms, setAlarmIsMuted } from "../engine/alarms.svelte";
-import { METERS_PER_NM } from "../engine/constants";
+import {
+  AGE_OUT_OLD_TARGETS,
+  DEFAULT_ENABLE_ALARM_PUBLISHING,
+  DEFAULT_ENABLE_DATA_PUBLISHING,
+  DEFAULT_MAXIMUM_TARGET_RANGE,
+  DEFAULT_UPDATE_INTERVAL_DELAY,
+  METERS_PER_NM,
+  NO_GPS_FIX_WARNING,
+  TARGET_MAX_AGE,
+} from "../engine/constants";
+import { registerAssetEndpoints } from "./font-downloader";
+import { schema } from "./schema";
+import type { Vessel } from "../types";
 
-const AGE_OUT_OLD_TARGETS = true;
-const TARGET_MAX_AGE = 30 * 60; // max age in seconds - 30 minutes
-const NO_GPS_FIX_WARNING = 30; // seconds
+const myVessel = $derived(
+  vesselsState.myVesselMmsi !== undefined
+    ? vessels[vesselsState.myVesselMmsi]
+    : null,
+);
 
-const DEFAULT_UPDATE_INTERVAL_DELAY = 3; // seconds
-const DEFAULT_MAXIMUM_TARGET_RANGE = 50; // NM
-const DEFAULT_ENABLE_DATA_PUBLISHING = true;
-const DEFAULT_ENABLE_ALARM_PUBLISHING = true;
-
-function normalizeOptions(raw = {}) {
-  return {
-    updateIntervalDelay:
-      raw.updateIntervalDelay ?? DEFAULT_UPDATE_INTERVAL_DELAY,
-    maximumTargetRange: raw.maximumTargetRange ?? DEFAULT_MAXIMUM_TARGET_RANGE,
-    enableDataPublishing:
-      raw.enableDataPublishing ?? DEFAULT_ENABLE_DATA_PUBLISHING,
-    enableAlarmPublishing:
-      raw.enableAlarmPublishing ?? DEFAULT_ENABLE_ALARM_PUBLISHING,
-  };
+interface Options {
+  enabled: boolean;
+  updateIntervalDelay: number;
+  maximumTargetRange: number;
+  enableDataPublishing: boolean;
+  enableAlarmPublishing: boolean;
 }
 
-const myVessel = $derived(vessels[vesselsState.myVesselMmsi]);
+let timeoutId: NodeJS.Timeout | null;
 
-let timeoutId;
+let updateIntervalDelay: number;
+let maximumTargetRange: number;
+let enableDataPublishing: boolean;
+let enableAlarmPublishing: boolean;
 
-let options;
-let updateIntervalDelay;
-let maximumTargetRange;
-let enableDataPublishing;
-let enableAlarmPublishing;
+export default function (app: ServerAPI) {
+  let unsubscribes: Unsubscribes = [];
 
-export default function (app) {
-  let plugin = {};
-  let unsubscribes = [];
+  const plugin: Plugin = {
+    id: npmPackage.name,
+    name: npmPackage.signalk.displayName,
+    description: npmPackage.description,
+    schema,
+    start,
+    stop,
+  };
 
-  plugin.id = npmPackage.name;
-  plugin.name = npmPackage.signalk.displayName;
-  plugin.description = npmPackage.description;
-
-  plugin.start = (_options) => {
-    app.debug(`*** Starting plugin ${plugin.id} with options=`, _options);
-    options = normalizeOptions(_options);
-    updateIntervalDelay = options.updateIntervalDelay;
-    maximumTargetRange = options.maximumTargetRange;
-    enableDataPublishing = options.enableDataPublishing;
-    enableAlarmPublishing = options.enableAlarmPublishing;
+  function start(
+    options: Options,
+    _restart: (newConfiguration: object) => void,
+  ) {
+    app.debug(`*** Starting plugin ${plugin.id}`, { options });
+    updateIntervalDelay =
+      options.updateIntervalDelay ?? DEFAULT_UPDATE_INTERVAL_DELAY;
+    maximumTargetRange =
+      options.maximumTargetRange ?? DEFAULT_MAXIMUM_TARGET_RANGE;
+    enableDataPublishing =
+      options.enableDataPublishing ?? DEFAULT_ENABLE_DATA_PUBLISHING;
+    enableAlarmPublishing =
+      options.enableAlarmPublishing ?? DEFAULT_ENABLE_ALARM_PUBLISHING;
     loadCollisionProfiles();
 
-    vesselsState.myVesselMmsi = app.getSelfPath("mmsi");
+    const mmsi: string = app.getSelfPath("mmsi") as string;
+
+    if (!mmsi) {
+      app.error("ERROR - no mmsi set for our vessel");
+      throw new Error("ERROR - no mmsi set for our vessel");
+    }
+
+    vesselsState.myVesselMmsi = mmsi;
 
     if (enableDataPublishing || enableAlarmPublishing) {
       enablePluginCpaCalculations();
@@ -72,59 +99,22 @@ export default function (app) {
       // if plugin was stopped and started again with options set to not perform calculations, then clear out old targets
       deleteAllVessels();
     }
-  };
+  }
 
-  plugin.stop = async () => {
+  function stop() {
     app.debug(`Stopping plugin ${plugin.id}`);
     unsubscribes.forEach((f) => f());
     unsubscribes = [];
     stopUpdating();
     app.debug(`Stopped plugin ${plugin.id}`);
-  };
-
-  plugin.schema = {
-    type: "object",
-    description: "Note: edit CPA warning and alarm settings in the webapp.",
-    properties: {
-      updateIntervalDelay: {
-        title: "Update Interval (Seconds)",
-        description: `Number of seconds between target data updates (default is ${DEFAULT_UPDATE_INTERVAL_DELAY} seconds).`,
-        type: "number",
-        minimum: 1,
-        default: DEFAULT_UPDATE_INTERVAL_DELAY,
-      },
-      maximumTargetRange: {
-        title: "Ignore Targets Further Than (NM)",
-        description: `(default is ${DEFAULT_MAXIMUM_TARGET_RANGE} NM).`,
-        type: "number",
-        minimum: 5,
-        default: DEFAULT_MAXIMUM_TARGET_RANGE,
-      },
-      enableDataPublishing: {
-        title:
-          "Publish AIS Target CPA, TCPA, Range, Bearing, Priority, and Alarm Status to Signal K (navigation.closestApproach). This is not required if just using the webapp.",
-        description: `(default is ${DEFAULT_ENABLE_DATA_PUBLISHING}).`,
-        type: "boolean",
-        default: DEFAULT_ENABLE_DATA_PUBLISHING,
-      },
-      enableAlarmPublishing: {
-        title:
-          "Publish AIS Target CPA and Guard warning/alarm notifications to Signal K (notifications.navigation.closestApproach). This is not required if just using the webapp.",
-        description: `(default is ${DEFAULT_ENABLE_ALARM_PUBLISHING}).`,
-        type: "boolean",
-        default: DEFAULT_ENABLE_ALARM_PUBLISHING,
-      },
-    },
-  };
+  }
 
   plugin.registerWithRouter = (router) => {
-    // GET /plugins/${plugin.id}/loadCollisionProfiles
     router.get("/loadCollisionProfiles", (_req, res) => {
       app.debug("loadCollisionProfiles", collisionProfiles);
       res.json(collisionProfiles);
     });
 
-    // PUT /plugins/${plugin.id}/saveCollisionProfiles
     router.put("/saveCollisionProfiles", (req, res) => {
       try {
         const newCollisionProfiles = req.body;
@@ -133,22 +123,17 @@ export default function (app) {
         saveCollisionProfiles();
         res.json(collisionProfiles);
       } catch (error) {
-        app.error(
-          "ERROR - not saving invalid new collision profiles",
-          req.body,
-        );
-        res.status(400).json({ error: error.message });
+        app.error("ERROR - not saving invalid new collision profiles");
+        res.status(400).json({ error });
       }
     });
 
-    // GET /plugins/${plugin.id}/muteAllAlarms
     router.get("/muteAllAlarms", (_req, res) => {
       app.debug("muteAllAlarms");
       muteAllAlarms();
       res.json();
     });
 
-    // GET /plugins/${plugin.id}/setAlarmIsMuted/:mmsi/:alarmIsMuted
     router.get("/setAlarmIsMuted/:mmsi/:alarmIsMuted", (req, res) => {
       const mmsi = req.params.mmsi;
       const alarmIsMuted = req.params.alarmIsMuted === "true";
@@ -157,15 +142,13 @@ export default function (app) {
       res.json();
     });
 
-    // GET /plugins/${plugin.id}/getVessels
     router.get("/getVessels", (_req, res) => {
       app.debug("getVessels");
       res.json(vessels);
     });
 
-    // GET /plugins/${plugin.id}/getVessel/:mmsi
     router.get("/getVessel/:mmsi", (req, res) => {
-      let mmsi = req.params.mmsi;
+      const mmsi = req.params.mmsi;
       app.debug("getVessel", mmsi);
       if (mmsi in vessels) {
         res.json(vessels[mmsi]);
@@ -173,7 +156,40 @@ export default function (app) {
         res.status(404).end();
       }
     });
+
+    registerAssetEndpoints(router);
   };
+
+  // FIXME dupe
+  // function start(options: Options, restartPlugin: () => void): void {
+  //   app.debug(`*** Starting plugin ${plugin.id}`, { options });
+  //   updateIntervalDelay =
+  //     options.updateIntervalDelay ?? DEFAULT_UPDATE_INTERVAL_DELAY;
+  //   maximumTargetRange =
+  //     options.maximumTargetRange ?? DEFAULT_MAXIMUM_TARGET_RANGE;
+  //   enableDataPublishing =
+  //     options.enableDataPublishing ?? DEFAULT_ENABLE_DATA_PUBLISHING;
+  //   enableAlarmPublishing =
+  //     options.enableAlarmPublishing ?? DEFAULT_ENABLE_ALARM_PUBLISHING;
+
+  //   loadCollisionProfiles();
+
+  //   const mmsi: string = app.getSelfPath("mmsi") as string;
+
+  //   if (!mmsi) {
+  //     app.error("ERROR - no mmsi set for our vessel");
+  //     throw new Error("ERROR - no mmsi set for our vessel");
+  //   }
+
+  //   vesselsState.myVesselMmsi = mmsi;
+
+  //   if (enableDataPublishing || enableAlarmPublishing) {
+  //     enablePluginCpaCalculations();
+  //   } else {
+  //     // if plugin was stopped and started again with options set to not perform calculations, then clear out old targets
+  //     deleteAllVessels();
+  //   }
+  // }
 
   // load saved collision profiles from signalk server
   function loadCollisionProfiles() {
@@ -198,26 +214,26 @@ export default function (app) {
         saveCollisionProfiles();
       }
     } catch (err) {
-      app.error("Error reading collisionProfiles.json:", err);
-      throw new Error("Error reading collisionProfiles.json:", err);
+      app.error("Error reading collisionProfiles.json");
+      throw new Error("Error reading collisionProfiles.json:", { cause: err });
     }
   }
 
   function saveCollisionProfiles() {
     app.debug("saving ", collisionProfiles);
 
-    let dataDirPath = app.getDataDirPath();
+    const dataDirPath = app.getDataDirPath();
 
     if (!fs.existsSync(dataDirPath)) {
       try {
         fs.mkdirSync(dataDirPath, { recursive: true });
       } catch (err) {
-        app.error("Error creating dataDirPath:", err);
-        throw new Error("Error creating dataDirPath:", err);
+        app.error("Error creating dataDirPath");
+        throw new Error("Error creating dataDirPath:", { cause: err });
       }
     }
 
-    let collisionProfilesPath = path.join(
+    const collisionProfilesPath: string = path.join(
       dataDirPath,
       "collisionProfiles.json",
     );
@@ -228,8 +244,8 @@ export default function (app) {
         JSON.stringify(collisionProfiles, null, 2),
       );
     } catch (err) {
-      app.error("Error writing collisionProfiles.json:", err);
-      throw new Error("Error writing collisionProfiles.json:", err);
+      app.error("Error writing collisionProfiles.json");
+      throw new Error("Error writing collisionProfiles.json:", { cause: err });
     }
   }
 
@@ -241,7 +257,7 @@ export default function (app) {
         app.error(`Error:${subscriptionError}`);
       },
       (delta) => {
-        queueVesselUpdates(delta.context, delta.updates);
+        if (delta.context) queueVesselUpdates(delta.context, delta.updates);
       },
     );
 
@@ -269,7 +285,11 @@ export default function (app) {
 
   function evaluateVessels() {
     try {
-      if (myVessel?.lastSeenSecondsAgo > NO_GPS_FIX_WARNING) {
+      if (
+        myVessel &&
+        myVessel.lastSeenSecondsAgo !== undefined &&
+        myVessel.lastSeenSecondsAgo > NO_GPS_FIX_WARNING
+      ) {
         const message = `No GPS position received for more than ${myVessel?.lastSeenSecondsAgo} seconds`;
         app.debug(message); // we use app.debug rather than app.error so that the user can filter these out of the log
         app.setPluginError(message);
@@ -281,16 +301,8 @@ export default function (app) {
 
       for (const vessel of Object.values(vessels)) {
         const ignore =
-          vessel.range === null ||
+          vessel.range === undefined ||
           vessel.range / METERS_PER_NM > maximumTargetRange;
-
-        // app.debug(
-        //   ">>>>>>>>>>>>",
-        //   enableDataPublishing,
-        //   vessel.mmsi,
-        //   vesselsState.myVesselMmsi,
-        //   ignore,
-        // );
 
         if (
           enableDataPublishing &&
@@ -321,7 +333,11 @@ export default function (app) {
           hasAlarm = true;
         }
 
-        if (AGE_OUT_OLD_TARGETS && vessel.lastSeenSecondsAgo > TARGET_MAX_AGE) {
+        if (
+          AGE_OUT_OLD_TARGETS &&
+          vessel.lastSeenSecondsAgo !== undefined &&
+          vessel.lastSeenSecondsAgo > TARGET_MAX_AGE
+        ) {
           app.debug(
             "ageing out vessel",
             vessel.mmsi,
@@ -339,18 +355,18 @@ export default function (app) {
 
       app.setPluginStatus(`Watching ${Object.keys(vessels).length} targets`);
     } catch (err) {
-      app.debug("error in refreshDataModel", err.message, err);
+      app.debug("error in refreshDataModel", err);
     }
   }
 
-  function pushTargetDataToSignalK(vessel) {
+  function pushTargetDataToSignalK(vessel: Vessel): void {
     app.handleMessage(plugin.id, {
-      context: vessel.context,
+      context: vessel.context as Context,
       updates: [
         {
           values: [
             {
-              path: "navigation.closestApproach",
+              path: "navigation.closestApproach" as Path,
               value: {
                 distance: vessel.cpa,
                 timeTo: vessel.tcpa,
@@ -369,14 +385,14 @@ export default function (app) {
 
   // FIXME - we should probably shift these to the vessel context rather than self
   // FIXME - need to research the current stste of signalk notificatuons with ack features and such
-  function sendNotification(state, message) {
+  function sendNotification(state: string, message: string): void {
     // app.debug("sendNotification", state, message);
-    let delta = {
+    const delta = {
       updates: [
         {
           values: [
             {
-              path: "notifications.navigation.closestApproach",
+              path: "notifications.navigation.closestApproach" as Path,
               value: {
                 state: state,
                 method: ["visual", "sound"],
@@ -394,8 +410,8 @@ export default function (app) {
   function hasAlarmNotification() {
     const notifications = app.getSelfPath(
       "notifications.navigation.closestApproach",
-    );
-    return notifications?.value?.state === "alarm";
+    ) as Notification;
+    return notifications?.state === "alarm";
   }
 
   return plugin;
