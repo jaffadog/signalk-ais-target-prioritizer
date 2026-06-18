@@ -2,6 +2,7 @@ import type { Map, StyleSpecification } from "maplibre-gl";
 import { buildStyle } from "../app/resolveMapConfig";
 import { ui } from "../app/ui.svelte";
 import { DEFAULT_BASEMAP } from "./constants";
+import { name as PLUGIN_ID } from "../../package.json";
 
 export const mapState = $state<{
   instance: Map | null;
@@ -9,12 +10,17 @@ export const mapState = $state<{
   basemapId: string;
   styleId: string | null;
   openSeaMap: boolean;
+  protomapsFontsAvailable: boolean;
+  fontsDownloading: boolean;
 }>({
   instance: null,
   loaded: false,
   basemapId: localStorage.getItem("basemap") ?? DEFAULT_BASEMAP,
   styleId: null,
   openSeaMap: localStorage.getItem("openseamap") === "true",
+  protomapsFontsAvailable:
+    localStorage.getItem("protomapsFontsAvailable") === "true",
+  fontsDownloading: false,
 });
 
 export function setStyle() {
@@ -50,4 +56,23 @@ export function setStyle() {
 
 export function getStyleId(): string {
   return `${mapState.basemapId}-${String(ui.darkMode)}`;
+}
+
+export async function checkFontsAvailable() {
+  const res = await fetch(`/plugins/${PLUGIN_ID}/fonts-available`).catch(
+    () => null,
+  );
+  mapState.protomapsFontsAvailable = res?.ok ?? false;
+}
+
+export async function handleDownloadFonts() {
+  mapState.fontsDownloading = true;
+  await fetch(`/plugins/${PLUGIN_ID}/download-fonts`, { method: "POST" });
+  mapState.fontsDownloading = false;
+  await checkFontsAvailable();
+}
+
+export async function handleRemoveFonts() {
+  await fetch(`/plugins/${PLUGIN_ID}/remove-fonts`, { method: "POST" });
+  await checkFontsAvailable();
 }

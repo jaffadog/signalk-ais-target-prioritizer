@@ -143,22 +143,22 @@ export function calcLastSeenSecondsAgo(v: Vessel): number | undefined {
 
 export function calcIsLost(lastSeenSecondsAgo: number): boolean {
   return (
-    !Number.isFinite(lastSeenSecondsAgo) ||
+    !isValidNumber(lastSeenSecondsAgo) ||
     lastSeenSecondsAgo > LOST_VESSEL_WARNING_AGE
   );
 }
 
 export function calcIsValid(v: Vessel): boolean {
   // FIXME add filter for aged out targets
-  return Number.isFinite(v.latitude) && Number.isFinite(v.longitude);
+  return isValidNumber(v.latitude) && isValidNumber(v.longitude);
 }
 
 export function calcAlarms(
   activeCollisionProfile: CollisionProfile,
-  range: number,
-  sog: number,
-  cpa: number,
-  tcpa: number,
+  range: number | undefined,
+  sog: number | null,
+  cpa: number | undefined,
+  tcpa: number | undefined,
   mmsi: string,
 ) {
   const alarms: {
@@ -176,32 +176,32 @@ export function calcAlarms(
   try {
     // guard alarm
     alarms.guardAlarm =
-      Number.isFinite(range) &&
+      isValidNumber(range) &&
       range < activeCollisionProfile.guard.range * METERS_PER_NM &&
       (activeCollisionProfile.guard.speed === 0 ||
-        (Number.isFinite(sog) &&
+        (isValidNumber(sog) &&
           sog > activeCollisionProfile.guard.speed / KNOTS_PER_M_PER_S));
 
     // collision alarm
     alarms.collisionAlarm =
-      Number.isFinite(cpa) &&
+      isValidNumber(cpa) &&
       cpa < activeCollisionProfile.danger.cpa * METERS_PER_NM &&
-      Number.isFinite(tcpa) &&
+      isValidNumber(tcpa) &&
       tcpa > 0 &&
       tcpa < activeCollisionProfile.danger.tcpa &&
       (activeCollisionProfile.danger.speed === 0 ||
-        (Number.isFinite(sog) &&
+        (isValidNumber(sog) &&
           sog > activeCollisionProfile.danger.speed / KNOTS_PER_M_PER_S));
 
     // collision warning
     alarms.collisionWarning =
-      Number.isFinite(cpa) &&
+      isValidNumber(cpa) &&
       cpa < activeCollisionProfile.warning.cpa * METERS_PER_NM &&
-      Number.isFinite(tcpa) &&
+      isValidNumber(tcpa) &&
       tcpa > 0 &&
       tcpa < activeCollisionProfile.warning.tcpa &&
       (activeCollisionProfile.warning.speed === 0 ||
-        (Number.isFinite(sog) &&
+        (isValidNumber(sog) &&
           sog > activeCollisionProfile.warning.speed / KNOTS_PER_M_PER_S));
 
     alarms.sartAlarm = mmsi.startsWith("970");
@@ -229,7 +229,7 @@ export function calcAlarms(
       alarms.order = 20000;
     }
     // no alarm/warning - but has positive tcpa (closing)
-    else if (Number.isFinite(tcpa) && tcpa > 0) {
+    else if (isValidNumber(tcpa) && tcpa > 0) {
       alarms.alarmState = null;
       alarms.order = 30000;
     }
@@ -254,7 +254,7 @@ export function calcAlarms(
     }
 
     // sort sooner tcpa vessels to top
-    if (Number.isFinite(tcpa) && tcpa > 0) {
+    if (isValidNumber(tcpa) && tcpa > 0) {
       // sort vessels with any tcpa above vessels that dont have a tcpa
       alarms.order -= 1000;
       // tcpa of 0 seconds reduces order by 1000 (this is an arbitrary weighting)
@@ -264,7 +264,7 @@ export function calcAlarms(
     }
 
     // sort closer cpa vessels to top
-    if (Number.isFinite(cpa) && cpa > 0) {
+    if (isValidNumber(cpa) && cpa > 0) {
       // cpa of 0 nm reduces order by 2000 (this is an arbitrary weighting)
       // cpa of 5 nm reduces order by 0
       const weight = 2000;
@@ -275,7 +275,7 @@ export function calcAlarms(
     }
 
     // sort closer vessels to top
-    if (Number.isFinite(range) && range > 0) {
+    if (isValidNumber(range) && range > 0) {
       // range of 0 nm increases order by 0
       // range of 5 nm increases order by 500
       alarms.order += Math.round((100 * range) / METERS_PER_NM);
@@ -285,7 +285,7 @@ export function calcAlarms(
     // high positive rate of close decreases order
 
     // sort vessels with no range to bottom
-    if (!Number.isFinite(range)) {
+    if (!isValidNumber(range)) {
       alarms.order += 99999;
     }
   } catch (err: unknown) {
@@ -294,4 +294,19 @@ export function calcAlarms(
 
   // console.log({ alarms });
   return alarms;
+}
+
+export function isValidNumber(x: unknown): x is number {
+  return typeof x === "number" && Number.isFinite(x);
+}
+
+export function isValidLatLng(lat: unknown, lng: unknown): boolean {
+  return (
+    isValidNumber(lng) &&
+    isValidNumber(lat) &&
+    lng >= -180 &&
+    lng <= 180 &&
+    lat >= -90 &&
+    lat <= 90
+  );
 }

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { CheckIcon } from "@lucide/svelte";
   import { ui } from "../ui.svelte";
   import { mapState } from "../../engine/map.svelte";
@@ -7,7 +7,7 @@
   import { Switch } from "@skeletonlabs/skeleton-svelte";
   import { connectivity } from "../connectivity.svelte";
 
-  function selectBasemap(basemapId) {
+  function selectBasemap(basemapId: string) {
     mapState.basemapId = basemapId;
     ui.layersMenu.visible = false;
   }
@@ -22,7 +22,7 @@
   ></button>
 
   <div
-    class="absolute z-40 top-38.75 left-12 card bg-surface-100-900 border border-surface-200-800 shadow-xl min-w-40"
+    class="absolute z-40 top-38.75 left-12 card bg-surface-50-950 border border-surface-200-800 shadow-xl min-w-40"
   >
     {#each Object.values(basemaps) as basemap, i (basemap.id)}
       <button

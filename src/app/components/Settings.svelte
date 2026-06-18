@@ -1,7 +1,6 @@
 <script lang="ts">
   import { XIcon } from "@lucide/svelte";
   import { Dialog, Portal, Switch } from "@skeletonlabs/skeleton-svelte";
-  import { name as PLUGIN_ID } from "../../../package.json";
 
   // The following animation is optional.
   // This may also be included inline.
@@ -15,6 +14,13 @@
   import { collisionProfiles } from "../../engine/collisionProfiles.svelte";
   import { type ProfileName } from "../../types";
   import { onMount } from "svelte";
+  import {
+    checkFontsAvailable,
+    handleDownloadFonts,
+    handleRemoveFonts,
+    mapState,
+  } from "../../engine/map.svelte";
+  import DarkModeSwith from "./DarkModeSwith.svelte";
 
   // console.log("ENTER Settings");
 
@@ -24,11 +30,11 @@
     checkFontsAvailable();
   });
 
-  function handleActiveProfileChange(e: Event) {
+  async function handleActiveProfileChange(e: Event) {
     collisionProfiles.current = (e.currentTarget as HTMLSelectElement)
       .value as ProfileName;
     console.log(collisionProfiles.current);
-    saveCollisionProfiles(collisionProfiles);
+    await saveCollisionProfiles(collisionProfiles);
   }
 
   function handleEditProfiles() {
@@ -51,15 +57,6 @@
     }
   }
 
-  function handleDarkMode(e: { checked: boolean }) {
-    ui.darkMode = e.checked;
-    if (ui.darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }
-
   function handleFullScreen(e: { checked: boolean }) {
     fullScreen = e.checked;
     if (fullScreen) {
@@ -67,28 +64,6 @@
     } else {
       document.exitFullscreen();
     }
-  }
-
-  let fontsAvailable = $state<boolean | undefined>(undefined);
-  let fontsDownloading = $state(false);
-
-  async function checkFontsAvailable() {
-    const res = await fetch(`/plugins/${PLUGIN_ID}/fonts-available`).catch(
-      () => null,
-    );
-    fontsAvailable = res?.ok ?? false;
-  }
-
-  async function handleDownloadFonts() {
-    fontsDownloading = true;
-    await fetch(`/plugins/${PLUGIN_ID}/download-fonts`, { method: "POST" });
-    fontsDownloading = false;
-    await checkFontsAvailable();
-  }
-
-  async function handleRemoveFonts() {
-    await fetch(`/plugins/${PLUGIN_ID}/remove-fonts`, { method: "POST" });
-    await checkFontsAvailable();
   }
 </script>
 
@@ -104,7 +79,7 @@
       class="fixed inset-0 z-50 flex justify-center items-center p-4"
     >
       <Dialog.Content
-        class="card bg-surface-100-900 w-full max-w-sm p-4 space-y-4 shadow-xl {animation}"
+        class="card bg-surface-50-950 w-full max-w-sm p-4 space-y-4 shadow-xl {animation}"
       >
         <header class="flex justify-between items-center">
           <Dialog.Title class="text-lg font-bold">Settings</Dialog.Title>
@@ -142,6 +117,9 @@
             onclick={handleMuteAllAlarms}>Mute All Alarms</button
           >
 
+          <!-- dark mode -->
+          <DarkModeSwith />
+
           <!-- no sleep -->
           <Switch
             class="flex justify-between p-2"
@@ -151,19 +129,6 @@
             <Switch.Label
               >Prevent screen sleeping in iOS and Android</Switch.Label
             >
-            <Switch.HiddenInput />
-            <Switch.Control>
-              <Switch.Thumb />
-            </Switch.Control>
-          </Switch>
-
-          <!-- dark mode -->
-          <Switch
-            class="flex justify-between p-2"
-            onCheckedChange={handleDarkMode}
-            checked={ui.darkMode}
-          >
-            <Switch.Label>Dark Mode</Switch.Label>
             <Switch.HiddenInput />
             <Switch.Control>
               <Switch.Thumb />
@@ -184,11 +149,11 @@
           </Switch>
 
           <!-- map labels / font pack -->
-          {#if fontsAvailable === undefined}
+          {#if mapState.protomapsFontsAvailable === undefined}
             <div class="flex items-center gap-2 p-2">
               <span class="text-sm">Checking map labels...</span>
             </div>
-          {:else if fontsAvailable}
+          {:else if mapState.protomapsFontsAvailable}
             <div class="flex justify-between items-center p-2">
               <span class="text-sm">Map Labels Installed</span>
               <button
@@ -207,9 +172,9 @@
                 type="button"
                 class="btn btn-sm preset-filled-primary-500"
                 onclick={handleDownloadFonts}
-                disabled={fontsDownloading}
+                disabled={mapState.fontsDownloading}
               >
-                {fontsDownloading ? "Downloading..." : "Download"}
+                {mapState.fontsDownloading ? "Downloading..." : "Download"}
               </button>
             </div>
           {/if}

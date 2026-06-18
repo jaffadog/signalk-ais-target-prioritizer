@@ -7,7 +7,21 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*            light      dark    */
+/* bs error   #F3D8DB    #280D0E */
+/* bs warn    #FDF4D1    #312808 */
+
+[data-theme="cerberus"] {
+  /* --spacing: 0.22rem; */
+  /* --radius-container: 0.375rem; */
+  /* --heading-font-weight: bolder; */
+}
+
 @layer components {
+  /* .card {
+    background-color: var(--color-surface-50-950);
+  } */
+
   .map-button {
     background-color: var(--color-surface-raised);
     color: var(--color-content);

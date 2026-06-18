@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { getCounts } from "../../engine/alarms.svelte";
   let c = $derived(getCounts());
 </script>

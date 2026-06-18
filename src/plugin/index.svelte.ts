@@ -37,9 +37,7 @@ import { schema } from "./schema";
 import type { Vessel } from "../types";
 
 const myVessel = $derived(
-  vesselsState.myVesselMmsi !== undefined
-    ? vessels[vesselsState.myVesselMmsi]
-    : null,
+  vesselsState.myVesselMmsi ? vessels[vesselsState.myVesselMmsi] : null,
 );
 
 interface Options {

@@ -3,11 +3,11 @@ import type { Vessel } from "../types";
 // reactive state objects:
 export const vessels = $state<Record<string, Vessel>>({});
 export const vesselsState = $state<{
-  myVesselMmsi: string | undefined;
-  selectedVesselMmsi: string | undefined;
+  myVesselMmsi: string | null;
+  selectedVesselMmsi: string | null;
 }>({
-  myVesselMmsi: undefined,
-  selectedVesselMmsi: undefined,
+  myVesselMmsi: null,
+  selectedVesselMmsi: null,
 });
 
 export function createVessel(mmsi: string, context: string): Vessel {

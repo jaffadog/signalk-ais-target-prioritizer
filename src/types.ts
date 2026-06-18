@@ -88,3 +88,11 @@ export interface CustomButtonControlOptions {
 }
 
 export type Position = [number, number];
+
+export type ThemeMode = "light" | "dark" | "system";
+
+export interface InitStep {
+  label: string;
+  status: "pending" | "loading" | "done" | "error";
+  fn: () => Promise<void>;
+}

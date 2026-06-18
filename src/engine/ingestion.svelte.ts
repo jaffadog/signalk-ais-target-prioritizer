@@ -222,7 +222,7 @@ function startStreaming(host: string) {
     const msg = JSON.parse(event.data) as Delta & { self?: string };
 
     if (msg.self) {
-      vesselsState.myVesselMmsi = extractMmsi(msg.self);
+      vesselsState.myVesselMmsi = extractMmsi(msg.self) ?? null;
       return;
     }
 

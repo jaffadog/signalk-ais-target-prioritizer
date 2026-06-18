@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { notificationState } from "../notification.svelte";
   import { Dialog, Portal } from "@skeletonlabs/skeleton-svelte";
   import { CircleX } from "@lucide/svelte";

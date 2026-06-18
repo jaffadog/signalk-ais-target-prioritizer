@@ -3,4 +3,4 @@
 /public
 /node_modules
 *.tgz
-# src/app/public/assets/protomaps
+src/app/public/assets/protomaps

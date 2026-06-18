@@ -1,6 +1,9 @@
+import ky from "ky";
 import {
   CHECK_ONLINE_INTERVAL,
+  CHECK_ONLINE_TIMEOUT,
   DEFAULT_OFFLINE_BASEMAP,
+  PROBE_URL,
 } from "../engine/constants";
 import { mapState } from "../engine/map.svelte";
 import { basemaps } from "./basemaps.svelte";
@@ -13,59 +16,70 @@ export const connectivity = $state({
 });
 
 export async function getConnectivity(): Promise<boolean> {
-  //   console.log("ENTER getConnectivity");
-  //   const start = performance.now();
-
-  let online: boolean = false;
-
   try {
-    await fetch("https://www.google.com/favicon.ico", {
-      method: "HEAD",
-      signal: AbortSignal.timeout(3000),
-      mode: "no-cors", // bypass CORS — won't throw on block, just on network failure
+    await ky.head(PROBE_URL, {
+      timeout: CHECK_ONLINE_TIMEOUT,
+      mode: "no-cors",
+      retry: 0, // we'll handle retry logic ourselves
     });
-    online = true;
+    return true;
   } catch {
-    // ignore
+    return false;
   }
-
-  return online;
 }
 
-let prevOnline: boolean | undefined = undefined;
+let prevOnline: boolean | undefined;
+let attempt = 0;
+const retryLimit = 2;
 
-export function checkConnectivity(): Promise<void> {
-  console.log(">>> ENTER checkConnectivity");
-  return getConnectivity().then((online: boolean) => {
-    if (!online) {
-      if (basemaps[mapState.basemapId]?.online) {
-        mapState.basemapId = DEFAULT_OFFLINE_BASEMAP;
-      }
-      mapState.openSeaMap = false;
-      toggleOpenSeaMap(false);
+export async function checkConnectivity(): Promise<void> {
+  attempt++;
+  const online = await getConnectivity();
+
+  // console.log("TRY checkConnectivity", {
+  //   prevOnline,
+  //   online,
+  //   attempt,
+  //   retryLimit,
+  // });
+
+  // retry only if we transition from online to offline
+  if (prevOnline && !online && attempt < retryLimit) {
+    // console.log("RETRY checkConnectivity");
+    setTimeout(checkConnectivity, 5000);
+    return;
+  }
+
+  attempt = 0;
+
+  connectivity.online = online;
+
+  if (!connectivity.online) {
+    if (basemaps[mapState.basemapId]?.online) {
+      mapState.basemapId = DEFAULT_OFFLINE_BASEMAP;
     }
+    mapState.openSeaMap = false;
+    toggleOpenSeaMap(false);
+  }
 
-    connectivity.online = online;
+  if (prevOnline === false && connectivity.online) {
+    toaster.success({
+      title: "Online",
+      description:
+        "You are online. Map layers that require internet access have been enabled",
+      duration: 5000,
+    });
+  } else if (prevOnline !== false && !connectivity.online) {
+    toaster.warning({
+      title: "Offline",
+      description:
+        "You are offline. Map layers that require internet access have been disabled",
+      duration: 5000,
+    });
+  }
 
-    if (prevOnline === false && online) {
-      toaster.success({
-        title: "Online",
-        description:
-          "Internet access detected. Map layers that require internet access have been enabled",
-        duration: 5000,
-      });
-    } else if (prevOnline !== false && !online) {
-      toaster.warning({
-        title: "Offline",
-        description:
-          "No internet access detected. Map layers that require internet access have been disabled",
-        duration: 5000,
-      });
-    }
-
-    prevOnline = online;
-    console.log(">>> EXIT checkConnectivity", connectivity.online);
-  });
+  prevOnline = connectivity.online;
+  console.log(">>> EXIT checkConnectivity", connectivity.online);
 }
 
 // check periodically

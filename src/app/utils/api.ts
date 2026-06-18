@@ -33,7 +33,7 @@ export async function saveCollisionProfiles(data: CollisionProfiles) {
     return;
   }
 
-  ky.put(`/plugins/${PLUGIN_ID}/saveCollisionProfiles`, {
+  await ky.put(`/plugins/${PLUGIN_ID}/saveCollisionProfiles`, {
     credentials: "include",
     json: data,
   });

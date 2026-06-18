@@ -31,15 +31,15 @@
 
 <Dialog
   open={ui.editProfiles.visible}
-  onOpenChange={(e) => {
+  onOpenChange={async (e) => {
     ui.editProfiles.visible = e.open;
     if (!e.open) {
-      saveCollisionProfiles(collisionProfiles);
       toaster.success({
         title: "Saving configuration...",
         description: null,
         duration: 5000,
       });
+      await saveCollisionProfiles(collisionProfiles);
     }
   }}
 >
@@ -49,7 +49,7 @@
       class="fixed inset-0 z-50 flex justify-center items-center p-4"
     >
       <Dialog.Content
-        class="flex flex-col card bg-surface-100-900 w-full max-w-xl gap-4 p-4 shadow-xl {animation} h-122 max-h-[90vh]"
+        class="flex flex-col card bg-surface-50-950 w-full max-w-xl gap-4 p-4 shadow-xl {animation} h-122 max-h-[90vh]"
       >
         <!-- header -->
         <header class="flex justify-between items-center">
@@ -61,7 +61,7 @@
 
         <!-- body -->
         <div
-          class="flex-1 overflow-y-scroll card w-full h-full preset-filled-surface-100-900 border border-surface-200-800 divide-surface-200-800 block divide-y"
+          class="flex-1 overflow-y-scroll card w-full h-full preset-outlined-surface-500 border border-surface-200-800 divide-surface-200-800 block divide-y"
         >
           <!-- buttons -->
           <div class="flex items-end gap-4 p-4">

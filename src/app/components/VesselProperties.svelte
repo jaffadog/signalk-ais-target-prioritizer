@@ -21,7 +21,7 @@
     formatTcpa,
   } from "../utils/formatUtils";
   import { getCountryFromMMSI } from "mmsi-country-lookup";
-  import { toDeg } from "../../engine/calculations";
+  import { isValidNumber, toDeg } from "../../engine/calculations";
   import { ui } from "../ui.svelte";
   import { vessels, vesselsState } from "../../engine/vessels.svelte";
   import { setAlarmIsMuted } from "../../engine/alarms.svelte";
@@ -211,7 +211,9 @@
                   <dt class="font-medium">COG</dt>
 
                   <dd class=" sm:col-span-2">
-                    {formatAngle(toDeg(selectedVessel.cog)) ?? "---"}
+                    {isValidNumber(selectedVessel.cog)
+                      ? formatAngle(toDeg(selectedVessel.cog))
+                      : "---"}
                   </dd>
                 </div>
 
@@ -221,7 +223,9 @@
                   <dt class="font-medium">HDG</dt>
 
                   <dd class=" sm:col-span-2">
-                    {formatAngle(toDeg(selectedVessel.hdg)) ?? "---"}
+                    {isValidNumber(selectedVessel.hdg)
+                      ? formatAngle(toDeg(selectedVessel.hdg))
+                      : "---"}
                   </dd>
                 </div>
               {/if}
@@ -233,7 +237,9 @@
                   <dt class="font-medium">Rate of Turn</dt>
 
                   <dd class=" sm:col-span-2">
-                    {formatRateOfTurn(selectedVessel.rot) ?? "---"}
+                    {isValidNumber(selectedVessel.rot)
+                      ? formatRateOfTurn(toDeg(selectedVessel.rot))
+                      : "---"}
                   </dd>
                 </div>
               {/if}
@@ -336,7 +342,9 @@
                   <dt class="font-medium">Draft</dt>
 
                   <dd class=" sm:col-span-2">
-                    {formatDraft(selectedVessel.draft) ?? "---"}
+                    {isValidNumber(selectedVessel.draft)
+                      ? formatDraft(selectedVessel.draft)
+                      : "---"}
                   </dd>
                 </div>
 
@@ -375,7 +383,9 @@
                 <dt class="font-medium">Lat</dt>
 
                 <dd class=" sm:col-span-2">
-                  {formatLat(selectedVessel.latitude) ?? "---"}
+                  {isValidNumber(selectedVessel.latitude)
+                    ? formatLat(selectedVessel.latitude)
+                    : "---"}
                 </dd>
               </div>
 
@@ -383,7 +393,9 @@
                 <dt class="font-medium">Lon</dt>
 
                 <dd class=" sm:col-span-2">
-                  {formatLon(selectedVessel.longitude) ?? "---"}
+                  {isValidNumber(selectedVessel.longitude)
+                    ? formatLon(selectedVessel.longitude)
+                    : "---"}
                 </dd>
               </div>
             </dl>

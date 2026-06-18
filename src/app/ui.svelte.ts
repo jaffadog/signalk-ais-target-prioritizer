@@ -1,8 +1,12 @@
+import type { ThemeMode } from "../types";
+
 export const ui = $state({
   visible: undefined,
   width: undefined,
   noSleep: false,
-  darkMode: localStorage.getItem("theme") === "dark",
+  themeMode: (localStorage.getItem("theme") as ThemeMode) ?? "system",
+  darkMode: false,
+  // darkMode: localStorage.getItem("theme") === "dark",
   vesselProperties: {
     visible: false,
   },
@@ -25,3 +29,10 @@ export const ui = $state({
     visible: false,
   },
 });
+
+export function resolveIsDark(mode: ThemeMode): boolean {
+  if (mode === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  return mode === "dark";
+}

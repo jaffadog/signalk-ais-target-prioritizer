@@ -7,6 +7,7 @@ import { layers, namedFlavor, type Flavor } from "@protomaps/basemaps";
 import darkMatter from "./styles/dark-matter.json";
 import positron from "./styles/positron.json";
 import { name as pluginName } from "../../package.json";
+import { mapState } from "../engine/map.svelte";
 
 const DEFAULT_DARK_BACKGROUND_COLOR = "#2E353B";
 const DEFAULT_LIGHT_BACKGROUND_COLOR = "#D5DADC";
@@ -72,8 +73,12 @@ export function buildPmtilesStyle(url: string, theme: Theme = "light") {
   const flavor: Flavor = namedFlavor(theme);
   return {
     version: 8 as const,
-    glyphs: `${window.location.origin}/${pluginName}/assets/protomaps/fonts/{fontstack}/{range}.pbf`,
-    sprite: `${window.location.origin}/${pluginName}/assets/protomaps/sprites/v4/${theme}`,
+    ...(mapState.protomapsFontsAvailable
+      ? {
+          glyphs: `${window.location.origin}/${pluginName}/assets/protomaps/fonts/{fontstack}/{range}.pbf`,
+          sprite: `${window.location.origin}/${pluginName}/assets/protomaps/sprites/v4/${theme}`,
+        }
+      : {}),
     sources: {
       protomaps: {
         type: "vector" as const,
@@ -85,7 +90,7 @@ export function buildPmtilesStyle(url: string, theme: Theme = "light") {
     layers: [
       // FIXME testing filtering the labels out - so that we dont need to bundle 28MB of fonts 😭
       ...layers("protomaps", flavor, { lang: "en" }).filter(
-        (layer) => layer.type !== "symbol",
+        (layer) => mapState.protomapsFontsAvailable || layer.type !== "symbol",
       ),
       ...buildSharedLayers(),
     ],

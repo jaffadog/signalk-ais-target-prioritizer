@@ -28,7 +28,7 @@ const selectedVessel: Vessel | null = $derived(
     : null,
 );
 
-let timeoutId: ReturnType<typeof setTimeout> | null;
+let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
 export function start() {
   console.log("start updateVesselsLoop");
@@ -38,7 +38,7 @@ export function start() {
 export function stop() {
   if (!timeoutId) return;
   clearTimeout(timeoutId);
-  timeoutId = null;
+  timeoutId = undefined;
 }
 
 function updateVesselsLoop() {
@@ -90,19 +90,14 @@ export function updateVessels() {
           ? calcIsLost(lastSeenSecondsAgo)
           : false;
       const { alarmType, alarmState, order } =
-        range !== undefined &&
-        v.sog !== null &&
-        cpa !== undefined &&
-        tcpa !== undefined
-          ? (calcAlarms(
-              getActiveCollisionProfile(),
-              range,
-              v.sog,
-              cpa,
-              tcpa,
-              mmsi,
-            ) ?? {})
-          : {};
+        calcAlarms(
+          getActiveCollisionProfile(),
+          range,
+          v.sog,
+          cpa,
+          tcpa,
+          mmsi,
+        ) ?? {};
 
       v.range = range;
       v.bearing = bearing;

@@ -108,7 +108,12 @@ export async function initCollisionProfiles() {
       duration: Infinity,
     });
     resetCollisionProfiles();
-    saveCollisionProfiles(collisionProfiles);
+    try {
+      await saveCollisionProfiles(collisionProfiles);
+    } catch (err) {
+      console.error("saveCollisionProfiles failed:", err);
+      throw err; // rethrow to trackedInit for red icon
+    }
   }
   console.log(">>> EXIT initCollisionProfiles");
 }

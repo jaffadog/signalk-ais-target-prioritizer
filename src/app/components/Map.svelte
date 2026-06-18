@@ -1,5 +1,14 @@
-<script>
-  import maplibregl, { AttributionControl } from "maplibre-gl";
+<script lang="ts">
+  import type { GeoJSON, Feature, Geometry, GeoJsonProperties } from "geojson";
+
+  import maplibregl, {
+    AttributionControl,
+    GeoJSONSource,
+    LngLat,
+    Map,
+    type EaseToOptions,
+    type LngLatLike,
+  } from "maplibre-gl";
   import "maplibre-gl/dist/maplibre-gl.css";
 
   import { Protocol } from "pmtiles";
@@ -42,6 +51,9 @@
   import LayersMenu from "./LayersMenu.svelte";
   import { toaster } from "../utils/toaster";
   import { buildStyle } from "../resolveMapConfig";
+  import { isValidNumber } from "../../engine/calculations";
+  import type { Vessel } from "../../types";
+  import type { Coord } from "@turf/helpers";
 
   export const VESSEL_ICON_LAYERS = [
     "vessels-icons-viewport",
@@ -54,16 +66,22 @@
   let isCourseUp = $state(false);
   let isMyVesselInCenter = $state(true);
   // let isBrowserVisible = $state(document.visibilityState === "visible");
-  let container = $state();
+  let container: HTMLElement | undefined = $state();
 
-  const myVessel = $derived(vessels[vesselsState.myVesselMmsi]);
-  const selectedVessel = $derived(vessels[vesselsState.selectedVesselMmsi]);
+  const myVessel = $derived(
+    vesselsState.myVesselMmsi ? vessels[vesselsState.myVesselMmsi] : undefined,
+  );
+  const selectedVessel = $derived(
+    vesselsState.selectedVesselMmsi
+      ? vessels[vesselsState.selectedVesselMmsi]
+      : undefined,
+  );
 
   // let map;
 
-  let updateMapLoopTimeoutId = null;
-  let myVesselPreviousPosition = null;
-  let programmaticMapCenter = null;
+  let updateMapLoopTimeoutId: ReturnType<typeof setTimeout> | undefined;
+  let myVesselPreviousPosition: LngLatLike;
+  let programmaticMapCenter: LngLat;
 
   let updateMapInprogress = false;
 
@@ -103,7 +121,7 @@
     console.log("setting up maplibre", mapState.basemapId, ui.darkMode, style);
 
     const map = new maplibregl.Map({
-      container,
+      container: container!,
       fadeDuration: 0, // prevents blinks
       style: style,
       attributionControl: false,
@@ -241,16 +259,18 @@
 
       const center = map.getCenter();
 
-      // if user manually changed map center:
+      // check if user manually changed map center:
       if (programmaticMapCenter) {
         const tol = 1e-8;
         if (
-          Math.abs(center.lng - programmaticMapCenter.lng) > tol ||
-          Math.abs(center.lat - programmaticMapCenter.lat) > tol
+          myVessel &&
+          isValidNumber(myVessel.longitude) &&
+          isValidNumber(myVessel.latitude) &&
+          (Math.abs(center.lng - programmaticMapCenter.lng) > tol ||
+            Math.abs(center.lat - programmaticMapCenter.lat) > tol)
         ) {
           isMyVesselInCenter = false;
-          myVesselPreviousPosition = [myVessel?.longitude, myVessel?.latitude];
-          // console.log("my vesssel off center");
+          myVesselPreviousPosition = [myVessel.longitude, myVessel.latitude];
         }
       }
     });
@@ -280,7 +300,8 @@
       // click to close/collapse/compact, because the above does not work
       const attrBtn = map
         .getContainer()
-        .querySelector(".maplibregl-ctrl-attrib-button"); // as HTMLButtonElement;
+        .querySelector(".maplibregl-ctrl-attrib-button") as HTMLButtonElement;
+
       attrBtn?.click();
     }); // end map on load
 
@@ -301,12 +322,19 @@
 
     untrack(() => {
       console.log("EFFECT vessel selected");
-      // check and subscribe:
-      if (!vesselsState.selectedVesselMmsi) return;
+      if (
+        !mapState.instance ||
+        !myVessel ||
+        !selectedVessel ||
+        !isValidNumber(selectedVessel.tcpa) ||
+        !isValidNumber(myVessel.latitude) ||
+        !isValidNumber(myVessel.longitude) ||
+        !isValidNumber(selectedVessel.latitude) ||
+        !isValidNumber(selectedVessel.longitude)
+      )
+        return;
 
-      if (!myVessel || !selectedVessel) return;
-
-      const lngLats = [
+      const lngLats: LngLatLike[] = [
         [myVessel.longitude, myVessel.latitude],
         [selectedVessel.longitude, selectedVessel.latitude],
       ];
@@ -411,27 +439,41 @@
   function stopUpdateMapLoop() {
     console.log("STOP map update loop", { updateMapLoopTimeoutId });
     clearTimeout(updateMapLoopTimeoutId);
-    updateMapLoopTimeoutId = null;
+    updateMapLoopTimeoutId = undefined;
   }
 
   function updateVesselFeatures() {
     // console.log("ENTER updateVesselFeatures");
     if (!mapState.instance || !mapState.loaded) return;
 
-    // get vessel features
-    const features = Object.values(vessels)
-      .filter((v) => v.isValid)
-      .map(vesselToFeature);
+    const features: Feature<Geometry, GeoJsonProperties>[] = [];
 
-    mapState.instance.getSource("vessels")?.setData({
-      type: "FeatureCollection",
-      features,
-    });
+    for (const vessel of Object.values(vessels)) {
+      if (!vessel.isValid) continue;
+
+      const feature = vesselToFeature(vessel);
+      if (feature) features.push(feature);
+    }
+
+    const vesselsSource = mapState.instance.getSource(
+      "vessels",
+    ) as GeoJSONSource;
+
+    if (vesselsSource)
+      vesselsSource.setData({
+        type: "FeatureCollection",
+        features,
+      });
 
     // console.log("EXIT updateVesselFeatures");
   }
 
-  function vesselToFeature(vessel) {
+  function vesselToFeature(
+    vessel: Vessel,
+  ): Feature<Geometry, GeoJsonProperties> | undefined {
+    if (!isValidNumber(vessel.latitude) || !isValidNumber(vessel.longitude))
+      return;
+
     const iconName = getVesselIconName(vessel);
 
     return {
@@ -443,7 +485,7 @@
       properties: {
         mmsi: vessel.mmsi,
         icon: iconName,
-        order: -vessel.order,
+        order: vessel.order ? -vessel.order : Infinity,
         isLarge:
           vessel.alarmState !== null ||
           vessel.mmsi === vesselsState.selectedVesselMmsi,
@@ -462,9 +504,9 @@
           iconName.startsWith("vessel-sart")
             ? "viewport"
             : "map",
-        rotate: Number.isFinite(vessel.hdg)
+        rotate: isValidNumber(vessel.hdg)
           ? toDeg(vessel.hdg)
-          : Number.isFinite(vessel.cog)
+          : isValidNumber(vessel.cog)
             ? toDeg(vessel.cog)
             : 0,
       },
@@ -503,12 +545,12 @@
       stepNm = 2 * Math.round(stepNm / 2);
     }
 
-    const radii = [];
+    const radii: number[] = [];
     for (let i = 1; i <= 6; i++) {
       radii.push(i * stepNm);
     }
 
-    const rangeRingFeatures = {
+    const rangeRingFeatures: GeoJSON<Geometry, GeoJsonProperties> = {
       type: "FeatureCollection",
       features: radii.map((radiusNm) =>
         circle([lon, lat], radiusNm, {
@@ -518,12 +560,18 @@
       ),
     };
 
-    if (mapState.instance.getSource("range-rings")) {
-      mapState.instance.getSource("range-rings").setData(rangeRingFeatures);
-      mapState.instance
-        .getSource("range-labels")
-        ?.setData(buildLabels([lon, lat], radii));
-    }
+    const rangeRimgsSource = mapState.instance.getSource(
+      "range-rings",
+    ) as GeoJSONSource;
+
+    if (rangeRimgsSource) rangeRimgsSource.setData(rangeRingFeatures);
+
+    const rangeLebelsSource = mapState.instance.getSource(
+      "range-labels",
+    ) as GeoJSONSource;
+
+    if (rangeLebelsSource)
+      rangeLebelsSource.setData(buildLabels([lon, lat], radii));
   }
 
   async function updateCamera() {
@@ -552,9 +600,9 @@
         isDragPanActive ||
         isMapMoving ||
         !myVessel ||
-        !Number.isFinite(lon) ||
-        !Number.isFinite(lat) ||
-        !Number.isFinite(cog)
+        !isValidNumber(lon) ||
+        !isValidNumber(lat) ||
+        !isValidNumber(cog)
       ) {
         // console.log("cancelling updateCamera", {
         //   isDragPanActive,
@@ -585,7 +633,7 @@
         // if my vessel is not in the center of the map, then:
         // keep my vessel in the same position on screen
         // rotate the screen around my vessel (not map center)
-        const newLngLat = [lon, lat];
+        const newLngLat = new LngLat(lon, lat);
 
         if (myVesselPreviousPosition) {
           const myVesselScreenPos = mapState.instance.project(
@@ -637,18 +685,21 @@
     // console.log("updateCamera finish");
   }
 
-  function easeToAsync(map, options) {
-    return new Promise((resolve) => {
+  function easeToAsync(map: Map, options: EaseToOptions): Promise<void> {
+    return new Promise<void>((resolve) => {
       map.easeTo(options);
       if (map.isMoving()) {
-        map.once("moveend", resolve);
+        map.once("moveend", () => resolve());
       } else {
         resolve();
       }
     });
   }
 
-  function labelPoints(center, radiusNm) {
+  function labelPoints(
+    center: Coord,
+    radiusNm: number,
+  ): Feature<Geometry, GeoJsonProperties>[] {
     const top = destination(center, radiusNm, 0, {
       units: "nauticalmiles",
     });
@@ -670,7 +721,10 @@
     ];
   }
 
-  function buildLabels(center, radii) {
+  function buildLabels(
+    center: Coord,
+    radii: number[],
+  ): GeoJSON<Geometry, GeoJsonProperties> {
     return {
       type: "FeatureCollection",
       features: radii.flatMap((r) => labelPoints(center, r)),
@@ -681,7 +735,7 @@
     // console.log("ENTER predictorFeatures computed");
     if (!mapState.instance || !mapState.loaded) return;
 
-    const features = [];
+    const features: Feature<Geometry, GeoJsonProperties>[] = [];
 
     for (const vessel of Object.values(vessels)) {
       const lat = vessel.latitude;
@@ -732,10 +786,15 @@
       }
     }
 
-    mapState.instance.getSource("predictors")?.setData({
-      type: "FeatureCollection",
-      features,
-    });
+    const predictorsSource = mapState.instance.getSource(
+      "predictors",
+    ) as GeoJSONSource;
+
+    if (predictorsSource)
+      predictorsSource.setData({
+        type: "FeatureCollection",
+        features,
+      });
 
     // console.log("EXIT predictorFeatures computed");
   }
@@ -757,7 +816,7 @@
     }
   }
 
-  let stickyToaster = null;
+  let stickyToaster: string | null;
 
   function checkForErrors() {
     // dont report any errors until past warmup
@@ -779,7 +838,8 @@
 
     if (ingestion.connectionState === CONNECTED && getCounts().total === 0) {
       if (!stickyToaster) {
-        stickyToaster = toaster.info({
+        stickyToaster = toaster.create({
+          type: "info",
           title: "No Other Vessels",
           description:
             "No AIS data from other vessels has been received by Signal K server. You're all alone out here.",

@@ -3,14 +3,8 @@
 import type { Basemap } from "./basemap.types";
 import { getPmtiles } from "./utils/api";
 
-// FIXME maybe we should not present both light and dark carto maps... let dark mode toggle them
-// Street Map — CARTO (light/dark auto)
-// Satellite — ESRI
-// Offline — PMTiles
 /*
 
-empty map
-...
 
       // style: "https://demotiles.maplibre.org/globe.json", // style URL
       // style: "https://tiles.openfreemap.org/styles/liberty",
@@ -91,26 +85,6 @@ pmtiles extract https://build.protomaps.com/20260610.pmtiles south-pacific.pmtil
     }
 }
 
-var chart;
-var layer;
-for (const key in charts) {
-  chart = charts[key];
-  if (chart.format === "mvt") {
-    layer = protomapsL.leafletLayer({
-      url: chart.tilemapUrl,
-      maxDataZoom: chart.maxzoom,
-      paintRules: paintRules,
-      labelRules: labelRules,
-    });
-  } else {
-    layer = L.tileLayer(chart.tilemapUrl, {
-      maxZoom: chart.maxzoom,
-      attribution: "",
-    });
-  }
-  baseMaps[chart.name] = layer;
-}
-
 */
 
 // export const basemaps = {
@@ -141,7 +115,7 @@ export const basemaps: Record<string, Basemap> = $state({
   },
 });
 
-// populate pmtiles entries into basemaps on module load
+// add pmtiles entries into basemaps
 export async function initBasemaps() {
   console.log(">>> ENTER initBasemaps");
   const pmtiles = await getPmtiles();
@@ -155,14 +129,3 @@ export async function initBasemaps() {
   }
   console.log(">>> EXIT initBasemaps");
 }
-
-export const pmtilesReady = getPmtiles().then((pmtiles) => {
-  for (const pmtile of pmtiles) {
-    basemaps[pmtile] = {
-      id: pmtile,
-      label: pmtile,
-      type: "signalk-protomaps-pmtiles",
-      online: false,
-    };
-  }
-});

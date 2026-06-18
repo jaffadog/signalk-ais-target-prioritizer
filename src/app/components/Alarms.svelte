@@ -57,12 +57,12 @@
       class="fixed inset-0 z-50 flex justify-center items-center p-4"
     >
       <Dialog.Content
-        class="card preset-filled-error-500 w-md p-4 space-y-2 shadow-xl"
+        class="flex flex-col card preset-filled-error-500 w-md p-4 space-y-2 shadow-xl max-h-[90vh]"
       >
         <Dialog.Title class="text-xl font-semibold flex items-center gap-2"
           ><TriangleAlert />Alarms</Dialog.Title
         >
-        <Dialog.Description>
+        <Dialog.Description class="flex-1 overflow-y-auto">
           {#each alarms as a (a.mmsi)}
             <button
               class="w-full text-left hover:preset-tonal-error rounded px-2 py-1 uppercase"

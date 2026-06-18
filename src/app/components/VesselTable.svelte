@@ -22,6 +22,7 @@
   import { vessels, vesselsState } from "../../engine/vessels.svelte";
   import { type Vessel } from "../../types";
   import { ui } from "../ui.svelte";
+  import { isValidNumber } from "../../engine/calculations";
 
   console.log("TABLE render");
 
@@ -35,22 +36,34 @@
       .sort((a, b) => {
         switch (sortBy) {
           case "tcpa":
-            return sortNullToLast(a.tcpa) - sortNullToLast(b.tcpa);
+            return (
+              sortInvalidNumbersToBottom(a.tcpa) -
+              sortInvalidNumbersToBottom(b.tcpa)
+            );
           case "cpa":
-            return sortNullToLast(a.cpa) - sortNullToLast(b.cpa);
+            return (
+              sortInvalidNumbersToBottom(a.cpa) -
+              sortInvalidNumbersToBottom(b.cpa)
+            );
           case "range":
-            return sortNullToLast(a.range) - sortNullToLast(b.range);
+            return (
+              sortInvalidNumbersToBottom(a.range) -
+              sortInvalidNumbersToBottom(b.range)
+            );
           case "name":
             return a.name.localeCompare(b.name);
           case "priority":
           default:
-            return a.order - b.order;
+            return (
+              sortInvalidNumbersToBottom(a.order) -
+              sortInvalidNumbersToBottom(b.order)
+            );
         }
       }),
   );
 
-  function sortNullToLast(a: number | null) {
-    return a === null ? Infinity : a;
+  function sortInvalidNumbersToBottom(a: number | null | undefined) {
+    return isValidNumber(a) ? a : Infinity;
   }
 
   function handleClickRow(mmsi: string) {
@@ -65,6 +78,11 @@
   }
 
   function getVesselColor(t: Vessel) {
+    // if (t.alarmState === "danger")
+    //   return "bg-yellow-100 dark:bg-yellow-950 font-medium";
+    // if (t.alarmState === "danger")
+    //   return "bg-red-100 dark:bg-red-950 font-medium";
+
     if (t.alarmState === "danger") return "preset-tonal-error font-medium";
     if (t.alarmState === "warning") return "preset-tonal-warning font-medium";
     return "bg-surface-50-950";
@@ -155,21 +173,25 @@
             </thead>
 
             <tbody class="divide-y divide-border">
-              {#each sortedVessels as t (t.mmsi)}
+              {#each sortedVessels as vessel (vessel.mmsi)}
                 <tr
-                  class={`group cursor-pointer  hover:bg-surface-raised ${getVesselColor(t)} text-right`}
-                  onclick={() => handleClickRow(t.mmsi)}
+                  class={`group cursor-pointer ${getVesselColor(vessel)} text-right`}
+                  onclick={() => handleClickRow(vessel.mmsi)}
                 >
                   <td
-                    class={`sticky left-0 z-20 flex items-center text-left  group-hover:bg-surface-raised ${getVesselColor(t)} border-b-0 px-3 py-0.5 font-medium`}
+                    class={`sticky left-0 z-20 flex items-center text-left ${getVesselColor(vessel)} border-b-0 px-3 py-0.5 font-medium`}
                   >
                     <span
                       class="me-2 inline-flex h-10 w-10 items-center justify-center [&>svg]:h-full [&>svg]:w-full"
                     >
-                      {@html getVesselSvg(t.mmsi, t.aisClass, t.typeId)}
+                      {@html getVesselSvg(
+                        vessel.mmsi,
+                        vessel.aisClass,
+                        vessel.typeId,
+                      )}
                     </span>
-                    {formatName(t.mmsi, t.name)}
-                    {#if t.alarmIsMuted}
+                    {formatName(vessel.mmsi, vessel.name)}
+                    {#if vessel.alarmIsMuted}
                       <span class="ms-2 [&>svg]:h-4 [&>svg]:w-auto"
                         >{@html muteSvg}</span
                       >
@@ -177,20 +199,23 @@
                   </td>
 
                   <td class="px-3 py-2 whitespace-nowrap">
-                    {formatAngle(t.bearing)}
+                    {formatAngle(vessel.bearing)}
                   </td>
                   <td class="px-3 py-2 whitespace-nowrap">
-                    {formatDistance(t.range)}
+                    {formatDistance(vessel.range)}
                   </td>
                   <td class="px-3 py-2 whitespace-nowrap">
-                    {formatSpeed(t.sog)}
+                    {formatSpeed(vessel.sog)}
                   </td>
                   <td class="px-3 py-2 whitespace-nowrap">
-                    {formatCpa(t.cpa, t.tcpa)}
+                    {formatCpa(vessel.cpa, vessel.tcpa)}
                   </td>
                   <td class="px-3 py-2 whitespace-nowrap">
-                    {formatTcpa(t.tcpa)}
+                    {formatTcpa(vessel.tcpa)}
                   </td>
+                  <!-- <td>{vessel.order}</td> -->
+                  <!-- <td>{vessel.alarmState}</td> -->
+                  <!-- <td>{vessel.alarmType}</td> -->
                 </tr>
               {/each}
             </tbody>
