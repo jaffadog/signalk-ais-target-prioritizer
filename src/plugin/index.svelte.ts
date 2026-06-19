@@ -269,7 +269,7 @@ export default function (app: ServerAPI) {
     evaluateVessels();
 
     app.debug(
-      `refreshed ${Object.keys(vessels).length} targets in ${(performance.now() - start).toFixed(1)}ms`,
+      `refreshed ${Object.keys(vessels).length - 1} targets in ${(performance.now() - start).toFixed(1)}ms`,
     );
 
     timeoutId = setTimeout(updateVesselsLoop, updateIntervalDelay * 1000);
@@ -291,7 +291,7 @@ export default function (app: ServerAPI) {
         const message = `No GPS position received for more than ${myVessel?.lastSeenSecondsAgo} seconds`;
         app.debug(message); // we use app.debug rather than app.error so that the user can filter these out of the log
         app.setPluginError(message);
-        sendNotification("alarm", message);
+        sendNotification({ state: "alarm", message: message });
         return;
       }
 
@@ -324,9 +324,17 @@ export default function (app: ServerAPI) {
             `${vessel.alarmState === "danger" ? "alarm" : vessel.alarmState}`
           ).toUpperCase();
           if (vessel.alarmState === "warning") {
-            sendNotification("warn", message);
+            sendNotification({
+              state: "warn",
+              message: message,
+              context: vessel.context as Context,
+            });
           } else if (vessel.alarmState === "danger") {
-            sendNotification("alarm", message);
+            sendNotification({
+              state: "alarm",
+              message: message,
+              context: vessel.context as Context,
+            });
           }
           hasAlarm = true;
         }
@@ -348,7 +356,11 @@ export default function (app: ServerAPI) {
 
       // if there are no active alarms, yet still an alarm notification, then clean the alarm notification
       if (!hasAlarm && hasAlarmNotification()) {
-        sendNotification("normal", "watching");
+        sendNotification({
+          state: "normal",
+          message: "watching",
+          // context: vessel.context,
+        });
       }
 
       app.setPluginStatus(`Watching ${Object.keys(vessels).length} targets`);
@@ -383,9 +395,18 @@ export default function (app: ServerAPI) {
 
   // FIXME - we should probably shift these to the vessel context rather than self
   // FIXME - need to research the current stste of signalk notificatuons with ack features and such
-  function sendNotification(state: string, message: string): void {
+  function sendNotification({
+    state,
+    message,
+    context,
+  }: {
+    state: string;
+    message: string;
+    context?: Context;
+  }): void {
     // app.debug("sendNotification", state, message);
     const delta = {
+      ...(context ? { context: context } : {}),
       updates: [
         {
           values: [
