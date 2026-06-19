@@ -3,6 +3,7 @@ import { name as PLUGIN_ID } from "../../../package.json";
 import type { CollisionProfiles } from "../../types";
 import { isValidCollisionProfiles } from "../../engine/validateCollisionProfiles";
 import { toaster } from "./toaster";
+import type { Chart } from "@signalk/server-api";
 
 export async function loadCollisionProfiles() {
   console.log("loading collision profiles");
@@ -47,9 +48,10 @@ export async function getPmtiles() {
 }
 
 export async function getCharts() {
-  const data = await ky("/signalk/v1/api/resources/charts", {
+  const data: Chart[] = await ky("/signalk/v2/api/resources/charts", {
     credentials: "include",
   }).json();
+  console.log(data);
   return data;
 }
 

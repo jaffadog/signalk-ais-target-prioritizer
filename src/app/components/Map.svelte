@@ -26,13 +26,7 @@
   } from "../../engine/constants";
   import { formatVesselLabel } from "../utils/formatUtils";
   import { getVesselIconName, registerAllIcons } from "../utils/vesselIcons";
-  import {
-    compassSvg,
-    gearSvg,
-    layersSvg,
-    listSvg,
-    locationSvg,
-  } from "../utils/svg";
+  import { compassSvg } from "../utils/svg";
   import { onMount, untrack } from "svelte";
   import { CONNECTED, ingestion } from "../../engine/ingestion.svelte";
   import { calcCpaLocation, toDeg } from "../../engine/calculations";
@@ -54,6 +48,10 @@
   import { isValidNumber } from "../../engine/calculations";
   import type { Vessel } from "../../types";
   import type { Coord } from "@turf/helpers";
+  import locateFixedSvg from "lucide-static/icons/locate-fixed.svg?raw";
+  import layersSvg from "lucide-static/icons/layers.svg?raw";
+  import listSvg from "lucide-static/icons/list.svg?raw";
+  import settingsSvg from "lucide-static/icons/settings.svg?raw";
 
   export const VESSEL_ICON_LAYERS = [
     "vessels-icons-viewport",
@@ -172,7 +170,8 @@
     map.addControl(
       new CustomButtonControl({
         title: "Center on my vessel",
-        svgIcon: locationSvg,
+        svgIcon: locateFixedSvg,
+        svgClass: "w-4 h-4 lucide-icon",
         onClick: () => {
           console.log("center on my vessel");
           isMyVesselInCenter = true;
@@ -187,6 +186,7 @@
       new CustomButtonControl({
         title: "Select cartography",
         svgIcon: layersSvg,
+        svgClass: "w-4 h-4 lucide-icon",
         onClick: () => {
           ui.layersMenu.visible = true;
         },
@@ -199,6 +199,7 @@
       new CustomButtonControl({
         title: "Vessel list",
         svgIcon: listSvg,
+        svgClass: "w-4 h-4 lucide-icon",
         onClick: () => {
           console.log("showVesselTable");
           ui.vesselTable.visible = true;
@@ -211,7 +212,8 @@
     map.addControl(
       new CustomButtonControl({
         title: "Settings",
-        svgIcon: gearSvg,
+        svgIcon: settingsSvg,
+        svgClass: "w-4 h-4 lucide-icon",
         onClick: () => {
           console.log("showSettings");
           ui.settings.visible = true;
@@ -487,7 +489,7 @@
         icon: iconName,
         order: vessel.order ? -vessel.order : Infinity,
         isLarge:
-          vessel.alarmState !== null ||
+          vessel.alarmState !== null &&
           vessel.mmsi === vesselsState.selectedVesselMmsi,
         isLost: vessel.isLost,
         isSelected: vessel.mmsi === vesselsState.selectedVesselMmsi,

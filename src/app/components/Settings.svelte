@@ -1,6 +1,11 @@
 <script lang="ts">
-  import { XIcon } from "@lucide/svelte";
-  import { Dialog, Portal, Switch } from "@skeletonlabs/skeleton-svelte";
+  import { Info, XIcon } from "@lucide/svelte";
+  import {
+    Dialog,
+    Popover,
+    Portal,
+    Switch,
+  } from "@skeletonlabs/skeleton-svelte";
 
   // The following animation is optional.
   // This may also be included inline.
@@ -165,7 +170,32 @@
           {:else}
             <div class="flex justify-between items-center p-2">
               <div class="flex flex-col">
-                <span class="text-sm">Map Labels</span>
+                <div class="flex align-middle">
+                  <span class="text-sm">Map Labels</span>
+                  <Popover>
+                    <Popover.Trigger
+                      ><Info class="size-4 ml-1" /></Popover.Trigger
+                    >
+                    <Portal>
+                      <Popover.Positioner class="z-50!">
+                        <Popover.Content
+                          class="card max-w-md p-4 bg-surface-100-900 shadow-xl"
+                        >
+                          <Popover.Description
+                            >If using Protomaps pmtiles offline maps, you can
+                            add map labels and symbols by downloading this font
+                            pack. This has no effect on any other map types.</Popover.Description
+                          >
+                          <Popover.Arrow
+                            class="[--arrow-size:--spacing(2)] [--arrow-background:var(--color-surface-100-900)]"
+                          >
+                            <Popover.ArrowTip />
+                          </Popover.Arrow>
+                        </Popover.Content>
+                      </Popover.Positioner>
+                    </Portal>
+                  </Popover>
+                </div>
                 <span class="text-xs text-surface-400">~28MB download</span>
               </div>
               <button

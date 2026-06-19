@@ -1,7 +1,7 @@
 // basemaps
 
 import type { Basemap } from "./basemap.types";
-import { getPmtiles } from "./utils/api";
+import { getCharts, getPmtiles } from "./utils/api";
 
 /*
 
@@ -118,14 +118,54 @@ export const basemaps: Record<string, Basemap> = $state({
 // add pmtiles entries into basemaps
 export async function initBasemaps() {
   console.log(">>> ENTER initBasemaps");
-  const pmtiles = await getPmtiles();
-  for (const pmtile of pmtiles) {
-    basemaps[pmtile] = {
-      id: pmtile,
-      label: pmtile,
-      type: "signalk-protomaps-pmtiles",
-      online: false,
-    };
+  try {
+    const charts = await getCharts();
+    console.log({ charts });
+    for (const chart of Object.values(charts)) {
+      console.log({ chart });
+      {
+        // "identifier": "south-pacific-pmtiles",
+        // "name": "south-pacific",
+        // "description": "",
+        // "type": "tilelayer",
+        // "scale": 250000,
+        // "minzoom": 0,
+        // "maxzoom": 15,
+        // "bounds": [
+        //     -176.5,
+        //     -23.5,
+        //     -157.5,
+        //     -9
+        // ],
+        // "format": "mvt",
+        // "url": "/signalk/pmtiles/south-pacific.pmtiles",
+        // "layers": [
+        //     "boundaries",
+        //     "buildings",
+        //     "earth",
+        //     "landcover",
+        //     "landuse",
+        //     "places",
+        //     "pois",
+        //     "roads",
+        //     "water"
+        // ]
+      }
+      if (
+        chart.format === "mvt" &&
+        chart.url.toLowerCase().endsWith(".pmtiles")
+      ) {
+        basemaps[chart.identifier] = {
+          id: chart.identifier,
+          label: chart.name,
+          type: "signalk-protomaps-pmtiles",
+          online: false,
+        };
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    throw e;
   }
   console.log(">>> EXIT initBasemaps");
 }

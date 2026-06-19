@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { XIcon } from "@lucide/svelte";
+  import { VolumeX, XIcon } from "@lucide/svelte";
   import { Dialog, Portal } from "@skeletonlabs/skeleton-svelte";
 
   // The following animations are optional.
@@ -18,7 +18,6 @@
     formatTcpa,
   } from "../utils/formatUtils";
   import { getVesselSvg } from "../utils/svgUtils";
-  import { muteSvg } from "../utils/svg";
   import { vessels, vesselsState } from "../../engine/vessels.svelte";
   import { type Vessel } from "../../types";
   import { ui } from "../ui.svelte";
@@ -192,9 +191,7 @@
                     </span>
                     {formatName(vessel.mmsi, vessel.name)}
                     {#if vessel.alarmIsMuted}
-                      <span class="ms-2 [&>svg]:h-4 [&>svg]:w-auto"
-                        >{@html muteSvg}</span
-                      >
+                      <VolumeX class="size-4 ms-2" />
                     {/if}
                   </td>
 

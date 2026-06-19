@@ -2,8 +2,7 @@
   import { onMount } from "svelte";
   import { toaster } from "./utils/toaster";
   import { Toast } from "@skeletonlabs/skeleton-svelte";
-  import { crossfade, fade } from "svelte/transition";
-  import { quintOut } from "svelte/easing";
+  import { fade } from "svelte/transition";
 
   // components:
   import Map from "./components/Map.svelte";
