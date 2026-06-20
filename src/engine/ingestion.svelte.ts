@@ -140,7 +140,7 @@ function upsertVessel(context: Context, updates: Update[]) {
   }
 }
 
-// FIXME make this more efficient by aggregating by vessel and attribute
+// TODO make this more efficient by aggregating by vessel and attribute
 export function queueVesselUpdates(context: Context, updates: Update[]) {
   if (!context || !updates?.length) return;
 

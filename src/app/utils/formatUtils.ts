@@ -91,14 +91,14 @@ export function formatVesselLabel(
   tcpa: number | undefined,
 ): string {
   let vesselLabelText = `${formatName(mmsi, name)}\n`;
+  // add speed if > 0.1 kn
   if (isValidNumber(sog) && sog > 0.1) {
     vesselLabelText += `${formatSpeed(sog)} `;
   }
+  // add cpa/tcpa if tcpa is less than 60 minutes
   if (isValidNumber(tcpa) && tcpa > 0 && tcpa < 3600 && isValidNumber(cpa)) {
-    vesselLabelText += `${formatCpa(cpa, tcpa)} `;
+    vesselLabelText += `${formatCpa(cpa, tcpa)} ${formatTcpa(tcpa)}`;
   }
-  if (isValidNumber(tcpa) && tcpa > 0 && tcpa < 3600) {
-    vesselLabelText += formatTcpa(tcpa);
-  }
-  return vesselLabelText.trim();
+  vesselLabelText += "\u00A0";
+  return vesselLabelText;
 }

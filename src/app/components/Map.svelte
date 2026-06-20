@@ -34,6 +34,7 @@
     alarmsState,
     getAlarmList,
     getCounts,
+    mute,
   } from "../../engine/alarms.svelte";
   import { vessels, vesselsState } from "../../engine/vessels.svelte";
   import { getStyleId, mapState, setStyle } from "../../engine/map.svelte";
@@ -52,6 +53,7 @@
   import layersSvg from "lucide-static/icons/layers.svg?raw";
   import listSvg from "lucide-static/icons/list.svg?raw";
   import settingsSvg from "lucide-static/icons/settings.svg?raw";
+  import { getMutedVessels } from "../utils/api";
 
   export const VESSEL_ICON_LAYERS = [
     "vessels-icons-viewport",
@@ -63,7 +65,6 @@
 
   let isCourseUp = $state(false);
   let isMyVesselInCenter = $state(true);
-  // let isBrowserVisible = $state(document.visibilityState === "visible");
   let container: HTMLElement | undefined = $state();
 
   const myVessel = $derived(
@@ -96,19 +97,13 @@
     // TODO include maps loaded from signalk chart provider
     // OpenStreetMap
     // OpenTopoMap
-    // FP
 
     // TODO add performance limiting parameters:
-    //        interval between refreshes
-    //        max distance for cpa calcs
     //        max distance for delta publishing
-    // TODO add rotating compass icon - maybe for map rotation button
 
-    // FIXME need to guard against alarms for own vessel. or no alams until we know who we are?
-    // FIXME range rid number style / position
     // TODO add indication of cpa ahead or behind my vessel
-    // FIXME look at https://www.npmjs.com/package/@fontsource/noto-sans
-    //    rather than including fonts in this project
+
+    // TODO look at using updateData rather than setData
 
     const protocol = new Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
@@ -291,6 +286,13 @@
       registerAllIcons(map);
       startUpdateMapLoop();
 
+      // this is a bit klugie. we're waiting 3 secs for vessels to fill in
+      // from sk. then we fetch which vessels are muted in the plugin - and
+      // apply that here.
+      setTimeout(async () => {
+        await backfillMutedVessels();
+      }, 3000);
+
       // FIXME does this have to be in onLoad?
       map.addControl(
         new AttributionControl({
@@ -416,9 +418,6 @@
     const start = performance.now();
     console.time("updateMap");
 
-    // FIXME we need to get existing muted vessels from the
-    // plugin and apply that status to vessels in the webapp
-
     updateVessels();
 
     updateRangeRingsFeatures();
@@ -444,6 +443,18 @@
     updateMapLoopTimeoutId = undefined;
   }
 
+  async function backfillMutedVessels() {
+    // FIXME we need to get existing muted vessels from the
+    // plugin and apply that status to vessels in the webapp
+    console.log(">>>> backfilling mutes");
+    const mutedVessels = await getMutedVessels();
+    for (const mutedVessel of mutedVessels) {
+      if (vessels[mutedVessel.mmsi]) {
+        mute(mutedVessel.mmsi);
+      }
+    }
+  }
+
   function updateVesselFeatures() {
     // console.log("ENTER updateVesselFeatures");
     if (!mapState.instance || !mapState.loaded) return;
@@ -451,8 +462,6 @@
     const features: Feature<Geometry, GeoJsonProperties>[] = [];
 
     for (const vessel of Object.values(vessels)) {
-      if (!vessel.isValid) continue;
-
       const feature = vesselToFeature(vessel);
       if (feature) features.push(feature);
     }
@@ -473,7 +482,11 @@
   function vesselToFeature(
     vessel: Vessel,
   ): Feature<Geometry, GeoJsonProperties> | undefined {
-    if (!isValidNumber(vessel.latitude) || !isValidNumber(vessel.longitude))
+    if (
+      !vessel.isValid ||
+      !isValidNumber(vessel.latitude) ||
+      !isValidNumber(vessel.longitude)
+    )
       return;
 
     const iconName = getVesselIconName(vessel);
@@ -487,7 +500,9 @@
       properties: {
         mmsi: vessel.mmsi,
         icon: iconName,
-        order: vessel.order ? -vessel.order : Infinity,
+        // low numbers on the bottom of z-index, big numbers on the top
+        // so we flip our "order"
+        order: vessel.order ? 999999 - vessel.order : 0,
         isLarge:
           vessel.alarmState !== null &&
           vessel.mmsi === vesselsState.selectedVesselMmsi,

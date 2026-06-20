@@ -58,11 +58,17 @@ export function buildSharedLayers(): LayerSpecification[] {
           ["literal", [0, 0.75]], // top label nudged down (inward)
           ["literal", [0, -0.75]], // bottom label nudged up (inward)
         ],
+        // "text-allow-overlap": true,
       },
       paint: {
         "text-color": getLabelColor(),
-        // "text-halo-color": "white",
+        // "text-halo-color": "red",
         // "text-halo-width": 1.5,
+
+        // "text-color": "#abb6be",
+        // "text-halo-color": "#d4dadc",
+        // "text-halo-width": 0.5,
+        // "text-halo-blur": 0,
       },
     },
 
@@ -143,6 +149,7 @@ export function buildSharedLayers(): LayerSpecification[] {
       type: "symbol",
       source: "vessels",
       layout: {
+        // TODO can we also use order here?
         "text-field": ["get", "labelText"],
         "text-font": ["Noto Sans Regular"],
         "text-size": 12,
@@ -151,6 +158,7 @@ export function buildSharedLayers(): LayerSpecification[] {
         "text-justify": "left",
         "text-max-width": 16,
         "text-line-height": 1.1,
+        "symbol-sort-key": ["get", "order"], // stack z-order by priority
         "text-allow-overlap": false,
         "text-ignore-placement": false,
       },
@@ -189,9 +197,6 @@ export function buildSharedLayers(): LayerSpecification[] {
 }
 
 export function getLabelColor() {
-  // FIXME probably need to consider colors per basemap
-  // or add halo/shadow
-  // or "neutral" basemaps get some treatment
   return ui.darkMode || mapState.basemapId === "satellite"
     ? DEFAULT_DARK_LABEL_COLOR
     : DEFAULT_LIGHT_LABEL_COLOR;

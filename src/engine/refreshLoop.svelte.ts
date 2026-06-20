@@ -1,6 +1,10 @@
 // setInterval - runs calcs, updates vessels
 
-import { DATA_REFRESH_INTERVAL } from "./constants";
+import {
+  AGE_OUT_OLD_TARGETS,
+  DATA_REFRESH_INTERVAL,
+  TARGET_MAX_AGE,
+} from "./constants";
 import {
   calcBearing,
   calcCpa,
@@ -14,7 +18,7 @@ import {
   calcIsValid,
   calcAlarms,
 } from "./calculations";
-import { vessels, vesselsState } from "./vessels.svelte";
+import { deleteVessel, vessels, vesselsState } from "./vessels.svelte";
 import { flushPendingUpdates } from "./ingestion.svelte";
 import { getActiveCollisionProfile } from "./collisionProfiles.svelte";
 import type { Vessel } from "../types";
@@ -50,36 +54,35 @@ export function updateVessels() {
   flushPendingUpdates();
 
   if (!myVessel) {
-    // FIXME we could do a toast for this... no my vessel... no gps... outdated gps...
     console.warn("no data for myVessel", { myVessel });
     return;
   }
 
   const myVelocity = calcVelocity(myVessel);
 
-  for (const [mmsi, v] of Object.entries(vessels)) {
+  for (const [mmsi, vessel] of Object.entries(vessels)) {
     // calculated from raw data:
-    const projection = calcProjection(v, myVessel);
-    const velocity = calcVelocity(v);
-    const predictedLocation = calcPredictedLocation(v);
-    const lastSeenSecondsAgo = calcLastSeenSecondsAgo(v);
-    const isValid = calcIsValid(v);
+    const projection = calcProjection(vessel, myVessel);
+    const velocity = calcVelocity(vessel);
+    const predictedLocation = calcPredictedLocation(vessel);
+    const lastSeenSecondsAgo = calcLastSeenSecondsAgo(vessel);
+    const isValid = calcIsValid(vessel);
     const cpaLocation =
       selectedVessel &&
       selectedVessel.tcpa !== undefined &&
       [vesselsState.myVesselMmsi, vesselsState.selectedVesselMmsi].includes(
         mmsi,
       )
-        ? calcCpaLocation(v, selectedVessel.tcpa)
+        ? calcCpaLocation(vessel, selectedVessel.tcpa)
         : undefined;
 
-    v.cpaLocation = cpaLocation;
-    v.predictedLocation = predictedLocation;
-    v.lastSeenSecondsAgo = lastSeenSecondsAgo;
-    v.isValid = isValid;
+    vessel.cpaLocation = cpaLocation;
+    vessel.predictedLocation = predictedLocation;
+    vessel.lastSeenSecondsAgo = lastSeenSecondsAgo;
+    vessel.isValid = isValid;
 
     // calculated from derived data:
-    if (v.mmsi !== vesselsState.myVesselMmsi) {
+    if (vessel.mmsi !== vesselsState.myVesselMmsi) {
       const range = projection ? calcRange(projection) : undefined;
       const bearing = projection ? calcBearing(projection) : undefined;
       const { cpa = undefined, tcpa = undefined } = projection
@@ -93,20 +96,28 @@ export function updateVessels() {
         calcAlarms(
           getActiveCollisionProfile(),
           range,
-          v.sog,
+          vessel.sog,
           cpa,
           tcpa,
           mmsi,
         ) ?? {};
 
-      v.range = range;
-      v.bearing = bearing;
-      v.cpa = cpa;
-      v.tcpa = tcpa;
-      v.isLost = isLost;
-      v.alarmType = alarmType;
-      v.alarmState = alarmState;
-      v.order = order;
+      vessel.range = range;
+      vessel.bearing = bearing;
+      vessel.cpa = cpa;
+      vessel.tcpa = tcpa;
+      vessel.isLost = isLost;
+      vessel.alarmType = alarmType;
+      vessel.alarmState = alarmState;
+      vessel.order = order;
+
+      if (
+        AGE_OUT_OLD_TARGETS &&
+        vessel.lastSeenSecondsAgo !== undefined &&
+        vessel.lastSeenSecondsAgo > TARGET_MAX_AGE
+      ) {
+        deleteVessel(vessel);
+      }
     }
-  }
+  } // end loop
 }

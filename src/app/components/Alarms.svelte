@@ -57,7 +57,7 @@
       class="fixed inset-0 z-50 flex justify-center items-center p-4"
     >
       <Dialog.Content
-        class="flex flex-col card preset-filled-error-500 w-md p-4 space-y-2 shadow-xl max-h-[90vh]"
+        class="flex flex-col card preset-filled-error-500 w-md p-4 space-y-2 shadow-xl max-h-[90dvh]"
       >
         <Dialog.Title class="text-xl font-semibold flex items-center gap-2"
           ><TriangleAlert />Alarms</Dialog.Title

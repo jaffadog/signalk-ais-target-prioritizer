@@ -88,7 +88,6 @@ export function buildPmtilesStyle(url: string, theme: Theme = "light") {
       ...sharedSources,
     },
     layers: [
-      // FIXME testing filtering the labels out - so that we dont need to bundle 28MB of fonts 😭
       ...layers("protomaps", flavor, { lang: "en" }).filter(
         (layer) => mapState.protomapsFontsAvailable || layer.type !== "symbol",
       ),

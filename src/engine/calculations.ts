@@ -149,7 +149,6 @@ export function calcIsLost(lastSeenSecondsAgo: number): boolean {
 }
 
 export function calcIsValid(v: Vessel): boolean {
-  // FIXME add filter for aged out targets
   return isValidNumber(v.latitude) && isValidNumber(v.longitude);
 }
 
@@ -188,7 +187,7 @@ export function calcAlarms(
       cpa < activeCollisionProfile.danger.cpa * METERS_PER_NM &&
       isValidNumber(tcpa) &&
       tcpa > 0 &&
-      tcpa < activeCollisionProfile.danger.tcpa &&
+      tcpa < activeCollisionProfile.danger.tcpa * 60 &&
       (activeCollisionProfile.danger.speed === 0 ||
         (isValidNumber(sog) &&
           sog > activeCollisionProfile.danger.speed / KNOTS_PER_M_PER_S));
@@ -199,7 +198,7 @@ export function calcAlarms(
       cpa < activeCollisionProfile.warning.cpa * METERS_PER_NM &&
       isValidNumber(tcpa) &&
       tcpa > 0 &&
-      tcpa < activeCollisionProfile.warning.tcpa &&
+      tcpa < activeCollisionProfile.warning.tcpa * 60 &&
       (activeCollisionProfile.warning.speed === 0 ||
         (isValidNumber(sog) &&
           sog > activeCollisionProfile.warning.speed / KNOTS_PER_M_PER_S));
@@ -207,37 +206,6 @@ export function calcAlarms(
     alarms.sartAlarm = mmsi.startsWith("970");
     alarms.mobAlarm = mmsi.startsWith("972");
     alarms.epirbAlarm = mmsi.startsWith("974");
-
-    //FIXME - need to clean up this order logic.
-    // vessels with alarm status must be at the top
-    // vessels with negative tcpa are very low priority
-
-    // alarm
-    if (
-      alarms.guardAlarm ||
-      alarms.collisionAlarm ||
-      alarms.sartAlarm ||
-      alarms.mobAlarm ||
-      alarms.epirbAlarm
-    ) {
-      alarms.alarmState = "danger";
-      alarms.order = 10000;
-    }
-    // warning
-    else if (alarms.collisionWarning) {
-      alarms.alarmState = "warning";
-      alarms.order = 20000;
-    }
-    // no alarm/warning - but has positive tcpa (closing)
-    else if (isValidNumber(tcpa) && tcpa > 0) {
-      alarms.alarmState = null;
-      alarms.order = 30000;
-    }
-    // no alarm/warning and moving away)
-    else {
-      alarms.alarmState = null;
-      alarms.order = 40000;
-    }
 
     const alarmList = [];
 
@@ -253,36 +221,69 @@ export function calcAlarms(
       alarms.alarmType = null;
     }
 
+    // ============ BASIC ALARM PRIORITY ORDERING ============
+
+    // alarm
+    if (
+      alarms.guardAlarm ||
+      alarms.collisionAlarm ||
+      alarms.sartAlarm ||
+      alarms.mobAlarm ||
+      alarms.epirbAlarm
+    ) {
+      alarms.alarmState = "danger";
+      alarms.order = 100000;
+    }
+    // warning
+    else if (alarms.collisionWarning) {
+      alarms.alarmState = "warning";
+      alarms.order = 200000;
+    }
+    // no alarm/warning - but has positive tcpa (closing)
+    else if (isValidNumber(tcpa) && tcpa > 0) {
+      alarms.alarmState = null;
+      alarms.order = 300000;
+    }
+    // no alarm/warning and moving away)
+    else {
+      alarms.alarmState = null;
+      alarms.order = 400000;
+    }
+
+    // ============ ADJUSTMENTS TO ALARM PRIORITY ORDERING ============
+
     // sort sooner tcpa vessels to top
     if (isValidNumber(tcpa) && tcpa > 0) {
-      // sort vessels with any tcpa above vessels that dont have a tcpa
-      alarms.order -= 1000;
-      // tcpa of 0 seconds reduces order by 1000 (this is an arbitrary weighting)
-      // tcpa of 60 minutes reduces order by 0
-      const weight = 1000;
-      alarms.order -= Math.max(0, Math.round(weight - (weight * tcpa) / 3600));
+      // tcpa of 0 seconds increases order by 0
+      // tcpa of 300 seconds (5 mins) increases order by 1000
+      // tcpa of 3600 seconds (1 hour) increases order by 12000
+      const factor = 3.333; // 1000 / 300;
+      // weight (points/s) * tcpa (s)
+      alarms.order += factor * tcpa;
     }
 
     // sort closer cpa vessels to top
     if (isValidNumber(cpa) && cpa > 0) {
-      // cpa of 0 nm reduces order by 2000 (this is an arbitrary weighting)
-      // cpa of 5 nm reduces order by 0
-      const weight = 2000;
-      alarms.order -= Math.max(
-        0,
-        Math.round(weight - (weight * cpa) / 5 / METERS_PER_NM),
-      );
+      // cpa of 0 nm increases order by 0
+      // cpa of 1 nm increases order by 1000
+      // cpa of 5 nm increases order by 5000
+      // cpa of 10 nm increases order by 10000
+      const factor = 1000; // 1000 / 1;
+      alarms.order += (factor * cpa) / METERS_PER_NM;
     }
 
     // sort closer vessels to top
     if (isValidNumber(range) && range > 0) {
       // range of 0 nm increases order by 0
-      // range of 5 nm increases order by 500
-      alarms.order += Math.round((100 * range) / METERS_PER_NM);
+      // range of 1 nm increases order by 1000
+      // range of 5 nm increases order by 5000
+      // range of 10 nm increases order by 10000
+      const factor = 1000; // 1000/1
+      alarms.order += (factor * range) / METERS_PER_NM;
     }
 
-    // FIXME might be interesting to calculate rate of closure
-    // high positive rate of close decreases order
+    // TODO might be interesting to calculate rate of closure
+    // high positive rate of closure decreases order
 
     // sort vessels with no range to bottom
     if (!isValidNumber(range)) {

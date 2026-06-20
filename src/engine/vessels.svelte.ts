@@ -47,10 +47,18 @@ export function createVessel(mmsi: string, context: Context): Vessel {
   };
 }
 
-export function deleteVessel(mmsi: string) {
-  delete vessels[mmsi];
+export function deleteVessel(vessel: Vessel) {
+  console.log(
+    "ageing out vessel",
+    vessel.mmsi,
+    vessel.name,
+    vessel.lastSeenSecondsAgo,
+  );
+  delete vessels[vessel.mmsi];
 }
 
 export function deleteAllVessels() {
-  for (const mmsi in vessels) deleteVessel(mmsi);
+  for (const vessel of Object.values(vessels)) {
+    deleteVessel(vessel);
+  }
 }

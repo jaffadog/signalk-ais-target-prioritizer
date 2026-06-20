@@ -49,7 +49,7 @@
       class="fixed inset-0 z-50 flex justify-center items-center p-4"
     >
       <Dialog.Content
-        class="flex flex-col card bg-surface-50-950 w-full max-w-xl gap-4 p-4 shadow-xl {animation} h-122 max-h-[90vh]"
+        class="flex flex-col card bg-surface-50-950 w-full max-w-xl gap-4 p-4 shadow-xl {animation} h-122 max-h-[90dvh]"
       >
         <!-- header -->
         <header class="flex justify-between items-center">

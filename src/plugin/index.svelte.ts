@@ -13,7 +13,6 @@ import { queueVesselUpdates, subscription } from "../engine/ingestion.svelte";
 import { updateVessels } from "../engine/refreshLoop.svelte";
 import {
   deleteAllVessels,
-  deleteVessel,
   vessels,
   vesselsState,
 } from "../engine/vessels.svelte";
@@ -23,14 +22,12 @@ import {
 } from "../engine/collisionProfiles.svelte";
 import { muteAllAlarms, setAlarmIsMuted } from "../engine/alarms.svelte";
 import {
-  AGE_OUT_OLD_TARGETS,
   DEFAULT_ENABLE_ALARM_PUBLISHING,
   DEFAULT_ENABLE_DATA_PUBLISHING,
   DEFAULT_MAXIMUM_TARGET_RANGE,
   DEFAULT_UPDATE_INTERVAL_DELAY,
   METERS_PER_NM,
   NO_GPS_FIX_WARNING,
-  TARGET_MAX_AGE,
 } from "../engine/constants";
 import { registerAssetEndpoints } from "./font-downloader";
 import { schema } from "./schema";
@@ -143,6 +140,14 @@ export default function (app: ServerAPI) {
     router.get("/getVessels", (_req, res) => {
       app.debug("getVessels");
       res.json(vessels);
+    });
+
+    router.get("/getMutedVessels", (_req, res) => {
+      app.debug("getMutedVessels");
+      const mutedVessels = Object.values(vessels).filter(
+        (vessel) => vessel.alarmIsMuted,
+      );
+      res.json(mutedVessels);
     });
 
     router.get("/getVessel/:mmsi", (req, res) => {
@@ -314,20 +319,6 @@ export default function (app: ServerAPI) {
             }
           }
         }
-
-        if (
-          AGE_OUT_OLD_TARGETS &&
-          vessel.lastSeenSecondsAgo !== undefined &&
-          vessel.lastSeenSecondsAgo > TARGET_MAX_AGE
-        ) {
-          app.debug(
-            "ageing out vessel",
-            vessel.mmsi,
-            vessel.name,
-            vessel.lastSeenSecondsAgo,
-          );
-          deleteVessel(vessel.mmsi);
-        }
       } // end loop
 
       app.setPluginStatus(
@@ -362,8 +353,6 @@ export default function (app: ServerAPI) {
     });
   }
 
-  // FIXME - we should probably shift these to the vessel context rather than self
-  // FIXME - need to research the current stste of signalk notificatuons with ack features and such
   function sendNotification({
     state,
     message,

@@ -93,7 +93,7 @@
         class="fixed inset-0 z-50 flex justify-center items-center p-4"
       >
         <Dialog.Content
-          class="flex flex-col card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl {animation} max-h-[90vh] {modalPosition}"
+          class="flex flex-col card bg-surface-100-900 w-full max-w-md p-4 space-y-4 shadow-xl {animation} max-h-[90dvh] {modalPosition}"
         >
           <!-- header -->
           <header class="flex justify-between items-center">
@@ -143,7 +143,7 @@
               }`}
             >
               <TriangleAlert />
-              <span class="uppercase">
+              <span class="uppercase font-semibold">
                 {selectedVessel.alarmType}
                 {selectedVessel.alarmState}
               </span>

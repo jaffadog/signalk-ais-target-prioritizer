@@ -7,19 +7,44 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/*            light      dark    */
-/* bs error   #F3D8DB    #280D0E */
-/* bs warn    #FDF4D1    #312808 */
-
-[data-theme="cerberus"] {
-  /* --spacing: 0.22rem; */
-  /* --radius-container: 0.375rem; */
-  /* --heading-font-weight: bolder; */
+.preset-tonal-error {
+  background-color: #f8d7da; /* danger-bg-subtle */
+  color: #58151c; /* danger-text-emphasis */
 }
+
+.dark .preset-tonal-error {
+  background-color: #2c0b0e; /* danger-bg-subtle-dark */
+  color: #ea868f; /* danger-text-emphasis-dark */
+}
+
+.preset-tonal-warning {
+  background-color: #fff3cd; /* warning-bg-subtle */
+  color: #664d03; /* warning-text-emphasis */
+}
+
+.dark .preset-tonal-warning {
+  background-color: #332701; /* warning-bg-subtle-dark */
+  color: #ffda6a; /* warning-text-emphasis-dark */
+}
+
+/* .preset-tonal-error {
+  background-color: #f3d8db;
+  color: #511a1e;
+}
+
+.dark .preset-tonal-error {
+  background-color: #280d0e;
+  color: #dd8b91;
+} */
 
 @layer components {
   /* .card {
     background-color: var(--color-surface-50-950);
+  } */
+  /* 
+  .preset-tonal-error {
+    background-color: var(--color-blue-200) !important;
+    color: var(--color-blue-900) !important;
   } */
 
   .map-button {
@@ -28,6 +53,49 @@
     border: 1px solid var(--color-border);
   }
 }
+/*
+bg-danger-subtle 
+text-danger-emphasis
+
+
+$red:     #dc3545;
+$danger:        $red;
+
+$danger-bg-subtle:        tint-color($danger, 80%);
+$danger-text-emphasis:    shade-color($danger, 60%) !default;
+
+$danger-bg-subtle-dark:             shade-color($danger, 80%);
+$danger-text-emphasis-dark:         tint-color($danger, 40%) !default;
+
+$yellow:  #ffc107 !default;
+$warning:       $yellow !default;
+
+$warning-bg-subtle:       tint-color($warning, 80%) !default;
+$warning-text-emphasis:   shade-color($warning, 60%) !default;
+
+$warning-bg-subtle-dark:            shade-color($warning, 80%) !default;
+$warning-text-emphasis-dark:        tint-color($warning, 40%) !default;
+
+*/
+/*            light      dark    */
+/* bs error   #F3D8DB    #280D0E */
+/* bs warn    #FDF4D1    #312808 */
+
+/*
+
+.preset-tonal-error {
+    background-color: var(--color-error-50-950);
+    color: var(--color-error-950-50);
+}
+
+
+*/
+
+/* [data-theme="cerberus"] { */
+/* --spacing: 0.22rem; */
+/* --radius-container: 0.375rem; */
+/* --heading-font-weight: bolder; */
+/* }  */
 
 .lucide-icon {
   stroke-width: 3;

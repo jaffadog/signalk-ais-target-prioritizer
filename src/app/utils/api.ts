@@ -1,6 +1,6 @@
 import ky from "ky";
 import { name as PLUGIN_ID } from "../../../package.json";
-import type { CollisionProfiles } from "../../types";
+import type { CollisionProfiles, Vessel } from "../../types";
 import { isValidCollisionProfiles } from "../../engine/validateCollisionProfiles";
 import { toaster } from "./toaster";
 import type { Chart } from "@signalk/server-api";
@@ -62,8 +62,15 @@ export async function getSelf() {
   return data;
 }
 
-export async function getTargets() {
-  const data = await ky(`/plugins/${PLUGIN_ID}/getTargets`, {
+export async function getVessels() {
+  const data: Vessel[] = await ky(`/plugins/${PLUGIN_ID}/getVessels`, {
+    credentials: "include",
+  }).json();
+  return data;
+}
+
+export async function getMutedVessels() {
+  const data: Vessel[] = await ky(`/plugins/${PLUGIN_ID}/getMutedVessels`, {
     credentials: "include",
   }).json();
   return data;

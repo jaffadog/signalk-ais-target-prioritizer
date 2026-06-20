@@ -39,7 +39,7 @@ const counts = $derived.by(() => {
     danger = 0;
 
   for (const vessel of Object.values(vessels)) {
-    if (vessel.mmsi !== vesselsState.myVesselMmsi) {
+    if (vessel.isValid && vessel.mmsi !== vesselsState.myVesselMmsi) {
       total++;
       const state = vessel.alarmState;
       if (state) {

@@ -174,7 +174,9 @@
                   <span class="text-sm">Map Labels</span>
                   <Popover>
                     <Popover.Trigger
-                      ><Info class="size-4 ml-1" /></Popover.Trigger
+                      ><Info
+                        class="size-4 ml-1 stroke-primary-500"
+                      /></Popover.Trigger
                     >
                     <Portal>
                       <Popover.Positioner class="z-50!">
