@@ -27,11 +27,11 @@
   import type { InitStep } from "../types";
   import ky, { HTTPError } from "ky";
 
-  let ready = $state(false);
+  let appReady = $state(false);
   let loadingVisible = $state(true);
   let authRequired = $state(false);
 
-  const FADE_DURATION = 1000;
+  const FADE_DURATION = 750;
 
   $inspect({ basemapId: mapState.basemapId });
   $inspect({ openSeaMap: mapState.openSeaMap });
@@ -40,19 +40,14 @@
   $inspect({ visible: ui.visible });
   $inspect({ width: ui.width });
   $inspect({ online: connectivity.online });
-  $inspect({ ready: ready });
-
-  // const [send, receive] = crossfade({
-  //   duration: 5000,
-  //   easing: quintOut,
-  // });
+  $inspect({ ready: appReady });
 
   let initSteps = $state<InitStep[]>([
-    {
-      label: "Starting up",
-      status: "pending",
-      fn: async () => new Promise<void>((resolve) => setTimeout(resolve, 1500)),
-    },
+    // {
+    //   label: "Starting up",
+    //   status: "pending",
+    //   fn: async () => new Promise<void>((resolve) => setTimeout(resolve, 500)),
+    // },
     { label: "Authenticating", status: "pending", fn: checkAuth },
     {
       label: "Connecting to Signal K",
@@ -124,12 +119,7 @@
       initSteps.map((step, i) => trackedInit(i, step.fn)),
     ).then(() => {
       if (!hasErrors) {
-        // make sure our default/current basemap is valid
-        if (!(mapState.basemapId in basemaps)) {
-          mapState.basemapId = "street";
-        }
-        ready = true;
-        setTimeout(() => (loadingVisible = false), FADE_DURATION);
+        showApp();
       }
     });
 
@@ -145,6 +135,15 @@
       );
     };
   });
+
+  function showApp() {
+    // make sure our default/current basemap is valid
+    if (!(mapState.basemapId in basemaps)) {
+      mapState.basemapId = "street";
+    }
+    appReady = true;
+    setTimeout(() => (loadingVisible = false), FADE_DURATION);
+  }
 
   const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
     console.error("Unhandled rejection:", event.reason);
@@ -229,11 +228,16 @@
 {#if loadingVisible}
   <div
     class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-50-950 gap-6"
-    // in:receive={{ key: "screen" }}
-    // out:send={{ key: "screen" }}
     out:fade={{ duration: FADE_DURATION }}
   >
-    <div class="text-2xl font-bold">AIS Target Prioritizer</div>
+    <div>
+      <img
+        class="size-30 overflow-hidden"
+        src="assets/icon-120.png"
+        alt="icon"
+      />
+    </div>
+    <div class="text-2xl font-bold">Loading...</div>
     <div class="flex flex-col gap-2 w-64">
       {#each initSteps as step (step.label)}
         <div class="flex items-center gap-3">
@@ -266,15 +270,7 @@
             Some initialization steps failed. The app may not function
             correctly.
           </p>
-          <button
-            class="btn preset-filled-warning-500"
-            onclick={() => {
-              if (!(mapState.basemapId in basemaps)) {
-                mapState.basemapId = "street";
-              }
-              ready = true;
-            }}
-          >
+          <button class="btn preset-filled-warning-500" onclick={showApp}>
             Continue Anyway
           </button>
         {/if}
@@ -283,11 +279,9 @@
   </div>
 {/if}
 
-{#if ready}
+{#if appReady}
   <div
     class="relative h-dvh w-screen overflow-hidden"
-    // in:receive={{ key: "screen" }}
-    // out:send={{ key: "screen" }}
     in:fade={{ duration: FADE_DURATION }}
   >
     <!-- {/* MAP LAYER */} -->

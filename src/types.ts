@@ -1,5 +1,7 @@
 // global types and interfaces
 
+import type { Context } from "@signalk/server-api";
+
 export type Vector2D = { x: number; y: number };
 export interface CollisionProfile {
   warning: {
@@ -33,7 +35,7 @@ export interface CollisionProfiles {
 export interface Vessel {
   // raw properties from signal k:
   mmsi: string;
-  context: string;
+  context: Context;
   name: string;
   callsign: string | null;
   imo: string | null;

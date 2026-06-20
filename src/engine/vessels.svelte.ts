@@ -1,3 +1,4 @@
+import type { Context } from "@signalk/server-api";
 import type { Vessel } from "../types";
 
 // reactive state objects:
@@ -10,7 +11,7 @@ export const vesselsState = $state<{
   selectedVesselMmsi: null,
 });
 
-export function createVessel(mmsi: string, context: string): Vessel {
+export function createVessel(mmsi: string, context: Context): Vessel {
   return {
     // raw properties from signal k:
     mmsi,

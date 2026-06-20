@@ -4,7 +4,7 @@ import {
   type Context,
   type Path,
   type Unsubscribes,
-  type Notification,
+  ALARM_STATE,
 } from "@signalk/server-api";
 import fs from "node:fs";
 import path from "node:path";
@@ -158,37 +158,6 @@ export default function (app: ServerAPI) {
     registerAssetEndpoints(router);
   };
 
-  // FIXME dupe
-  // function start(options: Options, restartPlugin: () => void): void {
-  //   app.debug(`*** Starting plugin ${plugin.id}`, { options });
-  //   updateIntervalDelay =
-  //     options.updateIntervalDelay ?? DEFAULT_UPDATE_INTERVAL_DELAY;
-  //   maximumTargetRange =
-  //     options.maximumTargetRange ?? DEFAULT_MAXIMUM_TARGET_RANGE;
-  //   enableDataPublishing =
-  //     options.enableDataPublishing ?? DEFAULT_ENABLE_DATA_PUBLISHING;
-  //   enableAlarmPublishing =
-  //     options.enableAlarmPublishing ?? DEFAULT_ENABLE_ALARM_PUBLISHING;
-
-  //   loadCollisionProfiles();
-
-  //   const mmsi: string = app.getSelfPath("mmsi") as string;
-
-  //   if (!mmsi) {
-  //     app.error("ERROR - no mmsi set for our vessel");
-  //     throw new Error("ERROR - no mmsi set for our vessel");
-  //   }
-
-  //   vesselsState.myVesselMmsi = mmsi;
-
-  //   if (enableDataPublishing || enableAlarmPublishing) {
-  //     enablePluginCpaCalculations();
-  //   } else {
-  //     // if plugin was stopped and started again with options set to not perform calculations, then clear out old targets
-  //     deleteAllVessels();
-  //   }
-  // }
-
   // load saved collision profiles from signalk server
   function loadCollisionProfiles() {
     try {
@@ -291,11 +260,13 @@ export default function (app: ServerAPI) {
         const message = `No GPS position received for more than ${myVessel?.lastSeenSecondsAgo} seconds`;
         app.debug(message); // we use app.debug rather than app.error so that the user can filter these out of the log
         app.setPluginError(message);
-        sendNotification({ state: "alarm", message: message });
+        sendNotification({
+          state: "alarm",
+          message: message,
+          path: "notifications.navigation.closestApproach" as Path,
+        });
         return;
       }
-
-      let hasAlarm = false;
 
       for (const vessel of Object.values(vessels)) {
         const ignore =
@@ -311,32 +282,37 @@ export default function (app: ServerAPI) {
         }
 
         // publish warning/alarm notifications
-        // FIXME - should we send 1 notification for all targets? or separate notifications for each vessel?
-        if (
-          enableAlarmPublishing &&
-          vessel.alarmState &&
-          !vessel.alarmIsMuted &&
-          !ignore
-        ) {
-          const message = (
-            `${vessel.name || `<${vessel.mmsi}>`} - ` +
-            `${vessel.alarmType} ` +
-            `${vessel.alarmState === "danger" ? "alarm" : vessel.alarmState}`
-          ).toUpperCase();
-          if (vessel.alarmState === "warning") {
+        if (enableAlarmPublishing) {
+          // if the vessel has an alarm state, publish the alarm
+          if (vessel.alarmState && !vessel.alarmIsMuted && !ignore) {
+            const message = (
+              `${vessel.name || `<${vessel.mmsi}>`} - ` +
+              `${vessel.alarmType} ` +
+              `${vessel.alarmState === "danger" ? "alarm" : vessel.alarmState}`
+            ).toUpperCase();
+
+            // NOTE not widely avail yet: app.notifications.raise
             sendNotification({
-              state: "warn",
+              state:
+                vessel.alarmState === "warning"
+                  ? ALARM_STATE.warn
+                  : ALARM_STATE.alarm,
               message: message,
-              context: vessel.context as Context,
+              context: vessel.context,
+              path: "notifications.navigation.closestApproach" as Path,
             });
-          } else if (vessel.alarmState === "danger") {
-            sendNotification({
-              state: "alarm",
-              message: message,
-              context: vessel.context as Context,
-            });
+          } else {
+            // if the vessel no longer has an alarm state, then clear the alarm
+            if (hasAlarmNotification(vessel)) {
+              // NOTE app.notifications.raise not widely avail yet
+              sendNotification({
+                state: ALARM_STATE.normal,
+                message: "Watching",
+                context: vessel.context,
+                path: "notifications.navigation.closestApproach" as Path,
+              });
+            }
           }
-          hasAlarm = true;
         }
 
         if (
@@ -354,16 +330,9 @@ export default function (app: ServerAPI) {
         }
       } // end loop
 
-      // if there are no active alarms, yet still an alarm notification, then clean the alarm notification
-      if (!hasAlarm && hasAlarmNotification()) {
-        sendNotification({
-          state: "normal",
-          message: "watching",
-          // context: vessel.context,
-        });
-      }
-
-      app.setPluginStatus(`Watching ${Object.keys(vessels).length} targets`);
+      app.setPluginStatus(
+        `Watching ${Object.keys(vessels).length - 1} targets`,
+      );
     } catch (err) {
       app.debug("error in refreshDataModel", err);
     }
@@ -399,10 +368,12 @@ export default function (app: ServerAPI) {
     state,
     message,
     context,
+    path,
   }: {
     state: string;
     message: string;
     context?: Context;
+    path: Path;
   }): void {
     // app.debug("sendNotification", state, message);
     const delta = {
@@ -411,7 +382,7 @@ export default function (app: ServerAPI) {
         {
           values: [
             {
-              path: "notifications.navigation.closestApproach" as Path,
+              path: path,
               value: {
                 state: state,
                 method: ["visual", "sound"],
@@ -426,11 +397,15 @@ export default function (app: ServerAPI) {
     app.handleMessage(plugin.id, delta);
   }
 
-  function hasAlarmNotification() {
-    const notifications = app.getSelfPath(
-      "notifications.navigation.closestApproach",
-    ) as Notification;
-    return notifications?.state === "alarm";
+  function hasAlarmNotification(vessel: Vessel) {
+    const path = `${vessel.context}.notifications.navigation.closestApproach.value.state`;
+    const state = app.getPath(path);
+
+    if (state && state !== ALARM_STATE.normal) {
+      return true;
+    }
+
+    return false;
   }
 
   return plugin;

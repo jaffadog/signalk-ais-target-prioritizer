@@ -1,7 +1,7 @@
 // basemaps
 
 import type { Basemap } from "./basemap.types";
-import { getCharts, getPmtiles } from "./utils/api";
+import { getCharts } from "./utils/api";
 
 /*
 
@@ -152,7 +152,9 @@ export async function initBasemaps() {
         // ]
       }
       if (
+        // @ts-expect-error - chart.format/url reflect v2 API not yet in type defs
         chart.format === "mvt" &&
+        // @ts-expect-error - chart.format/url reflect v2 API not yet in type defs
         chart.url.toLowerCase().endsWith(".pmtiles")
       ) {
         basemaps[chart.identifier] = {

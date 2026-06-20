@@ -182,9 +182,13 @@
                           class="card max-w-md p-4 bg-surface-100-900 shadow-xl"
                         >
                           <Popover.Description
-                            >If using Protomaps pmtiles offline maps, you can
-                            add map labels and symbols by downloading this font
-                            pack. This has no effect on any other map types.</Popover.Description
+                            >If using <a
+                              href="https://protomaps.com/"
+                              target="_blank"
+                              class="anchor">Protomaps</a
+                            > pmtiles offline maps, you can add map labels and symbols
+                            by downloading this font pack. This has no effect on any
+                            other map types.</Popover.Description
                           >
                           <Popover.Arrow
                             class="[--arrow-size:--spacing(2)] [--arrow-background:var(--color-surface-100-900)]"

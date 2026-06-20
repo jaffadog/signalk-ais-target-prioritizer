@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Info, TriangleAlert, Volume2, VolumeX, XIcon } from "@lucide/svelte";
-  import { Dialog, Portal, Tooltip } from "@skeletonlabs/skeleton-svelte";
+  import { Dialog, Popover, Portal } from "@skeletonlabs/skeleton-svelte";
 
   // The following animation is optional.
   // This may also be included inline.
@@ -260,28 +260,32 @@
                 <dt class="font-medium">MMSI</dt>
 
                 <dd class=" sm:col-span-2">
-                  {selectedVessel.mmsi ?? "---"} (
-                  <Tooltip>
-                    <Tooltip.Trigger class="anchor"
-                      >{getCountryFromMMSI(selectedVessel.mmsi)?.alpha2 ??
-                        "--"}</Tooltip.Trigger
+                  {selectedVessel.mmsi ?? "---"}
+                  <Popover>
+                    <Popover.Trigger
+                      >(<span class="anchor"
+                        >{getCountryFromMMSI(selectedVessel.mmsi)?.alpha2 ??
+                          "--"}</span
+                      >)</Popover.Trigger
                     >
                     <Portal>
-                      <Tooltip.Positioner>
-                        <Tooltip.Content
-                          class="card p-3 preset-filled-surface-950-50 shadow-xl text-sm z-9999"
+                      <Popover.Positioner class="z-50!">
+                        <Popover.Content
+                          class="card max-w-md p-2.5 bg-surface-950-50 text-surface-50-950 shadow-xl"
                         >
-                          {getCountryFromMMSI(selectedVessel.mmsi)?.country ??
-                            "---"}
-                          <Tooltip.Arrow
+                          <Popover.Description
+                            >{getCountryFromMMSI(selectedVessel.mmsi)
+                              ?.country ?? "---"}</Popover.Description
+                          >
+                          <Popover.Arrow
                             class="[--arrow-size:--spacing(2)] [--arrow-background:var(--color-surface-950-50)]"
                           >
-                            <Tooltip.ArrowTip />
-                          </Tooltip.Arrow>
-                        </Tooltip.Content>
-                      </Tooltip.Positioner>
+                            <Popover.ArrowTip />
+                          </Popover.Arrow>
+                        </Popover.Content>
+                      </Popover.Positioner>
                     </Portal>
-                  </Tooltip>)
+                  </Popover>
                 </dd>
               </div>
 
