@@ -2,8 +2,6 @@
   import { VolumeX, XIcon } from "@lucide/svelte";
   import { Dialog, Portal } from "@skeletonlabs/skeleton-svelte";
 
-  // The following animations are optional.
-  // These may also be included inline.
   const animBackdrop =
     "transition transition-discrete opacity-0 starting:data-[state=open]:opacity-0 data-[state=open]:opacity-100";
   const animModal =
@@ -82,13 +80,17 @@
     // if (t.alarmState === "danger")
     //   return "bg-red-100 dark:bg-red-950 font-medium";
 
-    if (t.alarmState === "danger") return "preset-tonal-error font-medium";
-    if (t.alarmState === "warning") return "preset-tonal-warning font-medium";
-    return "bg-surface-50-950";
+    if (t.alarmState === "danger") return "table-row-danger font-medium";
+    if (t.alarmState === "warning") return "table-row-warning font-medium";
+    return "bg-surface-100-900";
   }
 </script>
 
-/* eslint-disable svelte/no-at-html-tags */
+<!-- FIXME implement this as a "drawer" with a max width - just enough to accomodate the table -->
+
+<!-- FIXME persis sort order -->
+
+<!-- FIXME clickable col headers? -->
 
 <Dialog
   open={ui.vesselTable.visible}
@@ -99,18 +101,17 @@
     // }
   }}
 >
-  <!-- <Dialog.Trigger class="btn preset-filled">Trigger</Dialog.Trigger> -->
   <Portal>
     <Dialog.Backdrop
       class="fixed inset-0 z-50 bg-black/50 transition transition-discrete {animBackdrop}"
     />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="flex flex-col h-screen card bg-surface-50-950 w-full p-4 space-y-4 shadow-xl {animModal}"
+        class="flex flex-col h-screen card bg-surface-100-900 w-full md:w-3xl  p-4 space-y-4 shadow-xl {animModal}"
       >
         <!-- header -->
         <header class="flex justify-between items-center">
-          <Dialog.Title class="text-2xl font-bold"
+          <Dialog.Title class="text-lg font-bold"
             >AIS Targets ({sortedVessels.length})</Dialog.Title
           >
           <Dialog.CloseTrigger class="btn-icon preset-tonal">
@@ -133,52 +134,50 @@
         <!-- table -->
         <div
           bind:this={tableContainer}
-          class="flex-1 overflow-x-auto overflow-y-auto rounded border border-border shadow-sm"
+          class="table-wrap flex-1 overflow-x-auto overflow-y-auto rounded border border-surface-200-800 shadow-sm"
         >
-          <table class="w-full divide-y-2 divide-border">
-            <thead class=" text-right">
+          <table class="table">
+            <thead>
               <tr class="z-20">
                 <th
-                  class="sticky top-0 left-0 z-30 w-auto px-3 py-2 text-left bg-surface-50-950 font-semibold"
+                  class="sticky top-0 left-0 z-30 w-auto font-semibold bg-surface-100-900 ps-4!"
                 >
                   NAME
                 </th>
                 <th
-                  class="sticky top-0 min-w-20 px-3 py-2 whitespace-nowrap bg-surface-50-950 font-semibold"
-                >
-                  BRG
-                </th>
+                  class="sticky top-0 min-w-5 font-semibold bg-surface-100-900 text-right!"
+                ></th>
                 <th
-                  class="sticky top-0 min-w-24 px-3 py-2 whitespace-nowrap bg-surface-50-950 font-semibold"
+                  class="sticky top-0 min-w-16 font-semibold bg-surface-100-900 text-right!"
+                  >BRG</th
                 >
-                  RNG
-                </th>
                 <th
-                  class="sticky top-0 min-w-20 px-3 py-2 whitespace-nowrap bg-surface-50-950 font-semibold"
+                  class="sticky top-0 min-w-24 font-semibold bg-surface-100-900 text-right!"
+                  >RNG</th
                 >
-                  SOG
-                </th>
                 <th
-                  class="sticky top-0 min-w-24 px-3 py-2 whitespace-nowrap bg-surface-50-950 font-semibold"
+                  class="sticky top-0 min-w-20 font-semibold bg-surface-100-900 text-right!"
+                  >SOG</th
                 >
-                  CPA
-                </th>
                 <th
-                  class="sticky top-0 min-w-24 px-3 py-2 whitespace-nowrap bg-surface-50-950 font-semibold"
+                  class="sticky top-0 min-w-24 font-semibold bg-surface-100-900 text-right!"
+                  >CPA</th
                 >
-                  TCPA
-                </th>
+                <th
+                  class="sticky top-0 min-w-24 font-semibold bg-surface-100-900 text-right! pe-4!"
+                  >TCPA</th
+                >
               </tr>
             </thead>
 
-            <tbody class="divide-y divide-border">
+            <tbody>
               {#each sortedVessels as vessel (vessel.mmsi)}
                 <tr
-                  class={`group cursor-pointer ${getVesselColor(vessel)} text-right`}
+                  class={`z-10 cursor-pointer group hover:preset-tonal-primary! ${getVesselColor(vessel)}`}
                   onclick={() => handleClickRow(vessel.mmsi)}
                 >
                   <td
-                    class={`sticky left-0 z-20 flex items-center text-left ${getVesselColor(vessel)} border-b-0 px-3 py-0.5 font-medium`}
+                    class={`sticky left-0 z-20 flex items-center text-left group-hover:preset-tonal-primary!  ${getVesselColor(vessel)} border-b-0 px-3 py-0.5 font-medium ps-4!`}
                   >
                     <span
                       class="me-2 inline-flex h-10 w-10 items-center justify-center [&>svg]:h-full [&>svg]:w-full"
@@ -190,24 +189,26 @@
                       )}
                     </span>
                     {formatName(vessel.mmsi, vessel.name)}
-                    {#if vessel.alarmIsMuted}
-                      <VolumeX class="size-4 ms-2" />
-                    {/if}
                   </td>
 
-                  <td class="px-3 py-2 whitespace-nowrap">
+                  <td class="text-right!">
+                    {#if vessel.alarmIsMuted}
+                      <VolumeX class="size-4" />
+                    {/if}
+                  </td>
+                  <td class="text-right!">
                     {formatAngle(vessel.bearing)}
                   </td>
-                  <td class="px-3 py-2 whitespace-nowrap">
+                  <td class="text-right!">
                     {formatDistance(vessel.range)}
                   </td>
-                  <td class="px-3 py-2 whitespace-nowrap">
+                  <td class="text-right!">
                     {formatSpeed(vessel.sog)}
                   </td>
-                  <td class="px-3 py-2 whitespace-nowrap">
+                  <td class="text-right!">
                     {formatCpa(vessel.cpa, vessel.tcpa)}
                   </td>
-                  <td class="px-3 py-2 whitespace-nowrap">
+                  <td class="text-right! pe-4!">
                     {formatTcpa(vessel.tcpa)}
                   </td>
                   <!-- <td>{vessel.order}</td> -->
@@ -222,3 +223,19 @@
     </Dialog.Positioner>
   </Portal>
 </Dialog>
+
+<!-- <style>
+  :global(:is(th, td)) {
+    padding-inline: calc(var(--spacing) * 2);
+    padding-block: calc(var(--spacing) * 1);
+    text-align: right;
+  }
+
+  thead :global(th) {
+    font-weight: var(--font-weight-semibold);
+    background-color: var(--color-surface-50-950);
+  }
+
+  /* tbody :global(td) {
+  } */
+</style> -->

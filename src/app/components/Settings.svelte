@@ -6,11 +6,12 @@
     Portal,
     Switch,
   } from "@skeletonlabs/skeleton-svelte";
+  import { version } from "../../../package.json";
 
-  // The following animation is optional.
-  // This may also be included inline.
-  const animation =
-    "transition transition-discrete opacity-0 translate-y-[100px] starting:data-[state=open]:opacity-0 starting:data-[state=open]:translate-y-[100px] data-[state=open]:opacity-100 data-[state=open]:translate-y-0";
+  const animBackdrop =
+    "transition transition-discrete opacity-0 starting:data-[state=open]:opacity-0 data-[state=open]:opacity-100";
+  const animModal =
+    "transition transition-discrete opacity-0 -translate-x-full starting:data-[state=open]:opacity-0 starting:data-[state=open]:-translate-x-full data-[state=open]:opacity-100 data-[state=open]:translate-x-0";
 
   import { muteAllAlarms } from "../../engine/alarms.svelte";
   import { ui } from "../ui.svelte";
@@ -26,6 +27,7 @@
     mapState,
   } from "../../engine/map.svelte";
   import DarkModeSwith from "./DarkModeSwith.svelte";
+  import { stats } from "../stats.svelte";
 
   // console.log("ENTER Settings");
 
@@ -74,17 +76,15 @@
 
 <Dialog
   open={ui.settings.visible}
-  onOpenChange={(e) => {
-    ui.settings.visible = e.open;
-  }}
+  onOpenChange={(e) => (ui.settings.visible = e.open)}
 >
   <Portal>
-    <Dialog.Backdrop class="fixed inset-0 z-50 bg-black/50" />
-    <Dialog.Positioner
-      class="fixed inset-0 z-50 flex justify-center items-center p-4"
-    >
+    <Dialog.Backdrop
+      class="fixed inset-0 z-50 bg-black/50 transition transition-discrete {animBackdrop}"
+    />
+    <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="card bg-surface-50-950 w-full max-w-sm p-4 space-y-4 shadow-xl {animation}"
+        class="flex flex-col h-screen card bg-surface-100-900 w-full sm:w-md gap-4 p-4 shadow-xl {animModal}"
       >
         <header class="flex justify-between items-center">
           <Dialog.Title class="text-lg font-bold">Settings</Dialog.Title>
@@ -92,7 +92,9 @@
             <XIcon class="size-4" />
           </Dialog.CloseTrigger>
         </header>
-        <Dialog.Description class="flex flex-col gap-4">
+
+        <!-- body -->
+        <Dialog.Description class="flex-1 overflow-y-auto flex flex-col gap-4">
           <!-- active profile -->
           <label class="label">
             <span class="label-text">Active Profile</span>
@@ -181,7 +183,7 @@
                     <Portal>
                       <Popover.Positioner class="z-50!">
                         <Popover.Content
-                          class="card max-w-md p-4 bg-surface-100-900 shadow-xl"
+                          class="card sm:max-w-sm max-w-[90dvw] p-4 bg-surface-100-900 shadow-xl"
                         >
                           <Popover.Description
                             >If using <a
@@ -202,7 +204,7 @@
                     </Portal>
                   </Popover>
                 </div>
-                <span class="text-xs text-surface-400">~28MB download</span>
+                <span class="text-xs text-surface-400-600">~28MB download</span>
               </div>
               <button
                 type="button"
@@ -214,6 +216,18 @@
               </button>
             </div>
           {/if}
+
+          <!-- spacer -->
+          <div class="grow"></div>
+          <!-- version & stats -->
+          <div class="text-sm text-surface-400-600">
+            <p>AIS Target Prioritizer v{version}</p>
+            <p>
+              Updated {stats.count ?? 0} vessels in {Math.round(
+                stats.time ?? 0,
+              )} ms
+            </p>
+          </div>
         </Dialog.Description>
       </Dialog.Content>
     </Dialog.Positioner>

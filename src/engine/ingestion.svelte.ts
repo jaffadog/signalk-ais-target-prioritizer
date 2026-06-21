@@ -279,6 +279,8 @@ export function stop() {
 
 export function flushPendingUpdates() {
   // flushTimer = null;
+  const start = performance.now();
+  const updateCount = pendingUpdates.size;
 
   if (pendingUpdates.size === 0) return;
 
@@ -287,4 +289,7 @@ export function flushPendingUpdates() {
   }
 
   pendingUpdates.clear();
+  console.log(
+    `flushed ${updateCount} updates in ${(performance.now() - start).toFixed(1)} ms`,
+  );
 }

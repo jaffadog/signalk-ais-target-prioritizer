@@ -42,7 +42,6 @@
   import { showNotification } from "../notification.svelte";
   import { updateVessels } from "../../engine/refreshLoop.svelte";
   import { stats } from "../stats.svelte";
-  import Stats from "./Stats.svelte";
   import LayersMenu from "./LayersMenu.svelte";
   import { toaster } from "../utils/toaster";
   import { buildStyle } from "../resolveMapConfig";
@@ -98,8 +97,7 @@
     // OpenStreetMap
     // OpenTopoMap
 
-    // TODO add performance limiting parameters:
-    //        max distance for delta publishing
+    // FIXME when we change current profile in the webapp, does the plugin pickup that change?
 
     // TODO add indication of cpa ahead or behind my vessel
 
@@ -118,9 +116,6 @@
       fadeDuration: 0, // prevents blinks
       style: style,
       attributionControl: false,
-      // FIXME can we default this to my vessel location? would need to wait until
-      //  we have data. or do a setCenter not an easeTo to avoid the slide on initial
-      // acquisition of position
       center: [0, 0],
       zoom: 10,
     });
@@ -289,8 +284,11 @@
       // this is a bit klugie. we're waiting 3 secs for vessels to fill in
       // from sk. then we fetch which vessels are muted in the plugin - and
       // apply that here.
+      // FIXME is there a better way to sequence this? sometimes we get alarms
+      // reported before the backfill esecutes
       setTimeout(async () => {
         await backfillMutedVessels();
+        alarmsState.alarmsEnabled = true;
       }, 3000);
 
       // FIXME does this have to be in onLoad?
@@ -444,8 +442,6 @@
   }
 
   async function backfillMutedVessels() {
-    // FIXME we need to get existing muted vessels from the
-    // plugin and apply that status to vessels in the webapp
     console.log(">>>> backfilling mutes");
     const mutedVessels = await getMutedVessels();
     for (const mutedVessel of mutedVessels) {
@@ -828,7 +824,7 @@
     // NOTE working around a svelte bug that drops parentheses in boolean expressions
     const canShow = hasNotBeenRaised || canReRaise;
 
-    if (hasAlarms && canShow) {
+    if (hasAlarms && canShow && alarmsState.alarmsEnabled) {
       ui.alarms.visible = true;
     }
   }
@@ -872,8 +868,7 @@
 </script>
 
 <div bind:this={container} class="w-full h-full"></div>
-<LayersMenu />
 
-<div class="pointer-events-none absolute bottom-0 left-0 z-10">
-  <Stats />
-</div>
+{#if ui.layersMenu.visible}
+  <LayersMenu />
+{/if}

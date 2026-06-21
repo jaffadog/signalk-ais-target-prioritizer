@@ -3,6 +3,7 @@ import type { AlarmsState } from "../types.js";
 import { vessels, vesselsState } from "./vessels.svelte.js";
 
 export const alarmsState = $state<AlarmsState>({
+  alarmsEnabled: false,
   lastAlarmTime: null,
 });
 

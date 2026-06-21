@@ -78,6 +78,7 @@ export interface Vessel {
   order?: number;
 }
 export interface AlarmsState {
+  alarmsEnabled: boolean;
   lastAlarmTime: number | null;
 }
 

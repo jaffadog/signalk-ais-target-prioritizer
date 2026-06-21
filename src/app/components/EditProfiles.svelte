@@ -2,8 +2,10 @@
   import { XIcon } from "@lucide/svelte";
   import { Dialog, Portal, Tabs } from "@skeletonlabs/skeleton-svelte";
 
-  const animation =
-    "transition transition-discrete opacity-0 translate-y-[100px] starting:data-[state=open]:opacity-0 starting:data-[state=open]:translate-y-[100px] data-[state=open]:opacity-100 data-[state=open]:translate-y-0";
+  const animBackdrop =
+    "transition transition-discrete opacity-0 starting:data-[state=open]:opacity-0 data-[state=open]:opacity-100";
+  const animModal =
+    "transition transition-discrete opacity-0 -translate-x-full starting:data-[state=open]:opacity-0 starting:data-[state=open]:-translate-x-full data-[state=open]:opacity-100 data-[state=open]:translate-x-0";
 
   import { ui } from "../ui.svelte";
   import {
@@ -44,12 +46,12 @@
   }}
 >
   <Portal>
-    <Dialog.Backdrop class="fixed inset-0 z-50 bg-black/50" />
-    <Dialog.Positioner
-      class="fixed inset-0 z-50 flex justify-center items-center p-4"
-    >
+    <Dialog.Backdrop
+      class="fixed inset-0 z-50 bg-black/50 transition transition-discrete {animBackdrop}"
+    />
+    <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="flex flex-col card bg-surface-50-950 w-full max-w-xl gap-4 p-4 shadow-xl {animation} h-122 max-h-[90dvh]"
+        class="flex flex-col h-screen card bg-surface-100-900 w-full md:w-xl gap-4 p-4 shadow-xl {animModal}"
       >
         <!-- header -->
         <header class="flex justify-between items-center">
@@ -91,13 +93,19 @@
           <!-- tabs -->
           <Tabs defaultValue="collisionWarning" class="px-4 py-2">
             <!-- tab list -->
-            <Tabs.List>
-              <Tabs.Trigger value="collisionWarning"
-                >Collision Warning</Tabs.Trigger
+            <Tabs.List class="flex">
+              <Tabs.Trigger
+                class="flex-1 whitespace-normal text-wrap"
+                value="collisionWarning">Collision Warning</Tabs.Trigger
               >
-              <Tabs.Trigger value="collisionAlarm">Collision Alarm</Tabs.Trigger
+              <Tabs.Trigger
+                class="flex-1 whitespace-normal text-wrap"
+                value="collisionAlarm">Collision Alarm</Tabs.Trigger
               >
-              <Tabs.Trigger value="guardAlarm">Guard Alarm</Tabs.Trigger>
+              <Tabs.Trigger
+                class="flex-1 whitespace-normal text-wrap"
+                value="guardAlarm">Guard Alarm</Tabs.Trigger
+              >
               <Tabs.Indicator />
             </Tabs.List>
 

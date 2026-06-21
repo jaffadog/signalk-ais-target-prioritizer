@@ -6,7 +6,6 @@ export const ui = $state({
   noSleep: false,
   themeMode: (localStorage.getItem("theme") as ThemeMode) ?? "system",
   darkMode: false,
-  // darkMode: localStorage.getItem("theme") === "dark",
   vesselProperties: {
     visible: false,
   },

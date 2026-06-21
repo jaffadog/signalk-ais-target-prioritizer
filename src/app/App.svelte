@@ -179,12 +179,6 @@
   });
 
   $effect(() => {
-    console.log("EFFECT darkmode changed", ui.darkMode);
-    document.documentElement.classList.toggle("dark", ui.darkMode);
-    localStorage.setItem("theme", ui.darkMode ? "dark" : "light");
-  });
-
-  $effect(() => {
     console.log("EFFECT basemap changed", mapState.basemapId);
     localStorage.setItem("basemap", mapState.basemapId);
   });
@@ -227,12 +221,12 @@
 
 {#if loadingVisible}
   <div
-    class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-50-950 gap-6"
+    class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-100-900 gap-6"
     out:fade={{ duration: FADE_DURATION }}
   >
     <div>
       <img
-        class="size-30 overflow-hidden"
+        class="size-30 overflow-hidden rounded-2xl"
         src="assets/icon-120.png"
         alt="icon"
       />

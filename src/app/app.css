@@ -7,25 +7,37 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-.preset-tonal-error {
+.table-row-danger {
   background-color: #f8d7da; /* danger-bg-subtle */
   color: #58151c; /* danger-text-emphasis */
 }
 
-.dark .preset-tonal-error {
-  background-color: #2c0b0e; /* danger-bg-subtle-dark */
-  color: #ea868f; /* danger-text-emphasis-dark */
-}
-
-.preset-tonal-warning {
+.table-row-warning {
   background-color: #fff3cd; /* warning-bg-subtle */
   color: #664d03; /* warning-text-emphasis */
 }
 
-.dark .preset-tonal-warning {
+/* .table-row-danger:hover,
+.table-row-warning:hover {
+  background-color: var(--color-primary-50-950);
+  color: var(--color-primary-950-50);
+} */
+
+.dark .table-row-danger {
+  background-color: #2c0b0e; /* danger-bg-subtle-dark */
+  color: #ea868f; /* danger-text-emphasis-dark */
+}
+
+.dark .table-row-warning {
   background-color: #332701; /* warning-bg-subtle-dark */
   color: #ffda6a; /* warning-text-emphasis-dark */
 }
+
+/* .dark .table-row-danger:hover,
+.dark .table-row-warning:hover {
+  background-color: var(--color-primary-50-950);
+  color: var(--color-primary-950-50);
+} */
 
 /* .preset-tonal-error {
   background-color: #f3d8db;
@@ -97,9 +109,9 @@ $warning-text-emphasis-dark:        tint-color($warning, 40%) !default;
 /* --heading-font-weight: bolder; */
 /* }  */
 
-.lucide-icon {
+/* .lucide-icon {
   stroke-width: 3;
-}
+} */
 
 .dark .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
   filter: invert(1);
