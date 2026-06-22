@@ -1,6 +1,6 @@
 {
   "name": "signalk-ais-target-prioritizer",
-  "version": "0.4.2",
+  "version": "0.4.4",
   "description": "A Signal K plugin that priorizes AIS targets according to guard and CPA criteria.",
   "keywords": [
     "signalk-node-server-plugin",
@@ -31,6 +31,21 @@
   "author": "Jeremy Waters <jaffadog@gmail.com>",
   "main": "plugin/index.cjs",
   "type": "commonjs",
+  "files": [
+    "plugin/",
+    "public/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaffadog/signalk-ais-target-prioritizer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jaffadog/signalk-ais-target-prioritizer/issues"
+  },
+  "homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer",
   "scripts": {
     "dev": "vite",
     "build:web": "vite build",
