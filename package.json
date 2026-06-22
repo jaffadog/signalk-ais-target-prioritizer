@@ -16,10 +16,8 @@
       "./resources/main.png",
       "./resources/vessel-properties.png",
       "./resources/vessel-table.png",
-      "./resources/map-layers.png",
       "./resources/settings.png",
       "./resources/edit-profiles.png",
-      "./resources/dark-mode.png",
       "./resources/alarms.png"
     ],
     "recommends": [
@@ -56,6 +54,7 @@
     "build:plugin": "rollup -c",
     "build": "npm run build:web && npm run build:plugin",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
     "format": "npx prettier . --write",
     "format:check": "npx prettier . --check",
     "lint": "eslint .",

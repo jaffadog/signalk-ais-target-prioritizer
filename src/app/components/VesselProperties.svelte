@@ -88,6 +88,10 @@
     }}
   >
     <Portal>
+      <!-- 
+        FIXME consider removing the backdrop and allowing the user to interact 
+        with the map while the properties dialog is visible 
+      -->
       <Dialog.Backdrop class="fixed inset-0 z-50 bg-black/50" />
       <Dialog.Positioner
         class="fixed inset-0 z-50 flex justify-center items-center p-4"
