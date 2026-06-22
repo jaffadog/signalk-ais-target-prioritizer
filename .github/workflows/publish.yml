@@ -43,7 +43,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -64,7 +64,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -104,7 +104,7 @@ jobs:
 #     runs-on: ubuntu-latest
 #     timeout-minutes: 10
 #     steps:
-#       - uses: actions/checkout@v4
+#       - uses: actions/checkout@v7
 
 #       - name: Extract release notes from CHANGELOG.md
 #         run: |
@@ -138,7 +138,7 @@ jobs:
 #     runs-on: ubuntu-latest
 #     timeout-minutes: 10
 #     steps:
-#       - uses: actions/checkout@v4
+#       - uses: actions/checkout@v7
 
 #       - uses: actions/setup-node@v4
 #         with:
