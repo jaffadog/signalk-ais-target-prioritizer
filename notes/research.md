@@ -1,10 +1,8 @@
-
 leaflet buttons
-    rotate map
+rotate map
 
 add tracks?
-    // http://raspberrypi.local/signalk/v1/api/tracks?radius=500
-
+// http://raspberrypi.local/signalk/v1/api/tracks?radius=500
 
 laflet vs mapLibre gl js
 
@@ -25,7 +23,7 @@ laflet vs mapLibre gl js
         fitBounds(to a pair of markers)
 
 offline map:
-    signalk server charts plugin
+signalk server charts plugin
 
     https://docs.protomaps.com/
         PMTiles (not same as MBTiles!)
@@ -68,7 +66,6 @@ offline map:
         https://www.jsdelivr.com/package/npm/@protomaps/basemaps?tab=files&path=dist
         5.3.0
 
-
 C:\Users\jaffa\Downloads\go-pmtiles_1.27.2_Windows_x86_64
 
 C:\signalk\signalkhome\.signalk\charts\pmtiles
@@ -79,14 +76,12 @@ C:\signalk\signalkhome\.signalk\charts\pmtiles
         pmtiles extract https://build.protomaps.com/20250504.pmtiles NL.pmtiles --bbox=1,50,8,56 --dry-run
         pmtiles extract https://build.protomaps.com/20250504.pmtiles NL.pmtiles --bbox=3,52,6,54
 
-
-
 download:
 https://osmdata.openstreetmap.de/download/simplified-land-polygons-complete-3857.zip
 
 which contains:
 simplified_land_polygons.shp
-(Large simplified polygons not split, use for zoom level 0-9)	
+(Large simplified polygons not split, use for zoom level 0-9)
 Mercator (EPSG 3857)
 
 convert to pmtiles (protomaps):
@@ -137,8 +132,6 @@ tippecanoe -f -z6 -o ne_10m_minor_islands_label_points.pmtiles --drop-densest-as
 ogr2ogr -f GeoJSON ne_10m_geography_marine_polys.geojson ne_10m_geography_marine_polys.shp
 tippecanoe -f -z6 -o ne_10m_geography_marine_polys.pmtiles --drop-densest-as-needed --extend-zooms-if-still-dropping ne_10m_geography_marine_polys.geojson
 
-
-
 --overzoom
 
 tile-join -f -o ne_10m_land_islands.pmtiles \
@@ -147,7 +140,6 @@ ne_10m_minor_islands.pmtiles \
 ne_10m_land_ocean_label_points.pmtiles \
 ne_10m_minor_islands_label_points.pmtiles \
 ne_10m_geography_marine_polys.pmtiles
-
 
 ---
 

@@ -28,7 +28,10 @@
     ]
   },
   "license": "MIT",
-  "author": "Jeremy Waters <jaffadog@gmail.com>",
+  "author": {
+    "name": "Jeremy Waters",
+    "email": "jaffadog@gmail.com"
+  },
   "main": "plugin/index.cjs",
   "type": "commonjs",
   "files": [

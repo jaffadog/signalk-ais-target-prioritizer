@@ -1,4 +1,3 @@
-
         //app.debug('delta', JSON.stringify(delta, null, "\t"));
         //app.debug('app.getSelfPath', app.getSelfPath('mmsi'), app.getSelfPath('uuid'), app.getSelfPath('navigation.courseOverGroundTrue'));
 
@@ -52,22 +51,22 @@
         width             y y   design.beam
         draft             y y   design.draft.current
         targetType        - y   <<<derived>>>
-        
+
                                 sensors.ais.functionalId            10
                                                                     1-27 "AIS Message Type" / aisType
-                                                                    1 
-                                                                    2 
+                                                                    1
+                                                                    2
                                                                     3 = class A
                                                                     4 = base station
                                                                     5 = extended class A
-                                                                    6 
-                                                                    7 
+                                                                    6
+                                                                    7
                                                                     8 = binary message
                                                                     9 = sar aircraft
-                                                                    10 
+                                                                    10
                                                                     11 = uxt/date response
-                                                                    12 
-                                                                    13 
+                                                                    12
+                                                                    13
                                                                     14 = text message
                                                                     15
                                                                     16
@@ -195,7 +194,7 @@
 
         // switching aisClass between A and B does not seem to affect symbols used
         // switch target type from 1 to ....2 just switches to small trfiangle
-        // target type 3 renders vertical symbols (no cog rotation) in android plotter; and no symbols in the table/list; ios shows all ship symbols in the table + triangles in plotter 
+        // target type 3 renders vertical symbols (no cog rotation) in android plotter; and no symbols in the table/list; ios shows all ship symbols in the table + triangles in plotter
         // target type 4 renders atons in table and small triangles in plotter on android; and atons in both on ios
         // target type 5 renders cicle/cross in table and small triangle in plotter on android; ship symbols in table and small triangle on plotter in ios >>> SAR
         // target type 6 renders cicle/cross in table and small triangle in plotter on android; cicle/cross in table and plotter on ios >>> SART
@@ -218,15 +217,15 @@
         var i = 0;
         for (var shipTypeId of shipTypes.keys()) {
             //app.debug('shipTypeId', shipTypeId, shipTypes.get(shipTypeId));
-            //              mmsi,          lat,            lon,                    cog,    sog, 
-            //                                                                                aisClass, 
-            //                                                                                     targetType, 
-            //                                                                                          navState,                     
+            //              mmsi,          lat,            lon,                    cog,    sog,
+            //                                                                                aisClass,
+            //                                                                                     targetType,
+            //                                                                                          navState,
             //                                                                                              shipTypeId)
             sendVesselDelta(500000000 + i, gps.lat - 0.05, gps.lon - 0.5 + i / 10, i * 15, 10, 'B', 3, 15, shipTypeId, shipTypes.get(shipTypeId));
             i++;
 
-            // sendVesselDelta(500000000 + i, gps.lat - 0.05, gps.lon - 0.5 + i / 10, i * 15, 1, 'A', i);   
+            // sendVesselDelta(500000000 + i, gps.lat - 0.05, gps.lon - 0.5 + i / 10, i * 15, 1, 'A', i);
             // sendVesselDelta(600000000 + i, gps.lat - 0.1, gps.lon - 0.5 + i / 10, i * 15, 1, 'B', i);
             // sendVesselDelta(700000000 + i, gps.lat - 0.15, gps.lon - 0.5 + i / 10, i * 15, 1, 'ATON', i);
 
@@ -237,4 +236,3 @@
         }
     }, 5000);
     */
-

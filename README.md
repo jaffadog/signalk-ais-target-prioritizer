@@ -8,7 +8,7 @@ A [SignalK](https://signalk.org/) plugin that prioritizes AIS targets according 
 
 The SignalK AIS Target Prioritizer plugin processes SignalK AIS data and applies configurable collision risk criteria to each AIS target. It calculates CPA and time to CPA (TCPA) and establishes a collision risk rating for each AIS target. This rating can be used to rank AIS targets and highlight those targets that represent the most immediate risk/danger. The plugin will also trigger warnings and alarms when AIS target vessels meet the collision risk criteria.
 
-[![Main](resources/main.png)](resources/main.png)
+![Screenshot](https://raw.githubusercontent.com/jaffadog/signalk-ais-target-prioritizer/main/resources/main.png)
 
 ## Features
 
