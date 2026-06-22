@@ -16,7 +16,7 @@
 </script>
 
 <div class="flex items-center justify-between gap-2 p-2">
-  <span class="label-text">Theme</span>
+  <span class="label-text text-sm">Theme</span>
   <div class="inline-flex rounded-full bg-surface-200-800 p-0.75 gap-0.5">
     {#each options as { mode, icon: Icon, label } (mode)}
       <button

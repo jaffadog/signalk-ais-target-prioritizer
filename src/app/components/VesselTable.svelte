@@ -223,19 +223,3 @@
     </Dialog.Positioner>
   </Portal>
 </Dialog>
-
-<!-- <style>
-  :global(:is(th, td)) {
-    padding-inline: calc(var(--spacing) * 2);
-    padding-block: calc(var(--spacing) * 1);
-    text-align: right;
-  }
-
-  thead :global(th) {
-    font-weight: var(--font-weight-semibold);
-    background-color: var(--color-surface-50-950);
-  }
-
-  /* tbody :global(td) {
-  } */
-</style> -->

@@ -34,7 +34,6 @@
     alarmsState,
     getAlarmList,
     getCounts,
-    mute,
   } from "../../engine/alarms.svelte";
   import { vessels, vesselsState } from "../../engine/vessels.svelte";
   import { getStyleId, mapState, setStyle } from "../../engine/map.svelte";
@@ -52,7 +51,6 @@
   import layersSvg from "lucide-static/icons/layers.svg?raw";
   import listSvg from "lucide-static/icons/list.svg?raw";
   import settingsSvg from "lucide-static/icons/settings.svg?raw";
-  import { getMutedVessels } from "../utils/api";
 
   export const VESSEL_ICON_LAYERS = [
     "vessels-icons-viewport",
@@ -97,8 +95,6 @@
     // OpenStreetMap
     // OpenTopoMap
 
-    // FIXME when we change current profile in the webapp, does the plugin pickup that change?
-
     // TODO add indication of cpa ahead or behind my vessel
 
     // TODO look at using updateData rather than setData
@@ -116,7 +112,7 @@
       fadeDuration: 0, // prevents blinks
       style: style,
       attributionControl: false,
-      center: [0, 0],
+      center: [myVessel?.longitude ?? 0, myVessel?.latitude ?? 0],
       zoom: 10,
     });
 
@@ -281,15 +277,10 @@
       registerAllIcons(map);
       startUpdateMapLoop();
 
-      // this is a bit klugie. we're waiting 3 secs for vessels to fill in
-      // from sk. then we fetch which vessels are muted in the plugin - and
-      // apply that here.
-      // FIXME is there a better way to sequence this? sometimes we get alarms
-      // reported before the backfill esecutes
+      // delay showing alarms for a sec... its a better user experience
       setTimeout(async () => {
-        await backfillMutedVessels();
         alarmsState.alarmsEnabled = true;
-      }, 3000);
+      }, 1000);
 
       // FIXME does this have to be in onLoad?
       map.addControl(
@@ -403,7 +394,7 @@
   }
 
   function updateMapLoop() {
-    if (ui.visible === "visible") updateMap();
+    if (ui.documentVisibilityState === "visible") updateMap();
     updateMapLoopTimeoutId = setTimeout(updateMapLoop, DATA_REFRESH_INTERVAL);
   }
 
@@ -441,15 +432,15 @@
     updateMapLoopTimeoutId = undefined;
   }
 
-  async function backfillMutedVessels() {
-    console.log(">>>> backfilling mutes");
-    const mutedVessels = await getMutedVessels();
-    for (const mutedVessel of mutedVessels) {
-      if (vessels[mutedVessel.mmsi]) {
-        mute(mutedVessel.mmsi);
-      }
-    }
-  }
+  // async function backfillMutedVessels() {
+  //   console.log(">>>> backfilling mutes");
+  //   const mutedVessels = await getMutedVessels();
+  //   for (const mutedVessel of mutedVessels) {
+  //     if (vessels[mutedVessel.mmsi]) {
+  //       mute(mutedVessel.mmsi);
+  //     }
+  //   }
+  // }
 
   function updateVesselFeatures() {
     // console.log("ENTER updateVesselFeatures");
@@ -543,7 +534,7 @@
 
     var mapHeightNm = 60 * Math.abs(north - south);
 
-    // aiming for 3 visible range rings
+    // aiming for 3 visible range rings vertically
     var stepNm = mapHeightNm / 6;
 
     if (stepNm < 0.125) {
@@ -559,7 +550,7 @@
     }
 
     const radii: number[] = [];
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 10; i++) {
       radii.push(i * stepNm);
     }
 

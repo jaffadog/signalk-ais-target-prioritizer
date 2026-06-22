@@ -33,7 +33,6 @@ export const ingestion = $state({
 
 // eslint-disable-next-line svelte/prefer-svelte-reactivity
 const pendingUpdates = new Map();
-// let flushTimer = null;
 
 // context: "vessels.urn:mrn:imo:mmsi:236333000"
 export function extractMmsi(context: string): string | undefined {
@@ -150,10 +149,6 @@ export function queueVesselUpdates(context: Context, updates: Update[]) {
   } else {
     pendingUpdates.set(context, [...updates]);
   }
-
-  // if (flushTimer == null) {
-  //   flushTimer = setTimeout(flushPendingUpdates, 1000);
-  // }
 }
 
 // ==============================
@@ -277,19 +272,29 @@ export function stop() {
   }
 }
 
+let flushInProgress = false;
+
 export function flushPendingUpdates() {
-  // flushTimer = null;
-  const start = performance.now();
+  // console.log("ENTER flushPendingUpdates", flushInProgress);
+  if (flushInProgress) {
+    return;
+  }
+  flushInProgress = true;
+
+  // const start = performance.now();
   const updateCount = pendingUpdates.size;
 
-  if (pendingUpdates.size === 0) return;
+  if (updateCount > 0) {
+    for (const [context, updates] of pendingUpdates) {
+      upsertVessel(context, updates);
+    }
 
-  for (const [context, updates] of pendingUpdates) {
-    upsertVessel(context, updates);
+    pendingUpdates.clear();
+    // console.log(
+    //   `flushed ${updateCount} updates in ${(performance.now() - start).toFixed(1)} ms`,
+    // );
   }
 
-  pendingUpdates.clear();
-  console.log(
-    `flushed ${updateCount} updates in ${(performance.now() - start).toFixed(1)} ms`,
-  );
+  // console.log("EXIT flushPendingUpdates");
+  flushInProgress = false;
 }

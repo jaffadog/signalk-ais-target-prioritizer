@@ -1,11 +1,17 @@
 import type { ThemeMode } from "../types";
 
 export const ui = $state({
-  visible: undefined,
+  documentVisibilityState: undefined,
   width: undefined,
   noSleep: false,
   themeMode: (localStorage.getItem("theme") as ThemeMode) ?? "system",
   darkMode: false,
+  loading: {
+    visible: true,
+  },
+  app: {
+    visible: false,
+  },
   vesselProperties: {
     visible: false,
   },

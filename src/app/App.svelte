@@ -15,6 +15,7 @@
   import EditProfiles from "./components/EditProfiles.svelte";
 
   import {
+    flushPendingUpdates,
     start as startIngestion,
     stop as stopIngestion,
   } from "../engine/ingestion.svelte";
@@ -25,76 +26,145 @@
   import { CircleCheck, CircleX, Info, TriangleAlert } from "@lucide/svelte";
   import { basemaps, initBasemaps } from "./basemaps.svelte";
   import type { InitStep } from "../types";
-  import ky, { HTTPError } from "ky";
+  import ky from "ky";
+  import { vessels, vesselsState } from "../engine/vessels.svelte";
+  import { getMutedVessels } from "./utils/api";
+  import { mute } from "../engine/alarms.svelte";
 
-  let appReady = $state(false);
-  let loadingVisible = $state(true);
   let authRequired = $state(false);
 
+  const INIT_TIMEOUT = 5000;
   const FADE_DURATION = 750;
+
+  const myVessel = $derived(
+    vesselsState.myVesselMmsi ? vessels[vesselsState.myVesselMmsi] : undefined,
+  );
 
   $inspect({ basemapId: mapState.basemapId });
   $inspect({ openSeaMap: mapState.openSeaMap });
   $inspect({ styleId: mapState.styleId });
   $inspect({ darkMode: ui.darkMode });
-  $inspect({ visible: ui.visible });
-  $inspect({ width: ui.width });
+  $inspect({ documentVisibilityState: ui.documentVisibilityState });
   $inspect({ online: connectivity.online });
-  $inspect({ ready: appReady });
 
-  let initSteps = $state<InitStep[]>([
+  // let initSteps = $state<InitStep[]>([
+  const initSteps = $state<Record<string, InitStep>>({
     // {
     //   label: "Starting up",
     //   status: "pending",
     //   fn: async () => new Promise<void>((resolve) => setTimeout(resolve, 500)),
     // },
-    { label: "Authenticating", status: "pending", fn: checkAuth },
-    {
+    checkAuth: { label: "Authenticating", status: "pending", fn: checkAuth },
+    connectToSignalK: {
       label: "Connecting to Signal K",
       status: "pending",
-      fn: () => startIngestion(location.host),
+      fn: connectToSignalK,
     },
-    {
+    waitForMyVesselPosition: {
+      label: "Checking my vessel position",
+      status: "pending",
+      fn: waitForMyVesselPosition,
+    },
+    backfillMutedVessels: {
+      label: "Checking for existing muted vessels",
+      status: "pending",
+      fn: backfillMutedVessels,
+    },
+    checkConnectivity: {
       label: "Checking internet connectivity",
       status: "pending",
       fn: checkConnectivity,
     },
-    { label: "Loading basemaps", status: "pending", fn: initBasemaps },
-    {
+    initCollisionProfiles: {
       label: "Loading collision profiles",
       status: "pending",
       fn: initCollisionProfiles,
     },
-    { label: "Loading map fonts", status: "pending", fn: checkFontsAvailable },
-  ]);
+    initBasemaps: {
+      label: "Loading basemaps",
+      status: "pending",
+      fn: initBasemaps,
+    },
+    checkFontsAvailable: {
+      label: "Checking for map fonts",
+      status: "pending",
+      fn: checkFontsAvailable,
+    },
+  });
 
-  let hasErrors = $derived(initSteps.some((s) => s.status === "error"));
+  let hasErrors = $derived(
+    Object.values(initSteps).some((s) => s.status === "error"),
+  );
 
-  async function checkAuth() {
-    try {
-      // http://localhost:3000/skServer/loginStatus
-      await ky.get("/signalk/v1/api/self", {
-        credentials: "include",
-      });
-    } catch (err) {
-      if (
-        err instanceof HTTPError &&
-        (err.response.status === 401 || err.response.status === 403)
-      ) {
-        authRequired = true;
-        return new Promise<void>(() => {}); // hang so trackedInit shows error
-      }
-      throw err;
+  async function connectToSignalK() {
+    const start = Date.now();
+    startIngestion(location.host);
+    while (
+      !["done", "error"].includes(initSteps["backfillMutedVessels"].status) ||
+      !["done", "error"].includes(initSteps["waitForMyVesselPosition"].status)
+    ) {
+      flushPendingUpdates();
+      if (Date.now() - start > INIT_TIMEOUT)
+        throw new Error("No data received for my vessel");
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
-  async function trackedInit(index: number, fn: () => Promise<void>) {
-    initSteps[index].status = "loading";
+  async function waitForMyVesselPosition() {
+    const start = Date.now();
+    while (!myVessel || !myVessel.latitude || !myVessel.longitude) {
+      if (Date.now() - start > INIT_TIMEOUT) {
+        throw new Error("No data received for my vessel");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  async function backfillMutedVessels() {
+    const start = Date.now();
+    let mutedVessels = await getMutedVessels();
+
+    while (mutedVessels.length > 0) {
+      mutedVessels = mutedVessels.filter((mutedVessel) => {
+        if (vessels[mutedVessel.mmsi]) {
+          mute(mutedVessel.mmsi);
+          return false; // remove from array
+        }
+        return true; // keep in item
+      });
+
+      if (Date.now() - start > INIT_TIMEOUT) {
+        console.error(
+          "Unable to backfill all previously  muted vessels",
+          mutedVessels,
+        );
+        throw new Error("Unable to backfill all previously  muted vessels");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  async function checkAuth() {
+    const loginStatus: { status: string } = await ky
+      .get("/skServer/loginStatus", {
+        credentials: "include",
+      })
+      .json();
+    if (loginStatus.status !== "loggedIn") {
+      authRequired = true;
+      console.error("notlogged in", { loginStatus });
+      throw new Error("Not logged in");
+    }
+  }
+
+  async function trackedInit(initStep: InitStep) {
+    initStep.status = "loading";
     try {
-      await fn();
-      initSteps[index].status = "done";
+      await initStep.fn();
+      initStep.status = "done";
     } catch (err) {
-      initSteps[index].status = "error";
+      initStep.status = "error";
+      console.error(err);
       throw err;
     }
   }
@@ -116,7 +186,7 @@
 
     // initialize prereqs
     Promise.allSettled(
-      initSteps.map((step, i) => trackedInit(i, step.fn)),
+      Object.values(initSteps).map((initStep) => trackedInit(initStep)),
     ).then(() => {
       if (!hasErrors) {
         showApp();
@@ -137,12 +207,13 @@
   });
 
   function showApp() {
-    // make sure our default/current basemap is valid
+    // make sure our default/current basemap is valid, including
+    // online/offline availability
     if (!(mapState.basemapId in basemaps)) {
       mapState.basemapId = "street";
     }
-    appReady = true;
-    setTimeout(() => (loadingVisible = false), FADE_DURATION);
+    ui.app.visible = true;
+    setTimeout(() => (ui.loading.visible = false), FADE_DURATION);
   }
 
   const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -189,10 +260,8 @@
   });
 </script>
 
-<svelte:document bind:visibilityState={ui.visible} />
+<svelte:document bind:visibilityState={ui.documentVisibilityState} />
 <svelte:window bind:innerWidth={ui.width} />
-
-<!-- {@render props.children?.()} -->
 
 <Toast.Group {toaster}>
   {#snippet children(toast)}
@@ -219,71 +288,75 @@
   {/snippet}
 </Toast.Group>
 
-{#if loadingVisible}
+{#if ui.loading.visible}
   <div
-    class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-100-900 gap-6"
+    class="bg-white dark:bg-gray-900 p-8 pt-7 fixed inset-0 z-50 flex flex-col items-center justify-center"
     out:fade={{ duration: FADE_DURATION }}
   >
-    <div>
-      <img
-        class="size-30 overflow-hidden rounded-2xl"
-        src="assets/icon-120.png"
-        alt="icon"
-      />
-    </div>
-    <div class="text-2xl font-bold">Loading...</div>
-    <div class="flex flex-col gap-2 w-64">
-      {#each initSteps as step (step.label)}
-        <div class="flex items-center gap-3">
-          {#if step.status === "pending"}
-            <div class="size-4 rounded-full border-2 border-surface-300"></div>
-          {:else if step.status === "loading"}
-            <div
-              class="size-4 animate-spin rounded-full border-2 border-primary-500 border-t-transparent"
-            ></div>
-          {:else if step.status === "done"}
-            <CircleCheck class="size-4 text-success-500" />
-          {:else if step.status === "error"}
-            <CircleX class="size-4 text-error-500" />
-          {/if}
-          <span class="text-sm">{step.label}</span>
-        </div>
-      {/each}
-    </div>
-    {#if hasErrors}
-      <div class="flex flex-col items-center gap-3">
-        {#if authRequired}
-          <p class="text-sm text-surface-400 text-center max-w-xs">
-            Authentication required to use this app.
-          </p>
-          <a href="/admin/#/login" class="btn preset-filled-primary-500">
-            Log In to Signal K
-          </a>
-        {:else}
-          <p class="text-sm text-warning-500 text-center max-w-xs">
-            Some initialization steps failed. The app may not function
-            correctly.
-          </p>
-          <button class="btn preset-filled-warning-500" onclick={showApp}>
-            Continue Anyway
-          </button>
-        {/if}
+    <div
+      class="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg w-full sm:w-sm max-h-[90dvh] overflow-y-auto gap-6 px-6 py-8 ring shadow-xl ring-gray-900/5"
+    >
+      <div>
+        <img
+          class="size-30 overflow-hidden rounded-2xl"
+          src="assets/icon-120.png"
+          alt="icon"
+        />
       </div>
-    {/if}
+      <div class="text-2xl font-bold">Loading...</div>
+      <div class="flex flex-col gap-2">
+        {#each Object.values(initSteps) as step (step.label)}
+          <div class="flex items-center gap-3">
+            {#if step.status === "pending"}
+              <div
+                class="size-4 rounded-full border-2 border-surface-300"
+              ></div>
+            {:else if step.status === "loading"}
+              <div
+                class="size-4 animate-spin rounded-full border-2 border-primary-500 border-t-transparent"
+              ></div>
+            {:else if step.status === "done"}
+              <CircleCheck class="size-4 text-success-500" />
+            {:else if step.status === "error"}
+              <CircleX class="size-4 text-error-500" />
+            {/if}
+            <span class="text-sm">{step.label}</span>
+          </div>
+        {/each}
+      </div>
+      {#if hasErrors}
+        <div class="flex flex-col items-center gap-3">
+          {#if authRequired}
+            <p class="text-sm text-surface-400 text-center max-w-xs">
+              Authentication required to use this app.
+            </p>
+            <a href="/admin/#/login" class="btn preset-filled-primary-500">
+              Log In to Signal K
+            </a>
+          {:else}
+            <p class="text-sm text-warning-500 text-center max-w-xs">
+              Some initialization steps failed. The app may not function
+              correctly.
+            </p>
+            <button class="btn preset-filled-warning-500" onclick={showApp}>
+              Continue Anyway
+            </button>
+          {/if}
+        </div>
+      {/if}
+    </div>
   </div>
 {/if}
 
-{#if appReady}
+{#if ui.app.visible}
   <div
     class="relative h-dvh w-screen overflow-hidden"
     in:fade={{ duration: FADE_DURATION }}
   >
-    <!-- {/* MAP LAYER */} -->
     <div class="absolute inset-0 z-0">
       <Map />
     </div>
 
-    <!-- {/* UI LAYER */} -->
     <div class="pointer-events-none absolute top-0 right-0 z-10">
       <VesselCounts />
     </div>

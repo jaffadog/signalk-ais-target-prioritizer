@@ -28,6 +28,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/plugins": "http://127.0.0.1:3000",
+      "/skServer": "http://127.0.0.1:3000",
       "/signalk": {
         target: "http://127.0.0.1:3000",
         ws: true,

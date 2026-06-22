@@ -26,7 +26,7 @@
     handleRemoveFonts,
     mapState,
   } from "../../engine/map.svelte";
-  import DarkModeSwith from "./DarkModeSwith.svelte";
+  import DarkModeSwith from "./DarkModeSwitch.svelte";
   import { stats } from "../stats.svelte";
 
   // console.log("ENTER Settings");
@@ -133,7 +133,7 @@
             onCheckedChange={handleNoSleep}
             checked={ui.noSleep}
           >
-            <Switch.Label
+            <Switch.Label class="text-sm"
               >Prevent screen sleeping in iOS and Android</Switch.Label
             >
             <Switch.HiddenInput />
@@ -148,7 +148,7 @@
             onCheckedChange={handleFullScreen}
             checked={fullScreen}
           >
-            <Switch.Label>Fullscreen Mode</Switch.Label>
+            <Switch.Label class="text-sm">Fullscreen Mode</Switch.Label>
             <Switch.HiddenInput />
             <Switch.Control>
               <Switch.Thumb />

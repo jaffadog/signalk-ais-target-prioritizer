@@ -3,6 +3,7 @@ import { buildStyle } from "../app/resolveMapConfig";
 import { ui } from "../app/ui.svelte";
 import { DEFAULT_BASEMAP } from "./constants";
 import { name as PLUGIN_ID } from "../../package.json";
+import { basemaps } from "../app/basemaps.svelte";
 
 export const mapState = $state<{
   instance: Map | null;
@@ -23,7 +24,7 @@ export const mapState = $state<{
   fontsDownloading: false,
 });
 
-export function setStyle() {
+export function setStyle({ force = false } = {}) {
   console.log("ENTER setStyle", mapState.basemapId, ui.darkMode);
   if (
     !mapState.instance ||
@@ -40,7 +41,7 @@ export function setStyle() {
   console.log("style", style);
   if (!style) return;
 
-  if (mapState.styleId === styleId) {
+  if (mapState.styleId === styleId && force === false) {
     console.log(">>> skipping applying this style, as its already loaded");
     return;
   }
@@ -70,9 +71,21 @@ export async function handleDownloadFonts() {
   await fetch(`/plugins/${PLUGIN_ID}/download-fonts`, { method: "POST" });
   mapState.fontsDownloading = false;
   await checkFontsAvailable();
+  if (
+    basemaps[mapState.basemapId].type === "signalk-protomaps-pmtiles" &&
+    mapState.protomapsFontsAvailable
+  ) {
+    setStyle({ force: true });
+  }
 }
 
 export async function handleRemoveFonts() {
   await fetch(`/plugins/${PLUGIN_ID}/remove-fonts`, { method: "POST" });
   await checkFontsAvailable();
+  if (
+    basemaps[mapState.basemapId].type === "signalk-protomaps-pmtiles" &&
+    !mapState.protomapsFontsAvailable
+  ) {
+    setStyle({ force: true });
+  }
 }
