@@ -1,4 +1,5 @@
 // reads vessels, raises notifications
+import type { Context } from "@signalk/server-api";
 import type { AlarmsState } from "../types.js";
 import { vessels, vesselsState } from "./vessels.svelte.js";
 
@@ -7,31 +8,31 @@ export const alarmsState = $state<AlarmsState>({
   lastAlarmTime: null,
 });
 
-export function setAlarmIsMuted(mmsi: string, alarmIsMuted: boolean) {
-  const vessel = vessels[mmsi];
+export function setAlarmIsMuted(context: Context, alarmIsMuted: boolean) {
+  const vessel = vessels[context];
   if (!vessel) return;
-  console.log({ mmsi, name: vessel.name, alarmIsMuted });
+  console.log({ context, name: vessel.name, alarmIsMuted });
   vessel.alarmIsMuted = alarmIsMuted;
 }
 
-export function mute(mmsi: string) {
-  setAlarmIsMuted(mmsi, true);
+export function mute(context: Context) {
+  setAlarmIsMuted(context, true);
 }
 
 export function muteAllAlarms() {
-  for (const alarm of $state.snapshot(alarmList)) {
-    mute(alarm.mmsi);
+  for (const alarm of $state.snapshot(alarmVesselList)) {
+    mute(alarm.context);
   }
 }
 
-const alarmList = $derived(
+const alarmVesselList = $derived(
   Object.values(vessels).filter(
     (t) => t.alarmState === "danger" && t.alarmIsMuted === false,
   ),
 );
 
-export function getAlarmList() {
-  return alarmList;
+export function getAlarmVesselList() {
+  return alarmVesselList;
 }
 
 const counts = $derived.by(() => {
@@ -40,7 +41,7 @@ const counts = $derived.by(() => {
     danger = 0;
 
   for (const vessel of Object.values(vessels)) {
-    if (vessel.isValid && vessel.mmsi !== vesselsState.myVesselMmsi) {
+    if (vessel.isValid && vessel.context !== vesselsState.myVesselContext) {
       total++;
       const state = vessel.alarmState;
       if (state) {

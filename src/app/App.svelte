@@ -37,7 +37,9 @@
   const FADE_DURATION = 750;
 
   const myVessel = $derived(
-    vesselsState.myVesselMmsi ? vessels[vesselsState.myVesselMmsi] : undefined,
+    vesselsState.myVesselContext
+      ? vessels[vesselsState.myVesselContext]
+      : undefined,
   );
 
   $inspect({ basemapId: mapState.basemapId });
@@ -126,8 +128,8 @@
 
     while (mutedVessels.length > 0) {
       mutedVessels = mutedVessels.filter((mutedVessel) => {
-        if (vessels[mutedVessel.mmsi]) {
-          mute(mutedVessel.mmsi);
+        if (vessels[mutedVessel.context]) {
+          mute(mutedVessel.context);
           return false; // remove from array
         }
         return true; // keep in item

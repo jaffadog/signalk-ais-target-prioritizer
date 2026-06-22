@@ -74,7 +74,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-
 jobs:
   # ── Automatic runs (push / pull request) ──────────────────
   test-plugin-auto:

@@ -18,7 +18,7 @@ export function getVesselIconName(vessel: Vessel): string {
   let color;
 
   // my vessel
-  if (vessel.mmsi === vesselsState.myVesselMmsi) {
+  if (vessel.context === vesselsState.myVesselContext) {
     return "vessel-my-vessel";
   }
   // 111MIDXXX        SAR (Search and Rescue) aircraft
@@ -26,15 +26,19 @@ export function getVesselIconName(vessel: Vessel): string {
   // 972XXXXXX        MOB (Man Overboard) device
   // 974XXXXXX        EPIRB (Emergency Position Indicating Radio Beacon) AIS
   else if (
-    vessel.mmsi.startsWith("111") ||
-    vessel.mmsi.startsWith("970") ||
-    vessel.mmsi.startsWith("972") ||
-    vessel.mmsi.startsWith("974")
+    vessel.mmsi &&
+    (vessel.mmsi.startsWith("111") ||
+      vessel.mmsi.startsWith("970") ||
+      vessel.mmsi.startsWith("972") ||
+      vessel.mmsi.startsWith("974"))
   ) {
     return "vessel-sart";
   }
   // 99MIDXXXX        Aids to Navigation
-  else if (vessel.aisClass === "ATON" || vessel.mmsi.startsWith("99")) {
+  else if (
+    vessel.aisClass === "ATON" ||
+    (vessel.mmsi && vessel.mmsi.startsWith("99"))
+  ) {
     iconType = "aton";
   }
   // class A
@@ -50,7 +54,7 @@ export function getVesselIconName(vessel: Vessel): string {
     iconType = "class-b";
   }
 
-  if (vessel.mmsi === vesselsState.selectedVesselMmsi) {
+  if (vessel.context === vesselsState.selectedVesselContext) {
     color = "blue";
   } else if (vessel.alarmState === "danger") {
     color = "red";

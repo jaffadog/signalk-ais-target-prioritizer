@@ -34,26 +34,17 @@ export const ingestion = $state({
 // eslint-disable-next-line svelte/prefer-svelte-reactivity
 const pendingUpdates = new Map();
 
-// context: "vessels.urn:mrn:imo:mmsi:236333000"
-export function extractMmsi(context: string): string | undefined {
-  if (!context) return;
-  return context.match(/mmsi:(\d{9})$/)?.[1];
-}
-
 // ==============================
 // Process Vessel Updates
 // ==============================
 function upsertVessel(context: Context, updates: Update[]) {
   if (!context) return;
 
-  const mmsi = extractMmsi(context);
-  if (!mmsi) return;
-
-  if (!(mmsi in vessels)) {
-    vessels[mmsi] = createVessel(mmsi, context);
+  if (!(context in vessels)) {
+    vessels[context] = createVessel(context);
   }
 
-  const vessel = vessels[mmsi];
+  const vessel = vessels[context];
 
   if (!updates) return;
   for (const update of updates) {
@@ -64,7 +55,9 @@ function upsertVessel(context: Context, updates: Update[]) {
           const v = value as any;
           switch (path) {
             case "":
-              if (v.name) {
+              if (v.mmsi) {
+                vessel.mmsi = v.mmsi ?? "";
+              } else if (v.name) {
                 vessel.name = v.name ?? "";
               } else if (v.communication?.callsignVhf) {
                 vessel.callsign = v.communication.callsignVhf;
@@ -217,7 +210,7 @@ function startStreaming(host: string) {
     const msg = JSON.parse(event.data) as Delta & { self?: string };
 
     if (msg.self) {
-      vesselsState.myVesselMmsi = extractMmsi(msg.self) ?? null;
+      vesselsState.myVesselContext = msg.self as Context;
       return;
     }
 

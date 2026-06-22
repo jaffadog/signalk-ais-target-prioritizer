@@ -1,6 +1,6 @@
 export function getVesselSvg(
-  mmsi: string,
-  aisClass: string,
+  mmsi: string | null,
+  aisClass: string | null,
   typeId: number | null,
 ) {
   // fishing
@@ -21,10 +21,11 @@ export function getVesselSvg(
   // sar
   else if (
     typeId === 51 ||
-    mmsi.startsWith("111") ||
-    mmsi.startsWith("970") ||
-    mmsi.startsWith("972") ||
-    mmsi.startsWith("974")
+    (mmsi &&
+      (mmsi.startsWith("111") ||
+        mmsi.startsWith("970") ||
+        mmsi.startsWith("972") ||
+        mmsi.startsWith("974")))
   ) {
     return sarSvg;
   }
@@ -40,7 +41,7 @@ export function getVesselSvg(
   }
 
   // aton
-  else if (aisClass === "ATON" || mmsi.startsWith("99")) {
+  else if (aisClass === "ATON" || (mmsi && mmsi.startsWith("99"))) {
     return atonSvg;
   }
 

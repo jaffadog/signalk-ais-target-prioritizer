@@ -34,7 +34,7 @@ import { schema } from "./schema";
 import type { Vessel } from "../types";
 
 const myVessel = $derived(
-  vesselsState.myVesselMmsi ? vessels[vesselsState.myVesselMmsi] : null,
+  vesselsState.myVesselContext ? vessels[vesselsState.myVesselContext] : null,
 );
 
 interface Options {
@@ -79,14 +79,16 @@ export default function (app: ServerAPI) {
       options.enableAlarmPublishing ?? DEFAULT_ENABLE_ALARM_PUBLISHING;
     loadCollisionProfiles();
 
-    const mmsi: string = app.getSelfPath("mmsi") as string;
+    console.log(">>>>>>>>>>>>>>>selfContext", app.selfContext);
 
-    if (!mmsi) {
-      app.error("ERROR - no mmsi set for our vessel");
-      throw new Error("ERROR - no mmsi set for our vessel");
+    const selfContext = app.selfContext as Context;
+
+    if (!selfContext) {
+      app.error("ERROR - no context set for our vessel");
+      throw new Error("ERROR - no context set for our vessel");
     }
 
-    vesselsState.myVesselMmsi = mmsi;
+    vesselsState.myVesselContext = selfContext;
 
     if (enableDataPublishing || enableAlarmPublishing) {
       enablePluginCpaCalculations();
@@ -129,11 +131,11 @@ export default function (app: ServerAPI) {
       res.json();
     });
 
-    router.get("/setAlarmIsMuted/:mmsi/:alarmIsMuted", (req, res) => {
-      const mmsi = req.params.mmsi;
+    router.get("/setAlarmIsMuted/:context/:alarmIsMuted", (req, res) => {
+      const context = req.params.context as Context;
       const alarmIsMuted = req.params.alarmIsMuted === "true";
-      app.debug("setting alarmIsMuted", mmsi, alarmIsMuted);
-      setAlarmIsMuted(mmsi, alarmIsMuted);
+      app.debug("setting alarmIsMuted", context, alarmIsMuted);
+      setAlarmIsMuted(context, alarmIsMuted);
       res.json();
     });
 
@@ -150,11 +152,11 @@ export default function (app: ServerAPI) {
       res.json(mutedVessels);
     });
 
-    router.get("/getVessel/:mmsi", (req, res) => {
-      const mmsi = req.params.mmsi;
-      app.debug("getVessel", mmsi);
-      if (mmsi in vessels) {
-        res.json(vessels[mmsi]);
+    router.get("/getVessel/:context", (req, res) => {
+      const context = req.params.context as Context;
+      app.debug("getVessel", context);
+      if (context in vessels) {
+        res.json(vessels[context]);
       } else {
         res.status(404).end();
       }
@@ -280,7 +282,7 @@ export default function (app: ServerAPI) {
 
         if (
           enableDataPublishing &&
-          vessel.mmsi !== vesselsState.myVesselMmsi &&
+          vessel.context !== vesselsState.myVesselContext &&
           !ignore
         ) {
           pushTargetDataToSignalK(vessel);

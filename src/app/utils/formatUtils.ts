@@ -1,5 +1,7 @@
 import { KNOTS_PER_M_PER_S, METERS_PER_NM } from "../../engine/constants";
 import { isValidNumber, toDeg } from "../../engine/calculations";
+import type { Vessel } from "../../types";
+import { vesselsState } from "../../engine/vessels.svelte";
 
 /** N 39° 57.0689 */
 export function formatLat(dec: number): string | undefined {
@@ -79,25 +81,32 @@ export function formatTcpa(tcpa: number | undefined): string | undefined {
   }
 }
 
-export function formatName(mmsi: string, name: string): string {
-  return `${name ? name.replaceAll("@", "") : `<${mmsi}>`}`;
+export function formatName(vessel: Vessel): string {
+  if (vessel.name) {
+    return vessel.name.replaceAll("@", "");
+  } else if (vessel.context === vesselsState.myVesselContext) {
+    return "MY VESSEL";
+  } else if (vessel.mmsi) {
+    return `<${vessel.mmsi}>`;
+  } else {
+    return "";
+  }
 }
 
-export function formatVesselLabel(
-  mmsi: string,
-  name: string,
-  sog: number | null,
-  cpa: number | undefined,
-  tcpa: number | undefined,
-): string {
-  let vesselLabelText = `${formatName(mmsi, name)}\n`;
+export function formatVesselLabel(vessel: Vessel): string {
+  let vesselLabelText = `${formatName(vessel)}\n`;
   // add speed if > 0.1 kn
-  if (isValidNumber(sog) && sog > 0.1) {
-    vesselLabelText += `${formatSpeed(sog)} `;
+  if (isValidNumber(vessel.sog) && vessel.sog > 0.1) {
+    vesselLabelText += `${formatSpeed(vessel.sog)} `;
   }
   // add cpa/tcpa if tcpa is less than 60 minutes
-  if (isValidNumber(tcpa) && tcpa > 0 && tcpa < 3600 && isValidNumber(cpa)) {
-    vesselLabelText += `${formatCpa(cpa, tcpa)} ${formatTcpa(tcpa)}`;
+  if (
+    isValidNumber(vessel.tcpa) &&
+    vessel.tcpa > 0 &&
+    vessel.tcpa < 3600 &&
+    isValidNumber(vessel.cpa)
+  ) {
+    vesselLabelText += `${formatCpa(vessel.cpa, vessel.tcpa)} ${formatTcpa(vessel.tcpa)}`;
   }
   vesselLabelText += "\u00A0";
   return vesselLabelText;

@@ -4,7 +4,7 @@
   import hornMp3Url from "../assets/horn.mp3";
   import {
     alarmsState,
-    getAlarmList,
+    getAlarmVesselList,
     muteAllAlarms,
   } from "../../engine/alarms.svelte";
   import { ui } from "../ui.svelte";
@@ -12,10 +12,11 @@
   import { TriangleAlert } from "@lucide/svelte";
   import { pushMuteAllAlarms } from "../utils/api";
   import { onMount } from "svelte";
+  import type { Context } from "@signalk/server-api";
 
   // get static static snaphost so that this dialog doesnt jump
   // around jump around with updates, additions, removals
-  const alarms = $state.snapshot(getAlarmList());
+  const alarmVessels = $state.snapshot(getAlarmVesselList());
 
   const horn = new Audio(hornMp3Url);
 
@@ -23,8 +24,8 @@
     horn.play().catch((e) => console.log("suppressed horn sound:", e.message));
   });
 
-  function handleClick(mmsi: string) {
-    vesselsState.selectedVesselMmsi = mmsi;
+  function handleClick(context: Context) {
+    vesselsState.selectedVesselContext = context;
     ui.vesselProperties.visible = true;
     close();
   }
@@ -63,15 +64,15 @@
           ><TriangleAlert />Alarms</Dialog.Title
         >
         <Dialog.Description class="flex-1 overflow-y-auto">
-          {#each alarms as a (a.mmsi)}
+          {#each alarmVessels as alarmVessel (alarmVessel.context)}
             <button
               class="w-full text-left hover:preset-tonal-error rounded px-2 py-1 uppercase"
-              onclick={() => handleClick(a.mmsi)}
+              onclick={() => handleClick(alarmVessel.context)}
             >
-              {formatName(a.mmsi, a.name)} -
-              {a.alarmType} -
-              {formatCpa(a.cpa, a.tcpa)}
-              {formatTcpa(a.tcpa)}
+              {formatName(alarmVessel)} -
+              {alarmVessel.alarmType} -
+              {formatCpa(alarmVessel.cpa, alarmVessel.tcpa)}
+              {formatTcpa(alarmVessel.tcpa)}
             </button>
           {:else}
             <p

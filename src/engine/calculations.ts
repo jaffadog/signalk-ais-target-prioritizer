@@ -158,7 +158,7 @@ export function calcAlarms(
   sog: number | null,
   cpa: number | undefined,
   tcpa: number | undefined,
-  mmsi: string,
+  mmsi: string | null,
 ) {
   const alarms: {
     guardAlarm?: boolean;
@@ -203,9 +203,9 @@ export function calcAlarms(
         (isValidNumber(sog) &&
           sog > activeCollisionProfile.warning.speed / KNOTS_PER_M_PER_S));
 
-    alarms.sartAlarm = mmsi.startsWith("970");
-    alarms.mobAlarm = mmsi.startsWith("972");
-    alarms.epirbAlarm = mmsi.startsWith("974");
+    alarms.sartAlarm = !!mmsi && mmsi.startsWith("970");
+    alarms.mobAlarm = !!mmsi && mmsi.startsWith("972");
+    alarms.epirbAlarm = !!mmsi && mmsi.startsWith("974");
 
     const alarmList = [];
 

@@ -22,13 +22,14 @@ import { deleteVessel, vessels, vesselsState } from "./vessels.svelte";
 import { flushPendingUpdates } from "./ingestion.svelte";
 import { getActiveCollisionProfile } from "./collisionProfiles.svelte";
 import type { Vessel } from "../types";
+import type { Context } from "@signalk/server-api";
 
 const myVessel: Vessel | null = $derived(
-  vesselsState.myVesselMmsi ? vessels[vesselsState.myVesselMmsi] : null,
+  vesselsState.myVesselContext ? vessels[vesselsState.myVesselContext] : null,
 );
 const selectedVessel: Vessel | null = $derived(
-  vesselsState.selectedVesselMmsi
-    ? vessels[vesselsState.selectedVesselMmsi]
+  vesselsState.selectedVesselContext
+    ? vessels[vesselsState.selectedVesselContext]
     : null,
 );
 
@@ -60,7 +61,10 @@ export function updateVessels() {
 
   const myVelocity = calcVelocity(myVessel);
 
-  for (const [mmsi, vessel] of Object.entries(vessels)) {
+  for (const [context, vessel] of Object.entries(vessels) as [
+    Context,
+    Vessel,
+  ][]) {
     // calculated from raw data:
     const projection = calcProjection(vessel, myVessel);
     const velocity = calcVelocity(vessel);
@@ -70,9 +74,10 @@ export function updateVessels() {
     const cpaLocation =
       selectedVessel &&
       selectedVessel.tcpa !== undefined &&
-      [vesselsState.myVesselMmsi, vesselsState.selectedVesselMmsi].includes(
-        mmsi,
-      )
+      [
+        vesselsState.myVesselContext,
+        vesselsState.selectedVesselContext,
+      ].includes(context)
         ? calcCpaLocation(vessel, selectedVessel.tcpa)
         : undefined;
 
@@ -81,8 +86,8 @@ export function updateVessels() {
     vessel.lastSeenSecondsAgo = lastSeenSecondsAgo;
     vessel.isValid = isValid;
 
-    // calculated from derived data:
-    if (vessel.mmsi !== vesselsState.myVesselMmsi) {
+    // calculated from derived data (for vessel other than our own - only):
+    if (vessel.context !== vesselsState.myVesselContext) {
       const range = projection ? calcRange(projection) : undefined;
       const bearing = projection ? calcBearing(projection) : undefined;
       const { cpa = undefined, tcpa = undefined } = projection
@@ -99,7 +104,7 @@ export function updateVessels() {
           vessel.sog,
           cpa,
           tcpa,
-          mmsi,
+          vessel.mmsi,
         ) ?? {};
 
       vessel.range = range;

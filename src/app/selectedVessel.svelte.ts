@@ -2,8 +2,8 @@ import { mapState } from "../engine/map.svelte";
 import { vesselsState, vessels } from "../engine/vessels.svelte";
 
 const selectedVessel = $derived(
-  vesselsState.selectedVesselMmsi
-    ? vessels[vesselsState.selectedVesselMmsi]
+  vesselsState.selectedVesselContext
+    ? vessels[vesselsState.selectedVesselContext]
     : null,
 );
 

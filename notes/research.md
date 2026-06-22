@@ -146,3 +146,31 @@ ne_10m_geography_marine_polys.pmtiles
 test with:
 https://maps.protomaps.com/
 https://pmtiles.io/
+
+---
+
+[
+{
+"context": "vessels.self",
+"updates": [
+{
+"values": [
+{
+"path": "",
+"value": {
+"mmsi": "",
+"name": "Newsboy 230035780"
+}
+},
+{
+"path": "design.aisShipType",
+"value": {
+"name": "Sailing",
+"id": 36
+}
+}
+]
+}
+]
+}
+]

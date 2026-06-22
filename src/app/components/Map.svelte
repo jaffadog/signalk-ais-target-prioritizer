@@ -32,7 +32,7 @@
   import { calcCpaLocation, toDeg } from "../../engine/calculations";
   import {
     alarmsState,
-    getAlarmList,
+    getAlarmVesselList,
     getCounts,
   } from "../../engine/alarms.svelte";
   import { vessels, vesselsState } from "../../engine/vessels.svelte";
@@ -65,11 +65,13 @@
   let container: HTMLElement | undefined = $state();
 
   const myVessel = $derived(
-    vesselsState.myVesselMmsi ? vessels[vesselsState.myVesselMmsi] : undefined,
+    vesselsState.myVesselContext
+      ? vessels[vesselsState.myVesselContext]
+      : undefined,
   );
   const selectedVessel = $derived(
-    vesselsState.selectedVesselMmsi
-      ? vessels[vesselsState.selectedVesselMmsi]
+    vesselsState.selectedVesselContext
+      ? vessels[vesselsState.selectedVesselContext]
       : undefined,
   );
 
@@ -214,18 +216,18 @@
         layers: VESSEL_ICON_LAYERS,
       });
       if (features.length === 0) {
-        vesselsState.selectedVesselMmsi = null;
+        vesselsState.selectedVesselContext = null;
         updateMap();
       }
     });
 
     map.on("click", VESSEL_ICON_LAYERS, (event) => {
       const feature = event.features?.[0];
-      const mmsi = feature?.properties?.mmsi;
+      const context = feature?.properties?.context;
 
-      if (!mmsi) return;
+      if (!context) return;
 
-      vesselsState.selectedVesselMmsi = mmsi;
+      vesselsState.selectedVesselContext = context;
       ui.vesselProperties.visible = true;
       updateMap();
     });
@@ -311,7 +313,7 @@
   $effect(() => {
     //subscribe
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    vesselsState.selectedVesselMmsi;
+    vesselsState.selectedVesselContext;
 
     untrack(() => {
       console.log("EFFECT vessel selected");
@@ -432,16 +434,6 @@
     updateMapLoopTimeoutId = undefined;
   }
 
-  // async function backfillMutedVessels() {
-  //   console.log(">>>> backfilling mutes");
-  //   const mutedVessels = await getMutedVessels();
-  //   for (const mutedVessel of mutedVessels) {
-  //     if (vessels[mutedVessel.mmsi]) {
-  //       mute(mutedVessel.mmsi);
-  //     }
-  //   }
-  // }
-
   function updateVesselFeatures() {
     // console.log("ENTER updateVesselFeatures");
     if (!mapState.instance || !mapState.loaded) return;
@@ -485,23 +477,17 @@
         coordinates: [vessel.longitude, vessel.latitude],
       },
       properties: {
-        mmsi: vessel.mmsi,
+        context: vessel.context,
         icon: iconName,
         // low numbers on the bottom of z-index, big numbers on the top
         // so we flip our "order"
         order: vessel.order ? 999999 - vessel.order : 0,
         isLarge:
           vessel.alarmState !== null &&
-          vessel.mmsi === vesselsState.selectedVesselMmsi,
+          vessel.context === vesselsState.selectedVesselContext,
         isLost: vessel.isLost,
-        isSelected: vessel.mmsi === vesselsState.selectedVesselMmsi,
-        labelText: formatVesselLabel(
-          vessel.mmsi,
-          vessel.name,
-          vessel.sog,
-          vessel.cpa,
-          vessel.tcpa,
-        ),
+        isSelected: vessel.context === vesselsState.selectedVesselContext,
+        labelText: formatVesselLabel(vessel),
         alignment:
           iconName.startsWith("vessel-aton") ||
           iconName.startsWith("vessel-base") ||
@@ -747,10 +733,11 @@
 
       // set true for selected vessel and my vessel (when there is a selected vessel)
       const inspectCpa =
-        vesselsState.selectedVesselMmsi &&
-        [vesselsState.myVesselMmsi, vesselsState.selectedVesselMmsi].includes(
-          vessel.mmsi,
-        );
+        vesselsState.selectedVesselContext &&
+        [
+          vesselsState.myVesselContext,
+          vesselsState.selectedVesselContext,
+        ].includes(vessel.context);
 
       const end = inspectCpa ? vessel.cpaLocation : vessel.predictedLocation;
 
@@ -763,7 +750,7 @@
           coordinates: [[lon, lat], end],
         },
         properties: {
-          mmsi: vessel.mmsi,
+          context: vessel.context,
           color: inspectCpa
             ? COLOR_MAP["blue"]
             : vessel.alarmState === "danger"
@@ -783,7 +770,7 @@
             coordinates: end,
           },
           properties: {
-            mmsi: vessel.mmsi,
+            context: vessel.context,
             isCircle: true,
           },
         });
@@ -804,7 +791,7 @@
   }
 
   function checkForAlarms() {
-    const alarms = getAlarmList();
+    const alarms = getAlarmVesselList();
 
     const hasAlarms = alarms.length > 0;
     const hasNotBeenRaised = alarmsState.lastAlarmTime === null;
@@ -831,7 +818,7 @@
         "Error",
         `Not connected to Signal K server.\nCurrent connection status: ${ingestion.connectionState}`,
       );
-    } else if (!vesselsState.myVesselMmsi) {
+    } else if (!vesselsState.myVesselContext) {
       showNotification(
         "Error",
         "No data for our own vessel received from Signal K server",

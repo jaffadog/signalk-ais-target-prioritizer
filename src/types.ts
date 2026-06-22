@@ -34,9 +34,9 @@ export interface CollisionProfiles {
 
 export interface Vessel {
   // raw properties from signal k:
-  mmsi: string;
   context: Context;
-  name: string;
+  mmsi: string | null;
+  name: string | null;
   callsign: string | null;
   imo: string | null;
   sog: number | null;
@@ -49,16 +49,16 @@ export interface Vessel {
   longitude: number | null;
   lastSeenDate: Date | null;
   typeId: number | null;
-  type: string;
-  aisClass: string;
-  status: string;
+  type: string | null;
+  aisClass: string | null;
+  status: string | null;
   length: number | null;
   beam: number | null;
   draft: number | null;
-  destination: string;
-  eta: string;
-  isVirtual: number;
-  isOffPosition: number;
+  destination: string | null;
+  eta: string | null;
+  isVirtual: number | null;
+  isOffPosition: number | null;
 
   // augmented:
   alarmIsMuted: boolean;

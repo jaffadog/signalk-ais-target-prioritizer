@@ -35,8 +35,8 @@
   console.log("ENTER VesselProperties");
 
   const selectedVessel = $derived(
-    vesselsState.selectedVesselMmsi
-      ? vessels[vesselsState.selectedVesselMmsi]
+    vesselsState.selectedVesselContext
+      ? vessels[vesselsState.selectedVesselContext]
       : null,
   );
 
@@ -65,8 +65,8 @@
   const handleToggleMute = () => {
     if (selectedVessel) {
       const alarmIsMuted = $state.snapshot(selectedVessel.alarmIsMuted);
-      setAlarmIsMuted(selectedVessel.mmsi, !alarmIsMuted);
-      pushAlarmIsMuted(selectedVessel.mmsi, !alarmIsMuted);
+      setAlarmIsMuted(selectedVessel.context, !alarmIsMuted);
+      pushAlarmIsMuted(selectedVessel.context, !alarmIsMuted);
       alertMessage = `Vessel ${selectedVessel.alarmIsMuted ? "" : "un"}muted`;
     }
   };
@@ -114,10 +114,7 @@
               {/if}
             </button>
             <Dialog.Title class="text-lg font-bold"
-              >{formatName(
-                selectedVessel.mmsi,
-                selectedVessel.name,
-              )}</Dialog.Title
+              >{formatName(selectedVessel)}</Dialog.Title
             >
             <Dialog.CloseTrigger class="btn-icon hover:preset-tonal">
               <XIcon class="size-4" />
@@ -198,7 +195,7 @@
                 </dd>
               </div>
 
-              {#if !["ATON", "BASE"].includes(selectedVessel.aisClass)}
+              {#if !selectedVessel.aisClass || !["ATON", "BASE"].includes(selectedVessel.aisClass)}
                 <div
                   class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4"
                 >
@@ -248,7 +245,7 @@
                 </div>
               {/if}
 
-              {#if !["ATON", "BASE"].includes(selectedVessel.aisClass)}
+              {#if !selectedVessel.aisClass || !["ATON", "BASE"].includes(selectedVessel.aisClass)}
                 <div
                   class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4"
                 >

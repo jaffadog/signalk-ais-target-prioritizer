@@ -20,6 +20,7 @@
   import { type Vessel } from "../../types";
   import { ui } from "../ui.svelte";
   import { isValidNumber } from "../../engine/calculations";
+  import type { Context } from "@signalk/server-api";
 
   console.log("TABLE render");
 
@@ -29,7 +30,10 @@
   // Sorted Data
   const sortedVessels = $derived.by(() =>
     Object.values(vessels)
-      .filter((t) => t.mmsi !== vesselsState.myVesselMmsi && t.isValid)
+      .filter(
+        (vessel) =>
+          vessel.context !== vesselsState.myVesselContext && vessel.isValid,
+      )
       .sort((a, b) => {
         switch (sortBy) {
           case "tcpa":
@@ -48,7 +52,7 @@
               sortInvalidNumbersToBottom(b.range)
             );
           case "name":
-            return a.name.localeCompare(b.name);
+            return (a.name ?? "").localeCompare(b.name ?? "");
           case "priority":
           default:
             return (
@@ -63,8 +67,8 @@
     return isValidNumber(a) ? a : Infinity;
   }
 
-  function handleClickRow(mmsi: string) {
-    vesselsState.selectedVesselMmsi = mmsi;
+  function handleClickRow(context: Context) {
+    vesselsState.selectedVesselContext = context;
     ui.vesselProperties.visible = true;
     ui.vesselTable.visible = false;
   }
@@ -85,8 +89,6 @@
     return "bg-surface-100-900";
   }
 </script>
-
-<!-- FIXME implement this as a "drawer" with a max width - just enough to accomodate the table -->
 
 <!-- FIXME persis sort order -->
 
@@ -171,10 +173,10 @@
             </thead>
 
             <tbody>
-              {#each sortedVessels as vessel (vessel.mmsi)}
+              {#each sortedVessels as vessel (vessel.context)}
                 <tr
                   class={`z-10 cursor-pointer group hover:preset-tonal-primary! ${getVesselColor(vessel)}`}
-                  onclick={() => handleClickRow(vessel.mmsi)}
+                  onclick={() => handleClickRow(vessel.context)}
                 >
                   <td
                     class={`sticky left-0 z-20 flex items-center text-left group-hover:preset-tonal-primary!  ${getVesselColor(vessel)} border-b-0 px-3 py-0.5 font-medium ps-4!`}
@@ -188,7 +190,7 @@
                         vessel.typeId,
                       )}
                     </span>
-                    {formatName(vessel.mmsi, vessel.name)}
+                    {formatName(vessel)}
                   </td>
 
                   <td class="text-right!">

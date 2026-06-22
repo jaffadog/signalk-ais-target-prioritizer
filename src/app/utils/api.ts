@@ -3,7 +3,7 @@ import { name as PLUGIN_ID } from "../../../package.json";
 import type { CollisionProfiles, Vessel } from "../../types";
 import { isValidCollisionProfiles } from "../../engine/validateCollisionProfiles";
 import { toaster } from "./toaster";
-import type { Chart } from "@signalk/server-api";
+import type { Chart, Context } from "@signalk/server-api";
 
 export async function loadCollisionProfiles() {
   console.log("loading collision profiles");
@@ -82,8 +82,14 @@ export async function pushMuteAllAlarms() {
   });
 }
 
-export async function pushAlarmIsMuted(mmsi: string, alarmIsMuted: boolean) {
-  await ky(`/plugins/${PLUGIN_ID}/setAlarmIsMuted/${mmsi}/${alarmIsMuted}`, {
-    credentials: "include",
-  });
+export async function pushAlarmIsMuted(
+  context: Context,
+  alarmIsMuted: boolean,
+) {
+  await ky(
+    `/plugins/${PLUGIN_ID}/setAlarmIsMuted/${encodeURIComponent(context)}/${alarmIsMuted}`,
+    {
+      credentials: "include",
+    },
+  );
 }
