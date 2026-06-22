@@ -57,7 +57,7 @@ jobs:
           node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
 
-      - run: npm ci
+      - run: npm install
 
       - name: Publish to npm
         run: |
