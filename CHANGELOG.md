@@ -1,8 +1,8 @@
-## v0.4.6
+# v0.4.6
 
 Add GH Actions npm publishing pipeline.
 
-## v0.4.0
+# v0.4.0
 
 ### Major Rewrite
 
