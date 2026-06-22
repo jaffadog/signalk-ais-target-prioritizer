@@ -76,8 +76,8 @@ jobs:
       # Assumes your package.json defines `prepublishOnly` (or `prepare`) if a
       # build step is needed — see the AppStore publishing guide.
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # env:
+        #   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
           if [[ "$tag" == *beta* ]]; then
