@@ -1,20 +1,23 @@
+## v0.4.11
+
 ### 🧹 Chores
+
 - setting up GH actions (9559e56)
 - switch vessel leying from MMSI to Context/URN (701d82d)
 
 ### 📦 Other
+
 - 0.4.11 (a6784df)
 
-
-# v0.4.7
-
-Add GH Actions npm publishing pipeline.
-
-# v0.4.6
+## v0.4.7
 
 Add GH Actions npm publishing pipeline.
 
-# v0.4.0
+## v0.4.6
+
+Add GH Actions npm publishing pipeline.
+
+## v0.4.0
 
 ### Major Rewrite
 

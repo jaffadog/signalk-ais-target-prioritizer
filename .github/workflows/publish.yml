@@ -80,6 +80,8 @@ jobs:
 
           {
             echo "body<<EOF"
+            echo "## ${GITHUB_REF_NAME} - $(date +%Y-%m-%d)"
+            echo ""
             section "✨ Features" "feat"
             section "🐛 Fixes" "fix"
             section "♻️ Refactors" "refactor"
