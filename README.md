@@ -8,15 +8,14 @@ A [SignalK](https://signalk.org/) plugin that prioritizes AIS targets according 
 
 The SignalK AIS Target Prioritizer plugin processes SignalK AIS data and applies configurable collision risk criteria to each AIS target. It calculates CPA and time to CPA (TCPA) and establishes a collision risk rating for each AIS target. This rating can be used to rank AIS targets and highlight those targets that represent the most immediate risk/danger. The plugin will also trigger warnings and alarms when AIS target vessels meet the collision risk criteria.
 
-Sample screenshot of webapp:
-
-![](/resources/webapp.png)
+![](/resources/main.png)
 
 ## Features
 
 - **Webapp**
   - Plots AIS targets
   - Different symbols for Class A, Class B, ATONS, BASE, and MOB/EPIRB/SART targets
+  - Noth-up or course-up map rotation
   - Show full AIS target details
   - Configurable CPA and guard warnings and alarms with separate profiles for anchored, Harbor, coastal, and offshore
   - Restore default CPA and guard warnings and alarms configuration
@@ -38,7 +37,6 @@ Sample screenshot of webapp:
   - Publishes SignalK vessel deltas containing range, bearing, CPA, time to CPA (TCPA), collision risk rating, and warning/alarm status
   - Publishes SignalK notification messages for AIS CPA and gurad warnings and alarms. These can be wired up to produce audible alarms and/or push notifications using various available notification plugins or the Node-RED plugin. This facilitates "headless" alarming.
   - Notifications can be muted using the webapp or REST API (`GET /plugins/signalk-ais-target-prioritizer/muteAllAlarms`)
-  - Emulates the Vesper XB-8000 AIS - for the purpose of using the very nice Vesper WatchMate mobile apps for iOS and Android (_this may be deprecated soon, as the webapp now provides this functionality_)
 
 **The Plugin must be running in order to use the webapp.**
 
@@ -70,14 +68,6 @@ There are four sets of the above criteria for different navigation situations:
 - **Harbor**
 - **Coastal**
 - **Offshore**
-
-## Other Ideas
-
-Not implemented, but possible:
-
-- Activate a piezo buffer on the Raspberry Pi running SignalK when an alarm is triggered
-- Use a physical momentary switch on the Raspberry Pi to ack and hush alarms
-- Automatically switch from an underway profile (e.g. coastal) to the anchored profile when the vessel stops moving. Could also automatically turn on the anchor alarm as well. And vice-versa - turn off the anchor alarm and switch back to an underway profile when you get going again.
 
 ## Attribution
 

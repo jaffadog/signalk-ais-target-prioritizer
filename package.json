@@ -1,17 +1,31 @@
 {
   "name": "signalk-ais-target-prioritizer",
-  "private": true,
   "version": "0.4.0",
   "description": "A Signal K plugin that priorizes AIS targets according to guard and CPA criteria.",
   "keywords": [
     "signalk-node-server-plugin",
     "signalk-webapp",
-    "signalk-category-ais"
+    "signalk-category-ais",
+    "signalk-category-chart-plotters"
   ],
   "signalk-plugin-enabled-by-default": true,
   "signalk": {
     "appIcon": "./assets/icon-120.png",
-    "displayName": "Signal K AIS Target Prioritizer"
+    "displayName": "Signal K AIS Target Prioritizer",
+    "screenshots": [
+      "./resources/main.png",
+      "./resources/vessel-properties.png",
+      "./resources/vessel-table.png",
+      "./resources/map-layers.png",
+      "./resources/settings.png",
+      "./resources/edit-profiles.png",
+      "./resources/dark-mode.png",
+      "./resources/alarms.png"
+    ],
+    "recommends": [
+      "@signalk/charts-plugin",
+      "signalk-pmtiles-plugin"
+    ]
   },
   "license": "MIT",
   "author": "Jeremy Waters <jaffadog@gmail.com>",
@@ -30,7 +44,7 @@
     "test": "echo \"These are not the tests you are looking for\""
   },
   "dependencies": {
-    "@lucide/svelte": "^1.18.0",
+    "@lucide/svelte": "^1.21.0",
     "@protomaps/basemaps": "^5.7.2",
     "@turf/circle": "^7.3.5",
     "@turf/destination": "^7.3.5",
@@ -48,7 +62,7 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-terser": "^1.0.0",
     "@rollup/plugin-typescript": "^12.3.0",
-    "@signalk/server-api": "^2.25.0",
+    "@signalk/server-api": "^2.28.0",
     "@skeletonlabs/skeleton": "^4.15.2",
     "@skeletonlabs/skeleton-svelte": "^4.15.2",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
@@ -56,8 +70,8 @@
     "@tailwindcss/vite": "^4.3.1",
     "@tsconfig/svelte": "^5.0.8",
     "@types/express": "^5.0.6",
-    "@types/node": "^25.9.3",
-    "@types/tar": "^6.1.13",
+    "@types/node": "^26.0.0",
+    "@types/tar": "^7.0.87",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.19.0",
@@ -66,11 +80,11 @@
     "prettier": "^3.8.4",
     "prettier-plugin-svelte": "^4.1.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "rollup": "^4.62.0",
+    "rollup": "^4.62.2",
     "rollup-plugin-svelte": "^7.2.3",
     "svelte": "^5.56.3",
     "tailwindcss": "^4.3.1",
-    "typescript-eslint": "^8.61.0",
+    "typescript-eslint": "^8.61.1",
     "vite": "^8.0.16"
   }
 }
