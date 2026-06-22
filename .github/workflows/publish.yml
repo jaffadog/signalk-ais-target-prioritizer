@@ -47,12 +47,80 @@ jobs:
         with:
           fetch-depth: 0
 
+      # docs — documentation-only changes
+      # refactor — code change that's neither a fix nor a feature (restructuring, renaming, no behavior change)
+      # test — adding or fixing tests
+      # style — formatting, whitespace, semicolons — no logic change
+      # perf — performance improvement
+      # build — build system or dependency changes (e.g. Vite config, package.json)
+      # ci — CI/CD config changes (exactly what you're editing right now)
+
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          prev_tag=$(git tag --sort=-creatordate | grep -v "^${GITHUB_REF_NAME}$" | head -n1)
+          if [ -n "$prev_tag" ]; then
+            range="${prev_tag}..${GITHUB_REF_NAME}"
+          else
+            range="${GITHUB_REF_NAME}"
+          fi
+
+          log=$(git log "$range" --pretty=format:"%s|%h" --no-merges)
+
+          section() {
+            local title="$1" pattern="$2"
+            local matches
+            matches=$(echo "$log" | grep -iE "^${pattern}(\(.+\))?:" || true)
+            if [ -n "$matches" ]; then
+              echo "### $title"
+              echo "$matches" | awk -F'|' '{sub(/^[a-zA-Z]+(\([^)]*\))?: */, "", $1); print "- " $1 " (" $2 ")"}'
+              echo ""
+            fi
+          }
+
+          {
+            echo "body<<EOF"
+            section "✨ Features" "feat"
+            section "🐛 Fixes" "fix"
+            section "♻️ Refactors" "refactor"
+            section "📝 Docs" "docs"
+            section "⚡ Performance" "perf"
+            section "🧹 Chores" "chore"
+            section "🔧 CI" "ci"
+            other=$(echo "$log" | grep -ivE "^(feat|fix|refactor|docs|perf|chore|ci)(\(.+\))?:" || true)
+            if [ -n "$other" ]; then
+              echo "### 📦 Other"
+              echo "$other" | awk -F'|' '{print "- " $1 " (" $2 ")"}'
+              echo ""
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Prepend to CHANGELOG.md
+        run: |
+          touch CHANGELOG.md
+          tmp=$(mktemp)
+          {
+            echo "${{ steps.changelog.outputs.body }}"
+            echo ""
+            cat CHANGELOG.md
+          } > "$tmp"
+          mv "$tmp" CHANGELOG.md
+
+      - name: Commit CHANGELOG.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --staged --quiet || git commit -m "chore: update CHANGELOG.md for ${GITHUB_REF_NAME}"
+          git push origin HEAD:main
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.body }}
           prerelease: ${{ contains(github.ref_name, 'beta') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -85,77 +153,3 @@ jobs:
           else
             npm publish --provenance --access public
           fi
-
-# name: Publish to npm
-
-# on:
-#   push:
-#     tags:
-#       - "v*"
-
-# concurrency:
-#   group: publish-${{ github.ref }}
-#   cancel-in-progress: false
-
-# jobs:
-#   release:
-#     permissions:
-#       contents: write
-#     runs-on: ubuntu-latest
-#     timeout-minutes: 10
-#     steps:
-#       - uses: actions/checkout@v7
-
-#       - name: Extract release notes from CHANGELOG.md
-#         run: |
-#           awk -v ver="# ${GITHUB_REF_NAME}" '
-#             $0 == ver { found = 1; next }
-#             found && /^# v/ { exit }
-#             found { print }
-#           ' CHANGELOG.md > release-notes.md
-#           if [ ! -s release-notes.md ]; then
-#             echo "::error::No CHANGELOG.md section found for heading '# ${GITHUB_REF_NAME}'"
-#             exit 1
-#           fi
-#           echo "----- release notes for ${GITHUB_REF_NAME} -----"
-#           cat release-notes.md
-
-#       - name: Create GitHub Release
-#         uses: softprops/action-gh-release@v3
-#         with:
-#           tag_name: ${{ github.ref_name }}
-#           name: ${{ github.ref_name }}
-#           body_path: release-notes.md
-#           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-#   publish:
-#     needs: release
-#     permissions:
-#       id-token: write # OIDC trusted publishing
-#       contents: read
-#     runs-on: ubuntu-latest
-#     timeout-minutes: 10
-#     steps:
-#       - uses: actions/checkout@v7
-
-#       - uses: actions/setup-node@v6
-#         with:
-#           node-version: "24.x"
-#           registry-url: "https://registry.npmjs.org"
-
-#       - run: npm ci
-
-#       - name: Publish to npm
-#         run: |
-#           tag="${GITHUB_REF#refs/tags/}"
-#           if [[ "$tag" == *alpha* ]]; then
-#             npm publish --provenance --access public --tag alpha
-#           elif [[ "$tag" == *beta* ]]; then
-#             npm publish --provenance --access public --tag beta
-#           elif [[ "$tag" == *rc* ]]; then
-#             npm publish --provenance --access public --tag rc
-#           else
-#             npm publish --provenance --access public
-#           fi
