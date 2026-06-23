@@ -5,6 +5,7 @@ import {
   type Path,
   type Unsubscribes,
   ALARM_STATE,
+  type Notification,
 } from "@signalk/server-api";
 import fs from "node:fs";
 import path from "node:path";
@@ -79,8 +80,6 @@ export default function (app: ServerAPI) {
       options.enableAlarmPublishing ?? DEFAULT_ENABLE_ALARM_PUBLISHING;
     loadCollisionProfiles();
 
-    console.log(">>>>>>>>>>>>>>>selfContext", app.selfContext);
-
     const selfContext = app.selfContext as Context;
 
     if (!selfContext) {
@@ -128,6 +127,7 @@ export default function (app: ServerAPI) {
     router.get("/muteAllAlarms", (_req, res) => {
       app.debug("muteAllAlarms");
       muteAllAlarms();
+      // silenceAllAlarmNotifications();
       res.json();
     });
 
@@ -136,6 +136,7 @@ export default function (app: ServerAPI) {
       const alarmIsMuted = req.params.alarmIsMuted === "true";
       app.debug("setting alarmIsMuted", context, alarmIsMuted);
       setAlarmIsMuted(context, alarmIsMuted);
+      // if (alarmIsMuted) silenceAlarmNotification(context);
       res.json();
     });
 
@@ -376,7 +377,10 @@ export default function (app: ServerAPI) {
               path: path,
               value: {
                 state: state,
-                method: ["visual", "sound"],
+                method:
+                  state === ALARM_STATE.normal
+                    ? ["visual"]
+                    : ["visual", "sound"],
                 message: message,
               },
             },
@@ -397,6 +401,48 @@ export default function (app: ServerAPI) {
     }
 
     return false;
+  }
+
+  // NOTE this may not be ready for prime time - and may not be needed given we update alarm notifications to "watchhing"
+  function silenceAllAlarmNotifications() {
+    for (const context of Object.keys(vessels) as Context[]) {
+      silenceAlarmNotification(context);
+    }
+  }
+
+  // NOTE this may not be ready for prime time - and may not be needed given we update alarm notifications to "watchhing"
+  function silenceAlarmNotification(context: Context) {
+    const path =
+      `${context}.notifications.navigation.closestApproach.value` as Path;
+    const alarm = app.getPath(path) as Notification;
+
+    if (!alarm) return;
+
+    app.debug(`silensing sk alarm notification for ${context}`);
+
+    // NOTE not using the API yet as it is not widely supported
+    // http://raspberrypi.local:3000/admin/#/documentation/Developing/REST_APIs/Notifications_API.html#silencing-an-alarm
+    // /signalk/v2/api/notifications/{notificationId}/silence
+
+    // sound value is removed from the method attribute
+    alarm.method = alarm.method.filter((m: string) => m !== "sound");
+
+    // status.silenced is set to true
+    if (alarm.status) alarm.status.silenced = true;
+
+    app.handleMessage(plugin.id, {
+      context: context,
+      updates: [
+        {
+          values: [
+            {
+              path: path,
+              value: alarm,
+            },
+          ],
+        },
+      ],
+    });
   }
 
   return plugin;

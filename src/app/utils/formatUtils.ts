@@ -89,7 +89,7 @@ export function formatName(vessel: Vessel): string {
   } else if (vessel.mmsi) {
     return `<${vessel.mmsi}>`;
   } else {
-    return "";
+    return "UNKNOWN";
   }
 }
 
