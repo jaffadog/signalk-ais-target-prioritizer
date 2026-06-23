@@ -1,3 +1,16 @@
+## v0.4.12 - 2026-06-23
+
+### 🐛 Fixes
+- vessel name when sk name and mmsi are still null fix: remove sound when rsolving sk alarm notifications test: stub initial test framework (f2bfd53)
+
+### 🧹 Chores
+- update CHANGELOG.md for v0.4.11 (7256a75)
+
+### 📦 Other
+- 0.4.12 (51a5a3f)
+- clean up CHANGELOG (a1fc0d5)
+
+
 ## v0.4.11
 
 ### 🧹 Chores
