@@ -85,7 +85,7 @@ jobs:
       node-versions: '["22", "24"]'
       enable-armv7: false
       enable-signalk-integration: false
-      signalk-server-versions: '["latest"]'
+      signalk-server-versions: '["2.13.5","latest"]'
 
   # ── Manual runs (workflow_dispatch with custom inputs) ────
   test-plugin-manual:
