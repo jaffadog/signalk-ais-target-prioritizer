@@ -1,3 +1,13 @@
+## v0.4.13 - 2026-06-23
+
+### 🧹 Chores
+- update CHANGELOG.md for v0.4.12 (e886661)
+
+### 📦 Other
+- 0.4.13 (e0d06b9)
+- test: add sk v2.13.5 to the sk-ci tests. this is a cjs-only (no esm) version. (232ca18)
+
+
 ## v0.4.12 - 2026-06-23
 
 ### 🐛 Fixes
