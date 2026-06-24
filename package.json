@@ -1,7 +1,7 @@
 {
   "name": "signalk-ais-target-prioritizer",
   "version": "0.4.13",
-  "description": "A Signal K plugin that priorizes AIS targets according to guard and CPA criteria.",
+  "description": "Plots and priorizes AIS targets according to guard and CPA criteria.",
   "keywords": [
     "signalk-node-server-plugin",
     "signalk-webapp",
@@ -24,6 +24,9 @@
       "@signalk/charts-plugin",
       "signalk-pmtiles-plugin"
     ]
+  },
+  "engines": {
+    "node": ">=18"
   },
   "license": "MIT",
   "author": {
@@ -54,7 +57,8 @@
     "build:plugin": "rollup -c",
     "build": "npm run build:web && npm run build:plugin",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck-1": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.plugin.json",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json --listFiles --extendedDiagnostics > /tmp/npm-tsc-diag.txt 2>&1; tail -50 /tmp/npm-tsc-diag.txt; grep -c 'lib.dom' /tmp/npm-tsc-diag.txt",
     "format": "npx prettier . --write",
     "format:check": "npx prettier . --check",
     "lint": "eslint .",
@@ -80,6 +84,7 @@
     "@emnapi/runtime": "^1.11.1",
     "@emnapi/wasi-threads": "^2.0.0",
     "@eslint/js": "^10.0.1",
+    "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-terser": "^1.0.0",
@@ -93,7 +98,6 @@
     "@tsconfig/svelte": "^5.0.8",
     "@types/express": "^5.0.6",
     "@types/node": "^26.0.0",
-    "@types/tar": "^7.0.87",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-svelte": "^3.19.0",
@@ -104,6 +108,7 @@
     "prettier-plugin-tailwindcss": "^0.8.0",
     "rollup": "^4.62.2",
     "rollup-plugin-svelte": "^7.2.3",
+    "rollup-plugin-visualizer": "^7.0.1",
     "svelte": "^5.56.3",
     "tailwindcss": "^4.3.1",
     "typescript-eslint": "^8.61.1",

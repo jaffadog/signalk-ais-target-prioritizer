@@ -166,7 +166,7 @@ export default function (app: ServerAPI) {
     registerAssetEndpoints(router);
   };
 
-  // load saved collision profiles from signalk server
+  // load configuration data from signal k server plugin configuration folder
   function loadCollisionProfiles() {
     try {
       const dataDirPath = app.getDataDirPath();
@@ -194,6 +194,7 @@ export default function (app: ServerAPI) {
     }
   }
 
+  // save configuration data to signal k server plugin configuration folder
   function saveCollisionProfiles() {
     app.debug("saving ", collisionProfiles);
 

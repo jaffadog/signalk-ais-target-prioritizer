@@ -109,7 +109,7 @@
     />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="flex flex-col h-screen card bg-surface-100-900 w-full md:w-3xl  p-4 space-y-4 shadow-xl {animModal}"
+        class="flex flex-col h-dvh card bg-surface-100-900 w-full md:w-3xl  p-4 space-y-4 shadow-xl {animModal}"
       >
         <!-- header -->
         <header class="flex justify-between items-center">

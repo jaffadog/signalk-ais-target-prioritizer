@@ -2,9 +2,9 @@ import ky from "ky";
 import { name as PLUGIN_ID } from "../../../package.json";
 import type { CollisionProfiles, Vessel } from "../../types";
 import { isValidCollisionProfiles } from "../../engine/validateCollisionProfiles";
-import { toaster } from "./toaster";
 import type { Chart, Context } from "@signalk/server-api";
 
+// retrieves configuration data from signal k server via plugin
 export async function loadCollisionProfiles() {
   console.log("loading collision profiles");
   try {
@@ -22,22 +22,22 @@ export async function loadCollisionProfiles() {
   }
 }
 
+// validates and then saves configuration data to signal k server via plugin
 export async function saveCollisionProfiles(data: CollisionProfiles) {
   console.log("saving collision profiles", data);
-  if (!isValidCollisionProfiles(data)) {
-    toaster.error({
-      title: "Error",
-      description:
-        "Unable to save configuration data. Found invalid configuration data.",
-      duration: Infinity,
+  try {
+    if (!isValidCollisionProfiles(data)) {
+      return { success: false, reason: "invalid-data" };
+    }
+    await ky.put(`/plugins/${PLUGIN_ID}/saveCollisionProfiles`, {
+      credentials: "include",
+      json: data,
     });
-    return;
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { success: false, reason: "request-failed", error: e };
   }
-
-  await ky.put(`/plugins/${PLUGIN_ID}/saveCollisionProfiles`, {
-    credentials: "include",
-    json: data,
-  });
 }
 
 export async function getPmtiles() {

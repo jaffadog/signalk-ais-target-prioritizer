@@ -24,14 +24,14 @@
   open={ui.layersMenu.visible}
   onOpenChange={(e) => (ui.layersMenu.visible = e.open)}
 >
-  <Dialog.Trigger class="btn preset-filled">Trigger</Dialog.Trigger>
+  <!-- <Dialog.Trigger class="btn preset-filled">Trigger</Dialog.Trigger> -->
   <Portal>
     <Dialog.Backdrop
       class="fixed inset-0 z-50 bg-black/50 transition transition-discrete {animBackdrop}"
     />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="h-screen card bg-surface-100-900 w-2xs p-4 shadow-xl {animModal}"
+        class="h-dvh card bg-surface-100-900 w-2xs p-4 shadow-xl {animModal}"
       >
         <!-- header -->
         <header class="flex justify-between items-center mb-4">

@@ -1,6 +1,7 @@
 // pure functions - range, bearing, cpa, tcpa
 
 import destination from "@turf/destination";
+
 import { KNOTS_PER_M_PER_S, METERS_PER_NM, R } from "./constants";
 import {
   COURSE_PROJECTION_MINUTES,

@@ -20,16 +20,25 @@
     stop as stopIngestion,
   } from "../engine/ingestion.svelte";
   import { resolveIsDark, ui } from "./ui.svelte";
-  import { initCollisionProfiles } from "../engine/collisionProfiles.svelte";
   import { checkFontsAvailable, mapState } from "../engine/map.svelte";
   import { checkConnectivity, connectivity } from "./connectivity.svelte";
   import { CircleCheck, CircleX, Info, TriangleAlert } from "@lucide/svelte";
   import { basemaps, initBasemaps } from "./basemaps.svelte";
-  import type { InitStep } from "../types";
+  import type { CollisionProfiles, InitStep } from "../types";
   import ky from "ky";
   import { vessels, vesselsState } from "../engine/vessels.svelte";
-  import { getMutedVessels } from "./utils/api";
+  import {
+    getMutedVessels,
+    loadCollisionProfiles,
+    saveCollisionProfiles,
+  } from "./utils/api";
   import { mute } from "../engine/alarms.svelte";
+  import { isValidCollisionProfiles } from "../engine/validateCollisionProfiles";
+  import {
+    collisionProfiles,
+    resetCollisionProfiles,
+    setCollisionProfiles,
+  } from "../engine/collisionProfiles.svelte";
 
   let authRequired = $state(false);
 
@@ -157,6 +166,25 @@
       console.error("notlogged in", { loginStatus });
       throw new Error("Not logged in");
     }
+  }
+
+  async function initCollisionProfiles() {
+    console.log(">>> ENTER initCollisionProfiles");
+    try {
+      const loadedCollisionProfiles: CollisionProfiles | undefined =
+        await loadCollisionProfiles();
+      if (isValidCollisionProfiles(loadedCollisionProfiles)) {
+        setCollisionProfiles(loadedCollisionProfiles);
+      } else {
+        console.warn("WARNING: invalid configuration. Using defaults.");
+        resetCollisionProfiles();
+        await saveCollisionProfiles(collisionProfiles);
+      }
+    } catch (err) {
+      console.error("saveCollisionProfiles failed:", err);
+      throw err; // rethrow to trackedInit for red icon
+    }
+    console.log(">>> EXIT initCollisionProfiles");
   }
 
   async function trackedInit(initStep: InitStep) {

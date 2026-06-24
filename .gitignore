@@ -5,3 +5,4 @@
 /node_modules
 *.tgz
 src/app/public/assets/protomaps
+stats-plugin.html

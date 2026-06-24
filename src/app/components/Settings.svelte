@@ -28,6 +28,7 @@
   } from "../../engine/map.svelte";
   import DarkModeSwith from "./DarkModeSwitch.svelte";
   import { stats } from "../stats.svelte";
+  import { toaster } from "../utils/toaster";
 
   // console.log("ENTER Settings");
 
@@ -41,7 +42,15 @@
     collisionProfiles.current = (e.currentTarget as HTMLSelectElement)
       .value as ProfileName;
     console.log(collisionProfiles.current);
-    await saveCollisionProfiles(collisionProfiles);
+    const result = await saveCollisionProfiles(collisionProfiles);
+
+    if (!result.success) {
+      toaster.error({
+        title: "Error",
+        description: `Unable to save configuration data: ${result.reason}`,
+        duration: Infinity,
+      });
+    }
   }
 
   function handleEditProfiles() {
@@ -84,7 +93,7 @@
     />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="flex flex-col h-screen card bg-surface-100-900 w-full sm:w-md gap-4 p-4 shadow-xl {animModal}"
+        class="flex flex-col h-dvh card bg-surface-100-900 w-full sm:w-md gap-4 p-4 shadow-xl {animModal}"
       >
         <header class="flex justify-between items-center">
           <Dialog.Title class="text-lg font-bold">Settings</Dialog.Title>

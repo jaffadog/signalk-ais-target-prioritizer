@@ -49,7 +49,7 @@ export function createVessel(context: Context): Vessel {
 
 export function deleteVessel(vessel: Vessel) {
   console.log(
-    "ageing out vessel",
+    "deleting vessel",
     vessel.context,
     vessel.mmsi,
     vessel.name,

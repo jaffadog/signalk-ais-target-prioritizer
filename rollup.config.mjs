@@ -1,16 +1,22 @@
 import json from "@rollup/plugin-json";
+import { builtinModules } from "node:module";
+import pkg from "./package.json" with { type: "json" };
 import svelte from "rollup-plugin-svelte";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
 import typescript from "@rollup/plugin-typescript";
 import terser from "@rollup/plugin-terser";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default {
   input: "src/plugin/index.svelte.ts",
   output: {
     file: "plugin/index.cjs",
     format: "cjs",
+    exports: "auto",
+    interop: "auto",
     sourcemap: false,
-    exports: "named",
+    // exports: "named",
   },
   plugins: [
     svelte(),
@@ -18,8 +24,11 @@ export default {
       exportConditions: ["svelte"],
       extensions: [".mjs", ".js", ".ts", ".svelte.js", ".svelte.ts"],
     }),
+    commonjs({
+      defaultIsModuleExports: "auto",
+    }),
     typescript({
-      tsconfig: "./tsconfig.json",
+      tsconfig: "./tsconfig.plugin.json",
       outDir: "plugin",
       sourceMap: false,
     }),
@@ -36,6 +45,17 @@ export default {
         beautify: true, // keep formatting/newlines
       },
     }),
+    visualizer({
+      filename: "stats-plugin.html",
+      template: "network", // "treemap", "sunburst", "network"
+      gzipSize: true,
+      brotliSize: true,
+    }),
   ],
-  external: [/^node:/, "@signalk/server-api"],
+  external: [
+    ...builtinModules,
+    ...Object.keys(pkg.dependencies),
+    /^node:/,
+    "@signalk/server-api",
+  ],
 };
