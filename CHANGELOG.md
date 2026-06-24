@@ -1,25 +1,30 @@
 ## v0.4.13 - 2026-06-23
 
 ### 🧹 Chores
+
 - update CHANGELOG.md for v0.4.12 (e886661)
 
 ### 📦 Other
+
 - 0.4.13 (e0d06b9)
 - test: add sk v2.13.5 to the sk-ci tests. this is a cjs-only (no esm) version. (232ca18)
-
 
 ## v0.4.12 - 2026-06-23
 
 ### 🐛 Fixes
-- vessel name when sk name and mmsi are still null fix: remove sound when rsolving sk alarm notifications test: stub initial test framework (f2bfd53)
+
+- vessel name when sk name and mmsi are still null
+- remove sound when rsolving sk alarm notifications
 
 ### 🧹 Chores
+
 - update CHANGELOG.md for v0.4.11 (7256a75)
 
 ### 📦 Other
+
 - 0.4.12 (51a5a3f)
 - clean up CHANGELOG (a1fc0d5)
-
+- test: stub initial test framework (f2bfd53)
 
 ## v0.4.11
 
