@@ -1,8 +1,8 @@
 import ky from "ky";
 import { name as PLUGIN_ID } from "../../../package.json";
-import type { CollisionProfiles, Vessel } from "../../types";
+import type { Chart, CollisionProfiles, Vessel } from "../../types";
 import { isValidCollisionProfiles } from "../../engine/validateCollisionProfiles";
-import type { Chart, Context } from "@signalk/server-api";
+import type { Context } from "@signalk/server-api";
 
 // retrieves configuration data from signal k server via plugin
 export async function loadCollisionProfiles() {

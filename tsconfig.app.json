@@ -1,7 +1,7 @@
 {
+  "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -10,13 +10,6 @@
     "strict": true,
     "noEmit": true
   },
-  "include": ["src/*.ts", "src/*.d.ts", "src/app/**/*", "src/engine/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "public",
-    "plugin",
-    ".svelte-kit",
-    ".vite"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "src/plugin", "dist", "public", "plugin"]
 }

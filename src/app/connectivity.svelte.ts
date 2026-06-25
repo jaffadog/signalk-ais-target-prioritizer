@@ -5,7 +5,7 @@ import {
   DEFAULT_OFFLINE_BASEMAP,
   PROBE_URL,
 } from "../engine/constants";
-import { mapState } from "../engine/map.svelte";
+import { mapState } from "./map.svelte";
 import { basemaps } from "./basemaps.svelte";
 import { toggleOpenSeaMap } from "./mapLayers";
 import { toaster } from "./utils/toaster";

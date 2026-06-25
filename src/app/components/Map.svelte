@@ -36,7 +36,7 @@
     getCounts,
   } from "../../engine/alarms.svelte";
   import { vessels, vesselsState } from "../../engine/vessels.svelte";
-  import { getStyleId, mapState, setStyle } from "../../engine/map.svelte";
+  import { getStyleId, mapState, setStyle } from "../map.svelte";
   import { ui } from "../ui.svelte";
   import { showNotification } from "../notification.svelte";
   import { updateVessels } from "../../engine/refreshLoop.svelte";
@@ -51,6 +51,8 @@
   import layersSvg from "lucide-static/icons/layers.svg?raw";
   import listSvg from "lucide-static/icons/list.svg?raw";
   import settingsSvg from "lucide-static/icons/settings.svg?raw";
+  import { addSharedSources as addSources } from "../sources";
+  import { addSharedLayers as addLayers } from "../layers";
 
   export const VESSEL_ICON_LAYERS = [
     "vessels-icons-viewport",
@@ -117,6 +119,38 @@
       center: [myVessel?.longitude ?? 0, myVessel?.latitude ?? 0],
       zoom: 10,
     });
+
+    map.once("load", () => {
+      console.log("maplibre loaded");
+
+      mapState.instance = map;
+      mapState.loaded = true;
+
+      addSources();
+      addLayers();
+      registerAllIcons(map);
+      startUpdateMapLoop();
+
+      // delay showing alarms for a sec... its a better user experience
+      setTimeout(async () => {
+        alarmsState.alarmsEnabled = true;
+      }, 1000);
+
+      // FIXME does this have to be in onLoad?
+      map.addControl(
+        new AttributionControl({
+          compact: true,
+        }),
+      );
+
+      // FIXME does this have to be in onLoad?
+      // click to close/collapse/compact, because the above does not work
+      const attrBtn = map
+        .getContainer()
+        .querySelector(".maplibregl-ctrl-attrib-button") as HTMLButtonElement;
+
+      attrBtn?.click();
+    }); // end map on load
 
     map.on("error", (e) => {
       console.error("MapLibre error:", e.error);
@@ -269,36 +303,6 @@
     map.on("zoomend", () => {
       updateRangeRingsFeatures();
     });
-
-    map.on("load", () => {
-      console.log("maplibre loaded");
-
-      mapState.instance = map;
-      mapState.loaded = true;
-
-      registerAllIcons(map);
-      startUpdateMapLoop();
-
-      // delay showing alarms for a sec... its a better user experience
-      setTimeout(async () => {
-        alarmsState.alarmsEnabled = true;
-      }, 1000);
-
-      // FIXME does this have to be in onLoad?
-      map.addControl(
-        new AttributionControl({
-          compact: true,
-        }),
-      );
-
-      // FIXME does this have to be in onLoad?
-      // click to close/collapse/compact, because the above does not work
-      const attrBtn = map
-        .getContainer()
-        .querySelector(".maplibregl-ctrl-attrib-button") as HTMLButtonElement;
-
-      attrBtn?.click();
-    }); // end map on load
 
     return () => {
       console.warn("EXIT map");

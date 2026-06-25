@@ -1,24 +1,21 @@
-import type { LayerSpecification } from "maplibre-gl";
 import { COLOR_MAP } from "../engine/constants";
-import { mapState } from "../engine/map.svelte";
+import { mapState } from "./map.svelte";
 import { ui } from "./ui.svelte";
 
 const DEFAULT_DARK_LABEL_COLOR = "white";
 const DEFAULT_LIGHT_LABEL_COLOR = "black";
 
-export function buildSharedLayers(): LayerSpecification[] {
-  return [
-    // NOTE order matters here. list from the bottom up.
+export function getLabelColor() {
+  return ui.darkMode || mapState.basemapId === "satellite"
+    ? DEFAULT_DARK_LABEL_COLOR
+    : DEFAULT_LIGHT_LABEL_COLOR;
+}
 
-    // {
-    //   id: "background",
-    //   type: "background",
-    //   paint: {
-    //     "background-color": theme.backgroundColor,
-    //   },
-    // },
-
-    {
+export function addSharedLayers() {
+  const map = mapState.instance;
+  if (!map || !mapState.loaded) return;
+  if (!map.getLayer("openseamap")) {
+    map.addLayer({
       id: "openseamap",
       type: "raster",
       source: "openseamap",
@@ -28,9 +25,11 @@ export function buildSharedLayers(): LayerSpecification[] {
       paint: {
         "raster-opacity": 0.8,
       },
-    },
+    });
+  }
 
-    {
+  if (!map.getLayer("range-rings")) {
+    map.addLayer({
       id: "range-rings",
       type: "line",
       source: "range-rings",
@@ -39,9 +38,11 @@ export function buildSharedLayers(): LayerSpecification[] {
         "line-width": 1,
         "line-opacity": 0.7,
       },
-    },
+    });
+  }
 
-    {
+  if (!map.getLayer("range-labels")) {
+    map.addLayer({
       id: "range-labels",
       type: "symbol",
       source: "range-labels",
@@ -70,9 +71,11 @@ export function buildSharedLayers(): LayerSpecification[] {
         // "text-halo-width": 0.5,
         // "text-halo-blur": 0,
       },
-    },
+    });
+  }
 
-    {
+  if (!map.getLayer("vessels-icons-map")) {
+    map.addLayer({
       id: "vessels-icons-map",
       type: "symbol",
       source: "vessels",
@@ -90,9 +93,11 @@ export function buildSharedLayers(): LayerSpecification[] {
       //   "icon-opacity": 0.95,
       //   "icon-color": "#1f78ff",
       // },
-    },
+    });
+  }
 
-    {
+  if (!map.getLayer("vessels-icons-viewport")) {
+    map.addLayer({
       id: "vessels-icons-viewport",
       type: "symbol",
       source: "vessels",
@@ -110,9 +115,11 @@ export function buildSharedLayers(): LayerSpecification[] {
       //   "icon-opacity": 0.95,
       //   "icon-color": "#1f78ff",
       // },
-    },
+    });
+  }
 
-    {
+  if (!map.getLayer("predictors")) {
+    map.addLayer({
       id: "predictors",
       type: "line",
       source: "predictors",
@@ -127,9 +134,11 @@ export function buildSharedLayers(): LayerSpecification[] {
           ["literal", [3, 2]],
         ],
       },
-    },
+    });
+  }
 
-    {
+  if (!map.getLayer("predictor-markers")) {
+    map.addLayer({
       id: "predictor-markers",
       type: "circle",
       source: "predictors",
@@ -142,9 +151,11 @@ export function buildSharedLayers(): LayerSpecification[] {
         "circle-stroke-color": COLOR_MAP["blue"],
         "circle-stroke-opacity": 1,
       },
-    },
+    });
+  }
 
-    {
+  if (!map.getLayer("vessels-labels")) {
+    map.addLayer({
       id: "vessels-labels",
       type: "symbol",
       source: "vessels",
@@ -168,9 +179,11 @@ export function buildSharedLayers(): LayerSpecification[] {
         // "text-halo-color": "rgba(8, 15, 28, 0.9)",
         // "text-halo-width": 1.5,
       },
-    },
+    });
+  }
 
-    {
+  if (!map.getLayer("vessels-lost-x")) {
+    map.addLayer({
       id: "vessels-lost-x",
       type: "symbol",
       source: "vessels",
@@ -180,9 +193,11 @@ export function buildSharedLayers(): LayerSpecification[] {
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },
-    },
+    });
+  }
 
-    {
+  if (!map.getLayer("vessel-selected")) {
+    map.addLayer({
       id: "vessel-selected",
       type: "symbol",
       source: "vessels",
@@ -192,12 +207,6 @@ export function buildSharedLayers(): LayerSpecification[] {
         "icon-allow-overlap": true,
         "icon-ignore-placement": true,
       },
-    },
-  ];
-}
-
-export function getLabelColor() {
-  return ui.darkMode || mapState.basemapId === "satellite"
-    ? DEFAULT_DARK_LABEL_COLOR
-    : DEFAULT_LIGHT_LABEL_COLOR;
+    });
+  }
 }

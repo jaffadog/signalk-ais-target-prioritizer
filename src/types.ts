@@ -1,6 +1,7 @@
 // global types and interfaces
 
 import type { Context } from "@signalk/server-api";
+import { Map } from "maplibre-gl";
 
 export type Vector2D = { x: number; y: number };
 export interface CollisionProfile {
@@ -87,7 +88,7 @@ export interface CustomButtonControlOptions {
   svgIcon: string;
   svgClass?: string;
   rotateWithBearing?: boolean;
-  onClick?: (map: maplibregl.Map) => void;
+  onClick?: (map: Map) => void;
 }
 
 export type Position = [number, number];
@@ -98,4 +99,16 @@ export interface InitStep {
   label: string;
   status: "pending" | "loading" | "done" | "error";
   fn: () => Promise<void>;
+}
+
+export interface Chart {
+  identifier: string;
+  name: string;
+  type?: string;
+  format?: string;
+  url?: string;
+  style?: string;
+  styleLight?: string;
+  styleDark?: string;
+  online: boolean;
 }

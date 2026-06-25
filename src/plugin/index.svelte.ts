@@ -405,46 +405,46 @@ export default function (app: ServerAPI) {
   }
 
   // NOTE this may not be ready for prime time - and may not be needed given we update alarm notifications to "watchhing"
-  function silenceAllAlarmNotifications() {
-    for (const context of Object.keys(vessels) as Context[]) {
-      silenceAlarmNotification(context);
-    }
-  }
+  // function silenceAllAlarmNotifications() {
+  //   for (const context of Object.keys(vessels) as Context[]) {
+  //     silenceAlarmNotification(context);
+  //   }
+  // }
 
   // NOTE this may not be ready for prime time - and may not be needed given we update alarm notifications to "watchhing"
-  function silenceAlarmNotification(context: Context) {
-    const path =
-      `${context}.notifications.navigation.closestApproach.value` as Path;
-    const alarm = app.getPath(path) as Notification;
+  // function silenceAlarmNotification(context: Context) {
+  //   const path =
+  //     `${context}.notifications.navigation.closestApproach.value` as Path;
+  //   const alarm = app.getPath(path) as Notification;
 
-    if (!alarm) return;
+  //   if (!alarm) return;
 
-    app.debug(`silensing sk alarm notification for ${context}`);
+  //   app.debug(`silensing sk alarm notification for ${context}`);
 
-    // NOTE not using the API yet as it is not widely supported
-    // http://raspberrypi.local:3000/admin/#/documentation/Developing/REST_APIs/Notifications_API.html#silencing-an-alarm
-    // /signalk/v2/api/notifications/{notificationId}/silence
+  //   // NOTE not using the API yet as it is not widely supported
+  //   // http://raspberrypi.local:3000/admin/#/documentation/Developing/REST_APIs/Notifications_API.html#silencing-an-alarm
+  //   // /signalk/v2/api/notifications/{notificationId}/silence
 
-    // sound value is removed from the method attribute
-    alarm.method = alarm.method.filter((m: string) => m !== "sound");
+  //   // sound value is removed from the method attribute
+  //   alarm.method = alarm.method.filter((m: string) => m !== "sound");
 
-    // status.silenced is set to true
-    if (alarm.status) alarm.status.silenced = true;
+  //   // status.silenced is set to true
+  //   if (alarm.status) alarm.status.silenced = true;
 
-    app.handleMessage(plugin.id, {
-      context: context,
-      updates: [
-        {
-          values: [
-            {
-              path: path,
-              value: alarm,
-            },
-          ],
-        },
-      ],
-    });
-  }
+  //   app.handleMessage(plugin.id, {
+  //     context: context,
+  //     updates: [
+  //       {
+  //         values: [
+  //           {
+  //             path: path,
+  //             value: alarm,
+  //           },
+  //         ],
+  //       },
+  //     ],
+  //   });
+  // }
 
   return plugin;
 }

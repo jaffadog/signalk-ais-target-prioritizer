@@ -25,7 +25,7 @@
     handleDownloadFonts,
     handleRemoveFonts,
     mapState,
-  } from "../../engine/map.svelte";
+  } from "../map.svelte";
   import DarkModeSwith from "./DarkModeSwitch.svelte";
   import { stats } from "../stats.svelte";
   import { toaster } from "../utils/toaster";

@@ -28,7 +28,7 @@ export type ConnectionState =
   | typeof RECONNECTING;
 
 export const ingestion = $state({
-  connectionState: CONNECTED as ConnectionState,
+  connectionState: DISCONNECTED as ConnectionState,
 });
 
 // eslint-disable-next-line svelte/prefer-svelte-reactivity

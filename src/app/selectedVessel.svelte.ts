@@ -1,4 +1,4 @@
-import { mapState } from "../engine/map.svelte";
+import { mapState } from "./map.svelte";
 import { vesselsState, vessels } from "../engine/vessels.svelte";
 
 const selectedVessel = $derived(

@@ -1,6 +1,6 @@
 //mapLayers.ts
 
-import { mapState } from "../engine/map.svelte";
+import { mapState } from "./map.svelte";
 
 export function toggleOpenSeaMap(visible: boolean) {
   if (

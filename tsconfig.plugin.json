@@ -1,4 +1,5 @@
 {
+  "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
     "lib": ["ES2022"],
     "target": "ES2022",
@@ -7,19 +8,8 @@
     "resolveJsonModule": true,
     "allowJs": false,
     "strict": true,
-    "noEmit": true,
-    "verbatimModuleSyntax": false,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "noEmit": true
   },
-  "include": ["src/*.ts", "src/*.d.ts", "src/plugin/**/*", "src/engine/**/*"],
-  "exclude": [
-    "node_modules",
-    "src/app/**/*",
-    "dist",
-    "public",
-    "plugin",
-    ".svelte-kit",
-    ".vite"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "src/app", "dist", "public", "plugin"]
 }

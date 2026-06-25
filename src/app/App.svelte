@@ -20,7 +20,7 @@
     stop as stopIngestion,
   } from "../engine/ingestion.svelte";
   import { resolveIsDark, ui } from "./ui.svelte";
-  import { checkFontsAvailable, mapState } from "../engine/map.svelte";
+  import { checkFontsAvailable, mapState } from "./map.svelte";
   import { checkConnectivity, connectivity } from "./connectivity.svelte";
   import { CircleCheck, CircleX, Info, TriangleAlert } from "@lucide/svelte";
   import { basemaps, initBasemaps } from "./basemaps.svelte";

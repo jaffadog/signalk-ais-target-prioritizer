@@ -1,9 +1,11 @@
-import type { Map, StyleSpecification } from "maplibre-gl";
-import { buildStyle } from "../app/resolveMapConfig";
-import { ui } from "../app/ui.svelte";
-import { DEFAULT_BASEMAP } from "./constants";
+import type { Map } from "maplibre-gl";
+import { buildStyle } from "./resolveMapConfig";
+import { ui } from "./ui.svelte";
+import { DEFAULT_BASEMAP } from "../engine/constants";
 import { name as PLUGIN_ID } from "../../package.json";
-import { basemaps } from "../app/basemaps.svelte";
+import { basemaps } from "./basemaps.svelte";
+import { addSharedLayers } from "./layers";
+import { addSharedSources } from "./sources";
 
 export const mapState = $state<{
   instance: Map | null;
@@ -25,20 +27,16 @@ export const mapState = $state<{
 });
 
 export function setStyle({ force = false } = {}) {
-  console.log("ENTER setStyle", mapState.basemapId, ui.darkMode);
   if (
     !mapState.instance ||
     !mapState.loaded ||
     !mapState.instance.isStyleLoaded
-  ) {
-    console.log("BAIL setStyle", mapState.instance, mapState.loaded);
+  )
     return;
-  }
+  // get style
+  const style = buildStyle();
+  const styleId = getStyleId();
 
-  const style: StyleSpecification = buildStyle();
-  const styleId: string = getStyleId();
-
-  console.log("style", style);
   if (!style) return;
 
   if (mapState.styleId === styleId && force === false) {
@@ -46,13 +44,15 @@ export function setStyle({ force = false } = {}) {
     return;
   }
 
-  console.log(">>> applying new style");
-  mapState.instance.setStyle(style);
-  mapState.styleId = styleId;
-
+  // add our custom sources and layers after the style loads:
   mapState.instance.once("style.load", () => {
-    console.log("new style load complete");
+    addSharedSources();
+    addSharedLayers();
   });
+
+  // apply style
+  mapState.instance.setStyle(style); // , { diff: true } keeps custom layers and sources? {diff: true}
+  mapState.styleId = styleId;
 }
 
 export function getStyleId(): string {

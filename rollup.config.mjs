@@ -47,7 +47,7 @@ export default {
     }),
     visualizer({
       filename: "stats-plugin.html",
-      template: "network", // "treemap", "sunburst", "network"
+      template: "treemap", // "treemap", "sunburst", "network"
       gzipSize: true,
       brotliSize: true,
     }),
