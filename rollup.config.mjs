@@ -51,12 +51,14 @@ export default {
         beautify: true, // keep formatting/newlines
       },
     }),
-    visualizer({
-      filename: "stats-plugin.html",
-      template: "treemap", // "treemap", "sunburst", "network"
-      gzipSize: true,
-      brotliSize: true,
-    }),
+    process.env.SKIP_VISUALIZER
+      ? null
+      : visualizer({
+          filename: "stats-plugin.html",
+          template: "treemap", // "treemap", "sunburst", "network"
+          gzipSize: true,
+          brotliSize: true,
+        }),
   ],
   external: [
     ...builtinModules,

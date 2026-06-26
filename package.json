@@ -56,7 +56,7 @@
     "dev": "vite",
     "build:web": "vite build",
     "build:plugin": "rollup -c",
-    "build:plugin:node18": "node --experimental-global-webcrypto node_modules/.bin/rollup -c",
+    "build:plugin:node18": "SKIP_VISUALIZER=1 node --experimental-global-webcrypto node_modules/.bin/rollup -c",
     "build": "npm run build:web && npm run build:plugin",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.plugin.json",
