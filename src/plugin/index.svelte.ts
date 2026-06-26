@@ -4,8 +4,6 @@ import {
   type Context,
   type Path,
   type Unsubscribes,
-  ALARM_STATE,
-  type Notification,
 } from "@signalk/server-api";
 import fs from "node:fs";
 import path from "node:path";
@@ -37,6 +35,10 @@ import type { Vessel } from "../types";
 const myVessel = $derived(
   vesselsState.myVesselContext ? vessels[vesselsState.myVesselContext] : null,
 );
+
+const STATUS_NORMAL = "normal";
+const STATUS_WARN = "warn";
+const STATUS_ALARM = "alarm";
 
 interface Options {
   enabled: boolean;
@@ -303,9 +305,7 @@ export default function (app: ServerAPI) {
             // NOTE not widely avail yet: app.notifications.raise
             sendNotification({
               state:
-                vessel.alarmState === "warning"
-                  ? ALARM_STATE.warn
-                  : ALARM_STATE.alarm,
+                vessel.alarmState === "warning" ? STATUS_WARN : STATUS_ALARM,
               message: message,
               context: vessel.context,
               path: "notifications.navigation.closestApproach" as Path,
@@ -315,7 +315,7 @@ export default function (app: ServerAPI) {
             if (hasAlarmNotification(vessel)) {
               // NOTE app.notifications.raise not widely avail yet
               sendNotification({
-                state: ALARM_STATE.normal,
+                state: STATUS_NORMAL,
                 message: "Watching",
                 context: vessel.context,
                 path: "notifications.navigation.closestApproach" as Path,
@@ -379,9 +379,7 @@ export default function (app: ServerAPI) {
               value: {
                 state: state,
                 method:
-                  state === ALARM_STATE.normal
-                    ? ["visual"]
-                    : ["visual", "sound"],
+                  state === STATUS_NORMAL ? ["visual"] : ["visual", "sound"],
                 message: message,
               },
             },
@@ -397,7 +395,7 @@ export default function (app: ServerAPI) {
     const path = `${vessel.context}.notifications.navigation.closestApproach.value.state`;
     const state = app.getPath(path);
 
-    if (state && state !== ALARM_STATE.normal) {
+    if (state && state !== STATUS_NORMAL) {
       return true;
     }
 
