@@ -8,6 +8,12 @@ import typescript from "@rollup/plugin-typescript";
 import terser from "@rollup/plugin-terser";
 import { visualizer } from "rollup-plugin-visualizer";
 
+// polyfill for node 18:
+import { webcrypto } from "node:crypto";
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto;
+}
+
 export default {
   input: "src/plugin/index.svelte.ts",
   output: {
