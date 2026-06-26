@@ -47,75 +47,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      # docs — documentation-only changes
-      # refactor — code change that's neither a fix nor a feature (restructuring, renaming, no behavior change)
-      # test — adding or fixing tests
-      # style — formatting, whitespace, semicolons — no logic change
-      # perf — performance improvement
-      # build — build system or dependency changes (e.g. Vite config, package.json)
-      # ci — CI/CD config changes (exactly what you're editing right now)
-
-      - name: Generate changelog from commits
+      - name: Extract changelog section for this release
         id: changelog
         run: |
-          prev_tag=$(git tag --sort=-creatordate | grep -v "^${GITHUB_REF_NAME}$" | head -n1)
-          if [ -n "$prev_tag" ]; then
-            range="${prev_tag}..${GITHUB_REF_NAME}"
-          else
-            range="${GITHUB_REF_NAME}"
-          fi
-
-          log=$(git log "$range" --pretty=format:"%s|%h" --no-merges)
-
-          section() {
-            local title="$1" pattern="$2"
-            local matches
-            matches=$(echo "$log" | grep -iE "^${pattern}(\(.+\))?:" || true)
-            if [ -n "$matches" ]; then
-              echo "### $title"
-              echo "$matches" | awk -F'|' '{sub(/^[a-zA-Z]+(\([^)]*\))?: */, "", $1); print "- " $1 " (" $2 ")"}'
-              echo ""
-            fi
-          }
-
-          {
-            echo "body<<EOF"
-            echo "## ${GITHUB_REF_NAME} - $(date +%Y-%m-%d)"
-            echo ""
-            section "✨ Features" "feat"
-            section "🐛 Fixes" "fix"
-            section "♻️ Refactors" "refactor"
-            section "📝 Docs" "docs"
-            section "⚡ Performance" "perf"
-            section "🧹 Chores" "chore"
-            section "🔧 CI" "ci"
-            other=$(echo "$log" | grep -ivE "^(feat|fix|refactor|docs|perf|chore|ci)(\(.+\))?:" || true)
-            if [ -n "$other" ]; then
-              echo "### 📦 Other"
-              echo "$other" | awk -F'|' '{print "- " $1 " (" $2 ")"}'
-              echo ""
-            fi
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Prepend to CHANGELOG.md
-        run: |
-          touch CHANGELOG.md
-          tmp=$(mktemp)
-          {
-            echo "${{ steps.changelog.outputs.body }}"
-            echo ""
-            cat CHANGELOG.md
-          } > "$tmp"
-          mv "$tmp" CHANGELOG.md
-
-      - name: Commit CHANGELOG.md
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git diff --staged --quiet || git commit -m "chore: update CHANGELOG.md for ${GITHUB_REF_NAME}"
-          git push origin HEAD:main
+          awk '/^# /{if (p) exit; p=1} p' CHANGELOG.md | tail -n +1 > /tmp/release-body.md
+          echo "body<<EOF" >> "$GITHUB_OUTPUT"
+          cat /tmp/release-body.md >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3

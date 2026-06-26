@@ -1,32 +1,57 @@
 # Publishing
 
-### Update dependencies:
+### Sync repo
 
-    npx npm-check-updates   # dry run
-    npx npm-check-updates -u && npm install
+    git status               # check for outbound changes
+    git pull --rebase        # pull latest, rebase any local commits
 
-### Checks:
+### Update dependencies
 
-    git status              # check for outbound changes
-    git pull                # check for inbound changes
-    npm run format          # check formatting
-    npm run build           # check builds
+    npx npm-check-updates    # dry run — review majors carefully
+    npx npm-check-updates -u --target minor && npm install   # apply minor/patch only
+    # for major bumps, apply deliberately one at a time and re-test
 
-### Edit [CHANGELOG.md](../CHANGELOG.md)
+### Checks
 
-Add a new section corresponding to the new version number. Then stage it and any other pending changes with:
+    npm run format:check
+    npm run lint
+    npm run typecheck
+    npm run test
+    npm run build
 
-    git add -A
-    git commit -m "chore: prepare release"
+### Commit:
 
-### Increment Version
+Commit all pending changes with appropriate comments. Prefix each line as appropriate (multiple prefixed lines in one commit message are fine — the changelog generator parses each line independently). e.g.:
 
-Increment npm version ([package.json](../package.json) version). Then push changes:
+- **feat** — `feat: add dark mode toggle to settings panel`
+- **fix** — `fix: prevent crash when MMSI is null`
+- **refactor** — `refactor: extract style builders into separate module`
+- **docs** — `docs: update README with PMTiles setup instructions`
+- **perf** — `perf: debounce vessel position updates to reduce re-renders`
+- **chore** — `chore: bump rollup to v4.62`
+- **ci** — `ci: add changelog generation to release workflow`
+
+### Increment version
+
+`npm version` bumps the version in [package.json](../package.json), runs the `version` hook (regenerates `CHANGELOG.md` and stages it), commits everything together, and creates a matching git tag:
 
     npm version patch   # major | minor | patch
+
+Push the commit and tag:
+
     git push origin main --follow-tags
 
-and GH Actions will take care of the rest.
+### Verify
+
+GH Actions will fire and:
+
+- Create a GH Release using the relevant section of `CHANGELOG.md`
+- Publish the release to npm
+
+Confirm both succeeded:
+
+- Check the Actions tab for a green run
+- Check https://www.npmjs.com/package/signalk-ais-target-prioritizer shows the new version
 
 ### For prerelease/beta:
 
