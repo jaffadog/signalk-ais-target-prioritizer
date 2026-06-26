@@ -21,11 +21,11 @@
   import { ui } from "../ui.svelte";
   import { isValidNumber } from "../../engine/calculations";
   import type { Context } from "@signalk/server-api";
+  import { vesselTableState } from "../vesselTable.svelte";
 
   console.log("TABLE render");
 
   let tableContainer: HTMLElement | undefined = $state();
-  let sortBy = $state("priority");
 
   // Sorted Data
   const sortedVessels = $derived.by(() =>
@@ -35,7 +35,7 @@
           vessel.context !== vesselsState.myVesselContext && vessel.isValid,
       )
       .sort((a, b) => {
-        switch (sortBy) {
+        switch (vesselTableState.sortBy) {
           case "tcpa":
             return (
               sortInvalidNumbersToBottom(a.tcpa) -
@@ -74,7 +74,7 @@
   }
 
   function handleSortChange(e: Event) {
-    sortBy = (e.currentTarget as HTMLSelectElement).value;
+    vesselTableState.sortBy = (e.currentTarget as HTMLSelectElement).value;
     tableContainer!.scrollTop = 0;
   }
 
@@ -124,7 +124,11 @@
         <!-- sort by -->
         <label class="label">
           <span class="label-text">Sort By</span>
-          <select class="select" value={sortBy} onchange={handleSortChange}>
+          <select
+            class="select"
+            value={vesselTableState.sortBy}
+            onchange={handleSortChange}
+          >
             <option value="priority">Priority</option>
             <option value="tcpa">TCPA</option>
             <option value="cpa">CPA</option>
