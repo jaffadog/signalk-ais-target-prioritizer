@@ -370,7 +370,7 @@
 
   //  basemap or dark mode changes - re-evaluate maplibre styles
   $effect(() => {
-    // subscribe
+    // subscribe:
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     mapState.basemapId;
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -383,7 +383,6 @@
         ui.darkMode,
       );
 
-      if (!mapState.instance || !mapState.loaded) return;
       setStyle();
     });
   });

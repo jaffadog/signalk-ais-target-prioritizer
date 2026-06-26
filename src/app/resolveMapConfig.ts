@@ -66,17 +66,18 @@ export function buildStyle(): StyleSpecification | string {
 
   // vector / mapstyleJSON:
   // if type=mapstyleJSON, setup vector
+  // basemap.format === "pbf" &&
   if (
     basemap &&
     basemap.type === "mapstyleJSON" &&
-    basemap.format === "pbf" &&
-    basemap.style
+    (basemap.style || basemap.url)
   ) {
-    return basemap.style;
+    if (basemap.style) return basemap.style;
+    if (basemap.url) return basemap.url;
   }
 
   // fallback:
-  console.warn("using fallback basemap: empty");
+  console.warn("using fallback basemap: empty", { basemap });
   mapState.basemapId = BUILTIN_EMPTY;
   return buildEmptyStyle();
 }
