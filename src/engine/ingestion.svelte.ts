@@ -55,13 +55,17 @@ function upsertVessel(context: Context, updates: Update[]) {
           const v = value as any;
           switch (path) {
             case "":
+              // NOTE all of these may be in the same (single) "value" - so no "else"
               if (v.mmsi) {
                 vessel.mmsi = v.mmsi ?? "";
-              } else if (v.name) {
+              }
+              if (v.name) {
                 vessel.name = v.name ?? "";
-              } else if (v.communication?.callsignVhf) {
+              }
+              if (v.communication?.callsignVhf) {
                 vessel.callsign = v.communication.callsignVhf;
-              } else if (v.registrations?.imo) {
+              }
+              if (v.registrations?.imo) {
                 vessel.imo = v.registrations.imo.replace(/imo /i, "");
               }
               break;
