@@ -27,7 +27,8 @@ The SignalK AIS Target Prioritizer plugin processes SignalK AIS data and applies
   - Lists AIS targets in order of collision risk
   - Mute alarms - such that muted vessels will no longer raise further alarms
   - Visually indicates lost AIS targets with red X
-  - Supports tiled (png) and vector (**PMTiles**) maps, including SignalK chart resource API providers such as [Signal K Charts](https://github.com/SignalK/charts-plugin) and [PMTiles Chart provider](https://github.com/panaaj/signalk-pmtiles-plugin). Note that offline charts can be setup using these features. I highly recommend creating your own PMTiles maps using [Protomaps](https://docs.protomaps.com/), as the resulting files are quite small. For example, a PMTiles extracted subset covering all of French polynesia wiht zoom 1-15 comes out at 22MB.
+  - Includes 4 built-in basemap layers: street, satellite, offline (world map), and empty
+  - Supports additional basemaps, including raster, mbtiles, and pmtiles, via Signal K chart resource API providers such as [Signal K Charts](https://github.com/SignalK/charts-plugin) and [PMTiles Chart provider](https://github.com/panaaj/signalk-pmtiles-plugin). Note that offline charts can be setup using these features. I highly recommend creating your own PMTiles maps using [Protomaps](https://docs.protomaps.com/), as the resulting files are quite small. For example, a PMTiles extracted subset covering all of French polynesia with zoom 1-15 comes out at 22MB.
   - Prevent screen sleep
   - Dark mode for night time use
   - Fullscreen mode
