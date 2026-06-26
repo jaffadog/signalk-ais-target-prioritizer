@@ -81,11 +81,11 @@ jobs:
     uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
     with:
       test-command: npm test
-      build-command: npm run build --if-present
-      node-versions: '["22", "24"]'
-      enable-armv7: false
-      enable-signalk-integration: false
-      signalk-server-versions: '["2.13.5","latest"]'
+      build-command: npm run build:plugin:node18
+      node-versions: '["18","20","22", "24"]'
+      enable-armv7: true
+      enable-signalk-integration: true
+      signalk-server-versions: '["2.0.0","2.13.5","latest"]'
 
   # ── Manual runs (workflow_dispatch with custom inputs) ────
   test-plugin-manual:

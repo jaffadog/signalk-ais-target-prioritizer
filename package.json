@@ -57,7 +57,6 @@
     "build:web": "vite build",
     "build:plugin": "rollup -c",
     "build:plugin:node18": "cross-env SKIP_VISUALIZER=1 NODE_OPTIONS=--experimental-global-webcrypto rollup -c",
-    "build:plugin:node18-2": "cross-env SKIP_VISUALIZER=1 node --experimental-global-webcrypto node_modules/.bin/rollup -c",
     "build": "npm run build:web && npm run build:plugin",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.plugin.json",
