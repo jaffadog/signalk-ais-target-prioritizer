@@ -101,18 +101,20 @@
         >
           <!-- header -->
           <header class="flex justify-between items-center">
-            <button
-              class="btn btn-icon p-0 preset-filled-primary-500 inline-flex h-10 w-10 items-center justify-center rounded-full text-lg font-semibold"
-              type="button"
-              title="Toggle alarm mute"
-              onclick={handleToggleMute}
-            >
-              {#if selectedVessel.alarmIsMuted}
-                <VolumeX size={18} />
-              {:else}
-                <Volume2 size={18} />
-              {/if}
-            </button>
+            {#if selectedVessel.context !== vesselsState.myVesselContext}
+              <button
+                class="btn btn-icon p-0 preset-filled-primary-500 inline-flex h-10 w-10 items-center justify-center rounded-full text-lg font-semibold"
+                type="button"
+                title="Toggle alarm mute"
+                onclick={handleToggleMute}
+              >
+                {#if selectedVessel.alarmIsMuted}
+                  <VolumeX size={18} />
+                {:else}
+                  <Volume2 size={18} />
+                {/if}
+              </button>
+            {/if}
             <Dialog.Title class="text-lg font-bold"
               >{formatName(selectedVessel)}</Dialog.Title
             >
