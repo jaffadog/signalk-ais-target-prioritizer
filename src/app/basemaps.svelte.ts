@@ -95,9 +95,9 @@ export async function initBasemaps() {
   try {
     const charts = await getCharts();
     console.log({ charts });
-    for (const chart of Object.values(charts)) {
-      basemaps[chart.identifier] = {
-        identifier: chart.identifier,
+    for (const [identifier, chart] of Object.entries(charts)) {
+      basemaps[identifier] = {
+        identifier: identifier,
         name: chart.name,
         format: chart.format,
         type: chart.type,
