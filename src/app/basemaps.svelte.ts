@@ -48,10 +48,17 @@ pmtiles extract https://build.protomaps.com/20260610.pmtiles south-pacific.pmtil
   --bbox=-176.5,-23.5,-157.5,-9.0
 */
 
-// export const basemaps = {
+export const BUILTIN_STREET = "builtin:street";
+export const BUILTIN_SATELLITE = "builtin:satellite";
+export const BUILTIN_OFFLINE = "builtin:offline";
+export const BUILTIN_EMPTY = "builtin:empty";
+
+export const DEFAULT_BASEMAP = BUILTIN_STREET;
+export const DEFAULT_OFFLINE_BASEMAP = BUILTIN_EMPTY;
+
 export const basemaps: Record<string, Chart> = $state({
-  "builtin:street": {
-    identifier: "builtin:street",
+  [BUILTIN_STREET]: {
+    identifier: BUILTIN_STREET,
     name: "Street Map",
     type: "mapstyleJSON",
     format: "pbf",
@@ -60,23 +67,23 @@ export const basemaps: Record<string, Chart> = $state({
       "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
     online: true,
   },
-  "builtin:satellite": {
-    identifier: "builtin:satellite",
+  [BUILTIN_SATELLITE]: {
+    identifier: BUILTIN_SATELLITE,
     name: "Satellite",
     type: "tilelayer",
     format: "jpg",
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     online: true,
   },
-  "builtin:offline": {
-    identifier: "builtin:offline",
+  [BUILTIN_OFFLINE]: {
+    identifier: BUILTIN_OFFLINE,
     name: "Offline",
     type: "mapstyleJSON",
     format: "pbf",
     online: false,
   },
-  "builtin:empty": {
-    identifier: "builtin:empty",
+  [BUILTIN_EMPTY]: {
+    identifier: BUILTIN_EMPTY,
     name: "Empty",
     online: false,
   },

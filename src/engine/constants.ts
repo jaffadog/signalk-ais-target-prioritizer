@@ -23,9 +23,6 @@ export const STALE_VESSEL_SWEEP_MS = 60_000;
 
 export const DATA_REFRESH_INTERVAL = 1_000; // 1 second
 
-export const DEFAULT_BASEMAP = "builtin:street";
-export const DEFAULT_OFFLINE_BASEMAP = "builtin:empty";
-
 export const CHECK_ONLINE_INTERVAL = 30_000; // every 30 seconds
 export const CHECK_ONLINE_TIMEOUT = 3_000; // 3 seconds
 export const PROBE_URL = "https://www.google.com/favicon.ico";

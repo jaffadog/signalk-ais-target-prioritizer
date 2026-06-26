@@ -1,8 +1,7 @@
-import type { Theme } from "./basemap.types";
-import ne10Url from "../app/assets/ne_10m_land.pmtiles?url";
 import { layers, namedFlavor, type Flavor } from "@protomaps/basemaps";
 import { name as pluginName } from "../../package.json";
 import { mapState } from "./map.svelte";
+import { ui } from "./ui.svelte";
 
 const DEFAULT_DARK_BACKGROUND_COLOR = "#2E353B";
 const DEFAULT_LIGHT_BACKGROUND_COLOR = "#D5DADC";
@@ -10,13 +9,6 @@ const DEFAULT_LIGHT_BACKGROUND_COLOR = "#D5DADC";
 const DEFAULT_DARK_LAND_COLOR = "#0E0E0E";
 const DEFAULT_LIGHT_LAND_COLOR = "#FAFAF8";
 
-export function buildOfflineStyle(theme: Theme) {
-  return buildNaturalEarthStyle({
-    url: `pmtiles://${window.location.origin}${ne10Url}`,
-    theme: theme,
-  });
-}
-// FIXME might need to set white label colors - certainly for esri sat
 export function buildRasterStyle(url: string) {
   return {
     version: 8 as const,
@@ -37,7 +29,8 @@ export function buildRasterStyle(url: string) {
   };
 }
 
-export function buildPmtilesStyle(url: string, theme: Theme = "light") {
+export function buildPmtilesStyle(url: string) {
+  const theme = ui.darkMode ? "dark" : "light";
   const flavor: Flavor = namedFlavor(theme);
   return {
     version: 8 as const,
@@ -62,13 +55,7 @@ export function buildPmtilesStyle(url: string, theme: Theme = "light") {
   };
 }
 
-export function buildNaturalEarthStyle({
-  url,
-  theme,
-}: {
-  url: string;
-  theme: Theme;
-}) {
+export function buildNaturalEarthStyle(url: string) {
   return {
     version: 8 as const,
     sources: {
@@ -82,10 +69,9 @@ export function buildNaturalEarthStyle({
         id: "background",
         type: "background" as const,
         paint: {
-          "background-color":
-            theme === "dark"
-              ? DEFAULT_DARK_BACKGROUND_COLOR
-              : DEFAULT_LIGHT_BACKGROUND_COLOR,
+          "background-color": ui.darkMode
+            ? DEFAULT_DARK_BACKGROUND_COLOR
+            : DEFAULT_LIGHT_BACKGROUND_COLOR,
         },
       },
       {
@@ -94,17 +80,16 @@ export function buildNaturalEarthStyle({
         source: "ne",
         "source-layer": "earth",
         paint: {
-          "fill-color":
-            theme === "dark"
-              ? DEFAULT_DARK_LAND_COLOR
-              : DEFAULT_LIGHT_LAND_COLOR,
+          "fill-color": ui.darkMode
+            ? DEFAULT_DARK_LAND_COLOR
+            : DEFAULT_LIGHT_LAND_COLOR,
         },
       },
     ],
   };
 }
 
-export function buildEmptyStyle(theme: Theme) {
+export function buildEmptyStyle() {
   return {
     version: 8 as const,
     sources: {},
@@ -113,10 +98,9 @@ export function buildEmptyStyle(theme: Theme) {
         id: "background",
         type: "background" as const,
         paint: {
-          "background-color":
-            theme === "dark"
-              ? DEFAULT_DARK_BACKGROUND_COLOR
-              : DEFAULT_LIGHT_BACKGROUND_COLOR,
+          "background-color": ui.darkMode
+            ? DEFAULT_DARK_BACKGROUND_COLOR
+            : DEFAULT_LIGHT_BACKGROUND_COLOR,
         },
       },
     ],

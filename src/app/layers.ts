@@ -1,4 +1,5 @@
 import { COLOR_MAP } from "../engine/constants";
+import { BUILTIN_SATELLITE } from "./basemaps.svelte";
 import { mapState } from "./map.svelte";
 import { ui } from "./ui.svelte";
 
@@ -6,7 +7,7 @@ const DEFAULT_DARK_LABEL_COLOR = "white";
 const DEFAULT_LIGHT_LABEL_COLOR = "black";
 
 export function getLabelColor() {
-  return ui.darkMode || mapState.basemapId === "satellite"
+  return ui.darkMode || mapState.basemapId === BUILTIN_SATELLITE
     ? DEFAULT_DARK_LABEL_COLOR
     : DEFAULT_LIGHT_LABEL_COLOR;
 }

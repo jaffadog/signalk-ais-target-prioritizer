@@ -5,63 +5,69 @@ import {
   buildPmtilesStyle,
   buildRasterStyle,
 } from "./styleBuilders";
-import { basemaps } from "./basemaps.svelte";
+import {
+  basemaps,
+  BUILTIN_EMPTY,
+  BUILTIN_OFFLINE,
+  BUILTIN_SATELLITE,
+  BUILTIN_STREET,
+} from "./basemaps.svelte";
 import { mapState } from "./map.svelte";
 import { ui } from "./ui.svelte";
 import ne10Url from "../app/assets/ne_10m_land.pmtiles?url";
+import type { Chart } from "../types";
 
 export function buildStyle(): StyleSpecification | string {
   console.log("enter resolveMapConfig", mapState.basemapId, ui.darkMode);
-  const theme = ui.darkMode ? "dark" : "light";
-  const basemap = basemaps[mapState.basemapId];
-  if (!basemap) {
-    mapState.basemapId = "empty";
-    return buildEmptyStyle(theme);
-  }
+  const basemap = basemaps[mapState.basemapId] as Chart | undefined;
 
-  // if id=street, eval dark mode and setup carto light or dark
+  // builtin:street
   if (
-    mapState.basemapId === "builtin:street" &&
+    mapState.basemapId === BUILTIN_STREET &&
+    basemap &&
     basemap.styleLight &&
     basemap.styleDark
   ) {
     return ui.darkMode ? basemap.styleDark : basemap.styleLight;
   }
 
-  // if id=sat, setup raster
-  if (mapState.basemapId === "builtin:satellite" && basemap.url) {
+  // builtin:satellite
+  if (mapState.basemapId === BUILTIN_SATELLITE && basemap && basemap.url) {
     return buildRasterStyle(basemap.url);
   }
 
-  // if id=offline, setup offline - set colors light or dark
-  if (mapState.basemapId === "builtin:offline") {
-    return buildNaturalEarthStyle({
-      url: `pmtiles://${window.location.origin}${ne10Url}`,
-      theme: theme,
-    });
+  // builtin:offline
+  if (mapState.basemapId === BUILTIN_OFFLINE) {
+    return buildNaturalEarthStyle(
+      `pmtiles://${window.location.origin}${ne10Url}`,
+    );
   }
 
-  // if id=empty, setup empty - set colors light or dark
-  if (mapState.basemapId === "builtin:empty") {
-    return buildEmptyStyle(theme);
+  // builtin:empty
+  if (mapState.basemapId === BUILTIN_EMPTY) {
+    return buildEmptyStyle();
   }
 
+  // pmtiles:
   // format: "mvt"
   // type: "tilelayer"
   // url: "/signalk/pmtiles/finland-estonia.pmtiles"
   // if type=tilelayer and format=mvt, setup vector
   // mvt = pbf
-  if (basemap.url?.toLowerCase().endsWith(".pmtiles")) {
-    return buildPmtilesStyle(`${window.location.origin}${basemap.url}`, theme);
+  if (basemap && basemap.url?.toLowerCase().endsWith(".pmtiles")) {
+    return buildPmtilesStyle(`${window.location.origin}${basemap.url}`);
   }
 
+  // raster:
   // if type=tilelayer and format=png|jpg, setup raster
-  if (basemap.type === "tilelayer" && basemap.url) {
+  if (basemap && basemap.type === "tilelayer" && basemap.url) {
     return buildRasterStyle(basemap.url);
   }
 
+  // vector / mapstyleJSON:
   // if type=mapstyleJSON, setup vector
   if (
+    basemap &&
     basemap.type === "mapstyleJSON" &&
     basemap.format === "pbf" &&
     basemap.style
@@ -69,7 +75,8 @@ export function buildStyle(): StyleSpecification | string {
     return basemap.style;
   }
 
-  // FIXME fallback:
-  mapState.basemapId = "empty";
-  return buildEmptyStyle(theme);
+  // fallback:
+  console.warn("using fallback basemap: empty");
+  mapState.basemapId = BUILTIN_EMPTY;
+  return buildEmptyStyle();
 }

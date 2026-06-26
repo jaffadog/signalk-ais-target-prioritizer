@@ -2,11 +2,10 @@ import ky from "ky";
 import {
   CHECK_ONLINE_INTERVAL,
   CHECK_ONLINE_TIMEOUT,
-  DEFAULT_OFFLINE_BASEMAP,
   PROBE_URL,
 } from "../engine/constants";
 import { mapState } from "./map.svelte";
-import { basemaps } from "./basemaps.svelte";
+import { basemaps, DEFAULT_OFFLINE_BASEMAP } from "./basemaps.svelte";
 import { toggleOpenSeaMap } from "./mapLayers";
 import { toaster } from "./utils/toaster";
 

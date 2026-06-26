@@ -1,9 +1,8 @@
 import type { Map } from "maplibre-gl";
 import { buildStyle } from "./resolveMapConfig";
 import { ui } from "./ui.svelte";
-import { DEFAULT_BASEMAP } from "../engine/constants";
 import { name as PLUGIN_ID } from "../../package.json";
-import { basemaps } from "./basemaps.svelte";
+import { basemaps, DEFAULT_BASEMAP } from "./basemaps.svelte";
 import { addSharedLayers } from "./layers";
 import { addSharedSources } from "./sources";
 

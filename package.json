@@ -65,6 +65,8 @@
     "prepublishOnly": "npm run build",
     "test": "node --test",
     "test:watch": "node --test --watch",
+    "checks": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build",
+    "preversion": "npm run checks",
     "changelog": "node scripts/generate-changelog.mjs",
     "version": "npm run changelog"
   },

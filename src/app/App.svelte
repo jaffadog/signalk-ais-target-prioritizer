@@ -23,7 +23,7 @@
   import { checkFontsAvailable, mapState } from "./map.svelte";
   import { checkConnectivity, connectivity } from "./connectivity.svelte";
   import { CircleCheck, CircleX, Info, TriangleAlert } from "@lucide/svelte";
-  import { basemaps, initBasemaps } from "./basemaps.svelte";
+  import { basemaps, DEFAULT_BASEMAP, initBasemaps } from "./basemaps.svelte";
   import type { CollisionProfiles, InitStep } from "../types";
   import ky from "ky";
   import { vessels, vesselsState } from "../engine/vessels.svelte";
@@ -178,7 +178,9 @@
       } else {
         console.warn("WARNING: invalid configuration. Using defaults.");
         resetCollisionProfiles();
-        await saveCollisionProfiles(collisionProfiles);
+        const result = await saveCollisionProfiles(collisionProfiles);
+        if (!result.success)
+          throw new Error("Unable to save default collision profile");
       }
     } catch (err) {
       console.error("saveCollisionProfiles failed:", err);
@@ -240,7 +242,7 @@
     // make sure our default/current basemap is valid, including
     // online/offline availability
     if (!(mapState.basemapId in basemaps)) {
-      mapState.basemapId = "street";
+      mapState.basemapId = DEFAULT_BASEMAP;
     }
     ui.app.visible = true;
     setTimeout(() => (ui.loading.visible = false), FADE_DURATION);
