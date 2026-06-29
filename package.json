@@ -76,7 +76,7 @@
     "@protomaps/basemaps": "^5.7.2",
     "@turf/circle": "^7.3.5",
     "@turf/destination": "^7.3.5",
-    "ky": "1.14.3",
+    "ky": "2.0.2",
     "maplibre-gl": "^5.24.0",
     "mmsi-country-lookup": "^1.0.2",
     "nosleep.js": "^0.12.0",
