@@ -3,6 +3,7 @@
 import {
   AGE_OUT_OLD_TARGETS,
   DATA_REFRESH_INTERVAL,
+  METERS_PER_NM,
   TARGET_MAX_AGE,
 } from "./constants";
 import {
@@ -90,9 +91,12 @@ export function updateVessels() {
     if (vessel.context !== vesselsState.myVesselContext) {
       const range = projection ? calcRange(projection) : undefined;
       const bearing = projection ? calcBearing(projection) : undefined;
-      const { cpa = undefined, tcpa = undefined } = projection
-        ? (calcCpa(projection, velocity, myVelocity) ?? {})
-        : {};
+      // FIXME: add option to cap CPA calc to the closest n targets
+      // dont calculate cpa if range > 100 nm
+      const { cpa = undefined, tcpa = undefined } =
+        projection && range && range < 100 * METERS_PER_NM
+          ? (calcCpa(projection, velocity, myVelocity) ?? {})
+          : {};
       const isLost =
         lastSeenSecondsAgo !== undefined
           ? calcIsLost(lastSeenSecondsAgo)
