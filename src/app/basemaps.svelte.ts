@@ -77,7 +77,7 @@ export const basemaps: Record<string, Chart> = $state({
   },
   [BUILTIN_OFFLINE]: {
     identifier: BUILTIN_OFFLINE,
-    name: "Offline",
+    name: "Offline Worldmap",
     type: "mapstyleJSON",
     format: "pbf",
     online: false,

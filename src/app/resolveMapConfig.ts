@@ -39,7 +39,8 @@ export function buildStyle(): StyleSpecification | string {
   // builtin:offline
   if (mapState.basemapId === BUILTIN_OFFLINE) {
     return buildNaturalEarthStyle(
-      `pmtiles://${window.location.origin}${ne10Url}`,
+      // `pmtiles://${window.location.origin}${ne10Url}`,
+      `pmtiles://${ne10Url}`,
     );
   }
 
