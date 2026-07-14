@@ -259,6 +259,7 @@
       const feature = event.features?.[0];
       const context = feature?.properties?.context;
 
+      // if (!context || context === vesselsState.myVesselContext) return;
       if (!context) return;
 
       vesselsState.selectedVesselContext = context;
@@ -486,10 +487,13 @@
         // so we flip our "order"
         order: vessel.order ? 999999 - vessel.order : 0,
         isLarge:
-          vessel.alarmState !== null &&
-          vessel.context === vesselsState.selectedVesselContext,
+          (vessel.alarmState !== null ||
+            vessel.context === vesselsState.selectedVesselContext) &&
+          vessel.context !== vesselsState.myVesselContext,
         isLost: vessel.isLost,
-        isSelected: vessel.context === vesselsState.selectedVesselContext,
+        isSelected:
+          vessel.context === vesselsState.selectedVesselContext &&
+          vessel.context !== vesselsState.myVesselContext,
         labelText: formatVesselLabel(vessel),
         alignment:
           iconName.startsWith("vessel-aton") ||
@@ -835,8 +839,7 @@
         stickyToaster = toaster.create({
           type: "info",
           title: "No Other Vessels",
-          description:
-            "No AIS data from other vessels has been received by Signal K server. You're all alone out here.",
+          description: "No other vessels detected. You're all alone out here.",
         });
         console.log({ stickyToaster });
       }
