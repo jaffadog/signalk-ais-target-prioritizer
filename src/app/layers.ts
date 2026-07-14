@@ -75,6 +75,7 @@ export function addSharedLayers() {
     });
   }
 
+  // layer for moving targets - which are rotated according to HDG or COG
   if (!map.getLayer("vessels-icons-map")) {
     map.addLayer({
       id: "vessels-icons-map",
@@ -97,6 +98,8 @@ export function addSharedLayers() {
     });
   }
 
+  // layer for base, atons, sart icons - which remain aligned with the viewport
+  // and dont rotate them individually
   if (!map.getLayer("vessels-icons-viewport")) {
     map.addLayer({
       id: "vessels-icons-viewport",
@@ -106,7 +109,7 @@ export function addSharedLayers() {
       layout: {
         "icon-image": ["get", "icon"],
         "icon-size": ["case", ["boolean", ["get", "isLarge"], false], 1.5, 1],
-        "icon-rotate": ["coalesce", ["to-number", ["get", "rotate"]], 0],
+        // "icon-rotate": ["coalesce", ["to-number", ["get", "rotate"]], 0],
         "icon-rotation-alignment": "viewport",
         "symbol-sort-key": ["get", "order"],
         "icon-allow-overlap": true,
