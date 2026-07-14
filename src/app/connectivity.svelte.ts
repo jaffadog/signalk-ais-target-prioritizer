@@ -20,9 +20,11 @@ export async function getConnectivity(): Promise<boolean> {
       timeout: CHECK_ONLINE_TIMEOUT,
       mode: "no-cors",
       retry: 0, // we'll handle retry logic ourselves
+      throwHttpErrors: false, // opaque responses always report status 0 / ok:false — meaningless here
     });
     return true;
-  } catch {
+  } catch (e) {
+    console.warn("OFFLINE:", e);
     return false;
   }
 }
