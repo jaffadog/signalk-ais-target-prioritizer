@@ -10,7 +10,7 @@ export const DEFAULT_ENABLE_ALARM_PUBLISHING = true;
 
 export const AGE_OUT_OLD_TARGETS = true;
 export const TARGET_MAX_AGE = 30 * 60; // max age in seconds - 30 minutes
-export const NO_GPS_FIX_WARNING = 30; // seconds
+export const NO_GPS_FIX_WARNING = 60; // seconds
 
 export const COURSE_PROJECTION_MINUTES = 10; // 10 minutes
 export const LOST_VESSEL_WARNING_AGE = 10 * 60; // 10 minutes
@@ -25,7 +25,7 @@ export const DATA_REFRESH_INTERVAL = 1_000; // 1 second
 
 export const CHECK_ONLINE_INTERVAL = 30_000; // every 30 seconds
 export const CHECK_ONLINE_TIMEOUT = 3_000; // 3 seconds
-export const PROBE_URL = "https://www.google.com/favicon.ico";
+export const PROBE_URL = "https://www.google.com/generate_204";
 
 export const COLOR_MAP = {
   gray: "#8a8a8a",
