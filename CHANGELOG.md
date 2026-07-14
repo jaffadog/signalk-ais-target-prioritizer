@@ -1,30 +1,36 @@
 # v0.4.14 - 2026-06-26
 
 ### ✨ Features
+
 - add support for raster, mbtiles, vector sk chart plugin types (46d0278)
 
 ### 🐛 Fixes
+
 - hide un/mute button when showing own vessel properties (034feca)
 - retain vessel table sort order (8077233)
 - my vessel name and a few other attr not loading (ec4b1ab)
 - not all custom maps loading (7622fc7)
 
 ### ♻️ Refactors
+
 - basemap selection (a834737)
 - basemap resolution (5cd3d62)
 - how custom layers and sources are loaded (46d0278)
 - how map style is generated (46d0278)
 
 ### 📝 Docs
+
 - update README map layers functionality (512ae92)
 
 ### 🧹 Chores
+
 - modify publishing process (32b4212)
 - move map components out of engine if they are not actually used by plugin (46d0278)
 - clean up build and project struture (197fd6d)
 - update CHANGELOG.md for v0.4.13 (ce5172e)
 
 ### 🔧 CI
+
 - testing against older node/sk versions (cca1fe9)
 - testing against older node/sk versions (3cae6f8)
 - testing against older node/sk versions (ee10362)
@@ -39,6 +45,7 @@
 - bake in build checks (5cd3d62)
 
 ### 📦 Other
+
 - clean up CHANGELOG (e979f76)
 
 ## v0.4.13 - 2026-06-23
