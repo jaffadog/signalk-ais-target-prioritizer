@@ -51,6 +51,11 @@ on:
         required: false
         default: '["22", "24"]'
         type: string
+      build-node-version:
+        description: "Pin the Node version used only for the Build step, independent of node-versions. Leave empty to build with whichever matrix Node version is under test (default behavior)."
+        required: false
+        type: string
+        default: ""
       enable-armv7:
         description: Run armv7 (Cerbo GX) tests via QEMU
         required: false
@@ -78,47 +83,52 @@ jobs:
   # ── Automatic runs (push / pull request) ──────────────────
   test-plugin-auto:
     if: ${{ github.event_name != 'workflow_dispatch' }}
-    uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+    # uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+    uses: jaffadog/signalk-ais-target-prioritizer/.github/workflows/plugin-ci.yml@master
     with:
       test-command: npm test
-      build-command: npm run build:plugin:node18
-      node-versions: '["22", "24"]'
+      build-command: npm run build:plugin
+      # node-versions: '["22", "24"]'
+      node-versions: '["18"]'
+      build-node-version: "24"
       enable-armv7: true
       enable-signalk-integration: true
       signalk-server-versions: '["latest"]'
 
-  test-plugin-auto-node20:
-    if: ${{ github.event_name != 'workflow_dispatch' }}
-    uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
-    with:
-      test-command: npm test
-      build-command: npm run build:plugin:node18
-      node-versions: '["20"]'
-      enable-armv7: true
-      enable-signalk-integration: true
-      signalk-server-versions: '["2.13.5"]'
+  # test-plugin-auto-node20:
+  #   if: ${{ github.event_name != 'workflow_dispatch' }}
+  #   uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+  #   with:
+  #     test-command: npm test
+  #     build-command: npm run build:plugin:node18
+  #     node-versions: '["20"]'
+  #     enable-armv7: true
+  #     enable-signalk-integration: true
+  #     signalk-server-versions: '["2.13.5"]'
 
-  test-plugin-auto-node18:
-    if: ${{ github.event_name != 'workflow_dispatch' }}
-    uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
-    with:
-      test-command: npm test
-      build-command: npm run build:plugin:node18
-      node-versions: '["18"]'
-      enable-armv7: true
-      enable-signalk-integration: true
-      signalk-server-versions: '["2.0.0"]'
+  # test-plugin-auto-node18:
+  #   if: ${{ github.event_name != 'workflow_dispatch' }}
+  #   uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+  #   with:
+  #     test-command: npm test
+  #     build-command: npm run build:plugin:node18
+  #     node-versions: '["18"]'
+  #     enable-armv7: true
+  #     enable-signalk-integration: true
+  #     signalk-server-versions: '["2.0.0"]'
 
   # ── Manual runs (workflow_dispatch with custom inputs) ────
   test-plugin-manual:
     if: ${{ github.event_name == 'workflow_dispatch' }}
-    uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+    # uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+    uses: jaffadog/signalk-ais-target-prioritizer/.github/workflows/plugin-ci.yml@master
     with:
       test-command: ${{ inputs.test-command }}
       build-command: ${{ inputs.build-command }}
       format-check-command: ${{ inputs.format-check-command }}
       coverage-command: ${{ inputs.coverage-command }}
       node-versions: ${{ inputs.node-versions }}
+      build-node-version: ${{ inputs.build-node-version }}
       enable-armv7: ${{ inputs.enable-armv7 }}
       enable-signalk-integration: ${{ inputs.enable-signalk-integration }}
       signalk-server-versions: ${{ inputs.signalk-server-versions }}
