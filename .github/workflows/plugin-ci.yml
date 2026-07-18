@@ -80,10 +80,11 @@ jobs:
   #  each of them re-running `build-command` independently.
   #
   #  Note: this uploads the working tree post-build (minus
-  #  node_modules/.git), NOT `npm pack` output — node_modules is
+  #  node_modules), NOT `npm pack` output — node_modules is
   #  platform/arch/Node-ABI specific (native addons) and must be
   #  installed fresh in every downstream job via its own `npm ci`.
-  #  Only the transpile/bundle step itself is shared.
+  #  .git is retained so the stray-files check (git ls-files) still
+  #  works downstream. Only the transpile/bundle step is shared.
   # ════════════════════════════════════════════════════════════
   build:
     name: Build (Node ${{ inputs.build-node-version != '' && inputs.build-node-version || '24' }})
@@ -118,9 +119,7 @@ jobs:
         shell: bash
         run: |
           rm -rf node_modules
-          tar -czf "$RUNNER_TEMP/built-plugin.tar.gz" \
-            --exclude='.git' \
-            .
+          tar -czf "$RUNNER_TEMP/built-plugin.tar.gz" .
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
