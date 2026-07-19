@@ -84,12 +84,11 @@ jobs:
   test-plugin-auto:
     if: ${{ github.event_name != 'workflow_dispatch' }}
     # uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
-    uses: jaffadog/signalk-ais-target-prioritizer/.github/workflows/plugin-ci.yml@main
+    uses: jaffadog/signalk-server/.github/workflows/plugin-ci.yml@feat/separate-build-node-version
     with:
       test-command: npm test
       build-command: npm run build:plugin
-      # node-versions: '["22", "24"]'
-      node-versions: '["20"]'
+      node-versions: '["20", "22", "24"]'
       build-node-version: "24"
       enable-armv7: true
       enable-signalk-integration: true
@@ -97,7 +96,8 @@ jobs:
 
   # test-plugin-auto-node20:
   #   if: ${{ github.event_name != 'workflow_dispatch' }}
-  #   uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+  #   # uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+  #   uses: jaffadog/signalk-server/.github/workflows/plugin-ci.yml@feat/separate-build-node-version
   #   with:
   #     test-command: npm test
   #     build-command: npm run build:plugin:node18
@@ -108,7 +108,8 @@ jobs:
 
   # test-plugin-auto-node18:
   #   if: ${{ github.event_name != 'workflow_dispatch' }}
-  #   uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+  #   # uses: SignalK/signalk-server/.github/workflows/plugin-ci.yml@master
+  #   uses: jaffadog/signalk-server/.github/workflows/plugin-ci.yml@feat/separate-build-node-version
   #   with:
   #     test-command: npm test
   #     build-command: npm run build:plugin:node18
