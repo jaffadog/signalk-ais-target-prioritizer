@@ -95,7 +95,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ inputs.build-node-version != '' && inputs.build-node-version || '24' }}
           cache: ${{ hashFiles('**/package-lock.json') != '' && 'npm' || '' }}
@@ -122,7 +122,7 @@ jobs:
           tar -czf "$RUNNER_TEMP/built-plugin.tar.gz" .
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: built-plugin
           path: ${{ runner.temp }}/built-plugin.tar.gz
@@ -148,7 +148,7 @@ jobs:
         node: ${{ fromJson(inputs.node-versions) }}
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: built-plugin
           path: _artifact-download
@@ -164,7 +164,7 @@ jobs:
           rm -rf _artifact-download
 
       - name: Setup Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: ${{ hashFiles('**/package-lock.json') != '' && 'npm' || '' }}
@@ -1603,7 +1603,7 @@ jobs:
       advisory-outcome: ${{ steps.armv7-test.outcome }}
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: built-plugin
           path: _artifact-download
@@ -1737,7 +1737,7 @@ jobs:
         signalk-server-version: ${{ fromJson(inputs.signalk-server-versions) }}
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: built-plugin
           path: _artifact-download
@@ -1753,7 +1753,7 @@ jobs:
           rm -rf _artifact-download
 
       - name: Setup Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: ${{ hashFiles('**/package-lock.json') != '' && 'npm' || '' }}
