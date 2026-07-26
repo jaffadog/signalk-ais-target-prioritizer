@@ -55,7 +55,7 @@ on:
         description: "Pin the Node version used only for the Build step, independent of node-versions. Leave empty to build with whichever matrix Node version is under test (default behavior)."
         required: false
         type: string
-        default: ""
+        default: "24"
       enable-armv7:
         description: Run armv7 (Cerbo GX) tests via QEMU
         required: false
