@@ -109,7 +109,7 @@
 
   async function connectToSignalK() {
     const start = Date.now();
-    startIngestion(location.host);
+    startIngestion();
     while (
       !["done", "error"].includes(initSteps["backfillMutedVessels"].status) ||
       !["done", "error"].includes(initSteps["waitForMyVesselPosition"].status)
