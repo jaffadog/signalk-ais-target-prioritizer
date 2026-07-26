@@ -200,11 +200,11 @@ export const subscription = {
 // Streaming with reconnect
 // ==============================
 
-function startStreaming() {
+function startStreaming(protocol: string, host: string) {
   ingestion.connectionState = CONNECTING;
-  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
   const ws = new WebSocket(
-    `${wsProtocol}//${window.location.host}/signalk/v1/stream?subscribe=none`,
+    `${wsProtocol}//${host}/signalk/v1/stream?subscribe=none`,
   );
 
   const onOpen = () => {
@@ -259,10 +259,10 @@ function startStreaming() {
 
 let stopWs: (() => void) | null = null;
 
-export async function start() {
+export async function start(protocol: string, host: string) {
   // await bootstrap(baseUrl);
   if (stopWs) stop(); // close any existing connection first
-  stopWs = startStreaming();
+  stopWs = startStreaming(protocol, host);
 }
 
 export function stop() {
