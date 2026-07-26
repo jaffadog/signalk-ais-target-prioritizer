@@ -1,6 +1,9 @@
-# v0.4.15 - 2026-07-14
+# Changelog
+
+## v0.4.15 - 2026-07-14
 
 ### 🐛 Fixes
+
 - offline worldmap not displaying properly (b402e33)
 - dont permit my vessel to be treated as the "selecte3d" vessel for cpa display purposes (adb938a)
 - vessels with alarm state and selected vesel icons not being scaled up properly (large size) (adb938a)
@@ -8,16 +11,19 @@
 - online/offline detection not working (00df174)
 
 ### ♻️ Refactors
+
 - extend "no gps position" warning from 30 to 60 seconds (72b878f)
 - dont calc cpa for targets > 100nm away (6178888)
 
 ### 🧹 Chores
+
 - format changelog (13b847e)
 - update deps (35b2b93)
 - add .ncurc for ky (8ba156d)
 - bump the minor-and-patch group across 1 directory with 17 updates (814edca)
 
 ### 📦 Other
+
 - Bumps the minor-and-patch group with 16 updates in the / directory: (814edca)
 - | Package | From | To | (814edca)
 - | --- | --- | --- | (814edca)
@@ -189,7 +195,7 @@
 - ... (814edca)
 - Signed-off-by: dependabot[bot] <support@github.com> (814edca)
 
-# v0.4.14 - 2026-06-26
+## v0.4.14 - 2026-06-26
 
 ### ✨ Features
 
