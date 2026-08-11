@@ -25,11 +25,7 @@
     COLOR_MAP,
     DATA_REFRESH_INTERVAL,
     DEFAULT_ZOOM,
-    METERS_PER_NM,
     SHOW_ALARMS_INTERVAL,
-    TRAIL_DOT_REFERENCE_SPEED,
-    TRAIL_DOT_SPACING,
-    TRAIL_LENGTH,
     WARM_UP_TIME,
   } from "../../engine/constants";
   import { formatVesselLabel } from "../utils/formatUtils";
@@ -53,7 +49,7 @@
   import { toaster } from "../utils/toaster";
   import { buildStyle } from "../resolveMapConfig";
   import { isValidNumber } from "../../engine/calculations";
-  import type { Position, Tracks, Vessel } from "../../types";
+  import type { Tracks, Vessel } from "../../types";
   import type { Context } from "@signalk/server-api";
   import type { Coord } from "@turf/helpers";
   import locateFixedSvg from "lucide-static/icons/locate-fixed.svg?raw";
@@ -63,6 +59,12 @@
   import { addSharedSources as addSources } from "../sources";
   import { addSharedLayers as addLayers } from "../layers";
   import { getStored, setStored } from "../utils/storage";
+  import {
+    dotStride,
+    takeRecent,
+    thinDots,
+    trailPointLimit,
+  } from "../utils/trails";
   import {
     startTracksLoop,
     stopTracksLoop,
@@ -502,10 +504,8 @@
     const targetFeatures: Feature<Geometry, GeoJsonProperties>[] = [];
     // when trails are off we still fall through, so the sources get emptied
     const tracks = mapState.trails ? tracksState.tracks : {};
-    const stride = dotStride();
-    const maxPoints = Math.ceil(
-      (TRAIL_LENGTH * 60_000) / tracksState.resolution,
-    );
+    const stride = dotStride(metersPerPixel(), tracksState.resolution);
+    const maxPoints = trailPointLimit(tracksState.resolution);
 
     for (const [context, geometry] of Object.entries(tracks) as [
       Context,
@@ -553,55 +553,13 @@
       });
   }
 
-  // how many dots to skip so that a vessel doing TRAIL_DOT_REFERENCE_SPEED shows
-  // dots roughly TRAIL_DOT_SPACING pixels apart, whatever the zoom. one stride for
-  // every target keeps their time step identical - it just widens by a whole
-  // multiple as you zoom out, so the dots stay equally spaced by time.
-  function dotStride(): number {
+  // measured off the live projection, so latitude and projection are accounted for
+  function metersPerPixel(): number {
     const map = mapState.instance;
-    if (!map) return 1;
-
-    // metres per pixel measured off the live projection, so latitude is accounted for
+    if (!map) return 0;
     const center = map.getCenter();
     const point = map.project(center);
-    const metersPerPixel =
-      center.distanceTo(map.unproject([point.x + 64, point.y])) / 64;
-    if (!metersPerPixel) return 1;
-
-    const metersPerDot =
-      ((TRAIL_DOT_REFERENCE_SPEED * METERS_PER_NM) / 3600) *
-      (tracksState.resolution / 1000);
-    const pixelsPerDot = metersPerDot / metersPerPixel;
-    if (!pixelsPerDot) return 1;
-
-    return Math.max(1, Math.round(TRAIL_DOT_SPACING / pixelsPerDot));
-  }
-
-  // the newest maxPoints positions, keeping the api's segment boundaries so a gap
-  // in the track stays a gap. own ship is the case that needs this: it is always
-  // present, so it accumulates the plugin's full retention, unlike AIS targets
-  // which VHF range limits to a few hours anyway.
-  function takeRecent(segments: Position[][], maxPoints: number): Position[][] {
-    const recent: Position[][] = [];
-    let remaining = maxPoints;
-    for (let i = segments.length - 1; i >= 0 && remaining > 0; i--) {
-      const segment = segments[i];
-      const take = Math.min(segment.length, remaining);
-      recent.unshift(segment.slice(segment.length - take));
-      remaining -= take;
-    }
-    return recent;
-  }
-
-  // keep every stride-th dot, counting back from the newest so the trail always
-  // stays attached to the vessel rather than drifting behind it
-  function thinDots(coordinates: Position[], stride: number): Position[] {
-    if (stride <= 1) return coordinates;
-    const thinned: Position[] = [];
-    for (let i = coordinates.length - 1; i >= 0; i -= stride) {
-      thinned.push(coordinates[i]);
-    }
-    return thinned;
+    return center.distanceTo(map.unproject([point.x + 64, point.y])) / 64;
   }
 
   // trails take the colour of the target they belong to

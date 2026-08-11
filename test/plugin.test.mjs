@@ -1,13 +1,14 @@
-import { describe, it, before } from "node:test";
+import { describe, it, beforeAll } from "vitest";
 import assert from "node:assert";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 describe("signalk-ais-target-prioritizer", () => {
   let pluginModule;
 
-  before(async () => {
+  beforeAll(async () => {
     const pluginPath = path.resolve(process.cwd(), "plugin/index.cjs");
-    pluginModule = await import(`file://${pluginPath}`);
+    pluginModule = await import(pathToFileURL(pluginPath).href);
   });
 
   it("loads as a valid SignalK plugin", () => {
