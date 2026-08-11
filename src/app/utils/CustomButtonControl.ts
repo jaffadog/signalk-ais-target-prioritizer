@@ -6,8 +6,8 @@ export class CustomButtonControl {
   private _svgIcon: string;
   private _svgClass: string;
   private _rotateWithBearing: boolean;
-  private _onClick: (map: maplibregl.Map) => void;
-  private _map?: maplibregl.Map;
+  private _onClick: (map: Map) => void;
+  private _map?: Map;
   private _container?: HTMLDivElement;
   private _svg?: SVGElement;
   private _onRotate?: () => void;

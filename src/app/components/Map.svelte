@@ -1,11 +1,14 @@
 <script lang="ts">
   import type { GeoJSON, Feature, Geometry, GeoJsonProperties } from "geojson";
 
-  import maplibregl, {
+  import {
+    addProtocol,
     AttributionControl,
     GeoJSONSource,
     LngLat,
+    LngLatBounds,
     Map,
+    NavigationControl,
     type EaseToOptions,
     type LngLatLike,
   } from "maplibre-gl";
@@ -104,14 +107,14 @@
     // TODO look at using updateData rather than setData
 
     const protocol = new Protocol();
-    maplibregl.addProtocol("pmtiles", protocol.tile);
+    addProtocol("pmtiles", protocol.tile);
 
     const style = buildStyle();
     mapState.styleId = getStyleId();
 
     console.log("setting up maplibre", mapState.basemapId, ui.darkMode, style);
 
-    const map = new maplibregl.Map({
+    const map = new Map({
       container: container!,
       fadeDuration: 0, // prevents blinks
       style: style,
@@ -163,7 +166,7 @@
 
     // button: zoom and rotation
     map.addControl(
-      new maplibregl.NavigationControl({ showCompass: false }),
+      new NavigationControl({ showCompass: false }),
       "top-left",
     );
 
@@ -355,7 +358,7 @@
       if (!allVisible) {
         const bounds = lngLats.reduce(
           (b, p) => b.extend(p),
-          new maplibregl.LngLatBounds(lngLats[0], lngLats[0]),
+          new LngLatBounds(lngLats[0], lngLats[0]),
         );
 
         mapState.instance.fitBounds(bounds, {

@@ -23,6 +23,12 @@ export default defineConfig({
   resolve: {
     alias: {},
   },
+  optimizeDeps: {
+    // maplibre-gl v6 loads its worker as a separate .mjs file; Vite's esbuild
+    // pre-bundler doesn't preserve that reference correctly, so the worker
+    // 404s and nothing the worker does (tiles, style processing) ever runs.
+    exclude: ["maplibre-gl"],
+  },
   server: {
     host: true,
     allowedHosts: true,
