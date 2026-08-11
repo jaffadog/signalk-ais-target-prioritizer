@@ -13,7 +13,8 @@ export const mapState = $state<{
   basemapId: string;
   styleId: string | null;
   openSeaMap: boolean;
-  protomapsFontsAvailable: boolean;
+  // undefined while we are still asking the server
+  protomapsFontsAvailable: boolean | undefined;
   fontsDownloading: boolean;
 }>({
   instance: null,
@@ -23,7 +24,7 @@ export const mapState = $state<{
   openSeaMap: getStored("openseamap") === "true",
   // authoritative value comes from the server (checkFontsAvailable) - it reflects
   // what is on the server's file system, so it can't be cached client-side
-  protomapsFontsAvailable: false,
+  protomapsFontsAvailable: undefined,
   fontsDownloading: false,
 });
 
@@ -61,6 +62,8 @@ export function getStyleId(): string {
 }
 
 export async function checkFontsAvailable() {
+  // clear first, so the UI reports "checking" rather than the previous answer
+  mapState.protomapsFontsAvailable = undefined;
   const res = await fetch(`/plugins/${PLUGIN_ID}/fonts-available`).catch(
     () => null,
   );
