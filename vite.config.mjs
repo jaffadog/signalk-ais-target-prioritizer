@@ -29,6 +29,20 @@ export default defineConfig({
     // 404s and nothing the worker does (tiles, style processing) ever runs.
     exclude: ["maplibre-gl"],
   },
+  test: {
+    coverage: {
+      // istanbul instruments the source; the v8 provider loses track of files
+      // once vite has transformed them and silently omits them from the report
+      provider: "istanbul",
+      // measure the source, not plugin/index.cjs - the built bundle is what
+      // plugin.test.mjs loads, and reporting on it just dilutes the numbers
+      include: ["src/**/*.{ts,svelte}"],
+      exclude: ["src/**/*.d.ts"],
+      // the terminal table omits fully covered files, so emit a summary as well -
+      // otherwise a module at 100% looks like one that was never measured
+      reporter: ["text", "json-summary"],
+    },
+  },
   server: {
     host: true,
     allowedHosts: true,
