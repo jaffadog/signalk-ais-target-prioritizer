@@ -5,6 +5,7 @@ import { name as PLUGIN_ID } from "../../package.json";
 import { basemaps, DEFAULT_BASEMAP } from "./basemaps.svelte";
 import { addSharedLayers } from "./layers";
 import { addSharedSources } from "./sources";
+import { getStored } from "./utils/storage";
 
 export const mapState = $state<{
   instance: Map | null;
@@ -17,11 +18,12 @@ export const mapState = $state<{
 }>({
   instance: null,
   loaded: false,
-  basemapId: localStorage.getItem("basemap") ?? DEFAULT_BASEMAP,
+  basemapId: getStored("basemap") ?? DEFAULT_BASEMAP,
   styleId: null,
-  openSeaMap: localStorage.getItem("openseamap") === "true",
-  protomapsFontsAvailable:
-    localStorage.getItem("protomapsFontsAvailable") === "true",
+  openSeaMap: getStored("openseamap") === "true",
+  // authoritative value comes from the server (checkFontsAvailable) - it reflects
+  // what is on the server's file system, so it can't be cached client-side
+  protomapsFontsAvailable: false,
   fontsDownloading: false,
 });
 

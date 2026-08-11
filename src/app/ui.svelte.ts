@@ -1,10 +1,22 @@
 import type { ThemeMode } from "../types";
+import { getStored } from "./utils/storage";
+
+const THEME_MODES: readonly string[] = ["light", "dark", "system"];
+
+// an unrecognized stored value would otherwise pass the cast and match no theme
+// button, while silently resolving to light mode
+function storedThemeMode(): ThemeMode {
+  const stored = getStored("theme");
+  return THEME_MODES.includes(stored as string)
+    ? (stored as ThemeMode)
+    : "system";
+}
 
 export const ui = $state({
   documentVisibilityState: undefined,
   width: undefined,
   noSleep: false,
-  themeMode: (localStorage.getItem("theme") as ThemeMode) ?? "system",
+  themeMode: storedThemeMode(),
   darkMode: false,
   loading: {
     visible: true,

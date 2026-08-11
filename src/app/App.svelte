@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { toaster } from "./utils/toaster";
+  import { setStored } from "./utils/storage";
   import { Toast } from "@skeletonlabs/skeleton-svelte";
   import { fade } from "svelte/transition";
 
@@ -262,7 +263,7 @@
   $effect(() => {
     console.log("EFFECT themeMode changed - saving", ui.themeMode);
     ui.darkMode = resolveIsDark(ui.themeMode);
-    localStorage.setItem("theme", ui.themeMode);
+    setStored("theme", ui.themeMode);
     document.documentElement.classList.toggle("dark", ui.darkMode);
   });
 
@@ -283,12 +284,12 @@
 
   $effect(() => {
     console.log("EFFECT basemap changed", mapState.basemapId);
-    localStorage.setItem("basemap", mapState.basemapId);
+    setStored("basemap", mapState.basemapId);
   });
 
   $effect(() => {
     console.log("EFFECT openseamap changed", mapState.openSeaMap);
-    localStorage.setItem("openseamap", String(mapState.openSeaMap));
+    setStored("openseamap", String(mapState.openSeaMap));
   });
 </script>
 
