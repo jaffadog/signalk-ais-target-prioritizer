@@ -30,6 +30,7 @@ export default defineConfig({
     exclude: ["maplibre-gl"],
   },
   test: {
+    setupFiles: ["./test/setup.ts"],
     coverage: {
       // istanbul instruments the source; the v8 provider loses track of files
       // once vite has transformed them and silently omits them from the report
