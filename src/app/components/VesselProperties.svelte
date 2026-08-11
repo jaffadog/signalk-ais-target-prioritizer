@@ -109,9 +109,9 @@
                 onclick={handleToggleMute}
               >
                 {#if selectedVessel.alarmIsMuted}
-                  <VolumeX size={18} />
+                  <VolumeX />
                 {:else}
-                  <Volume2 size={18} />
+                  <Volume2 />
                 {/if}
               </button>
             {/if}
