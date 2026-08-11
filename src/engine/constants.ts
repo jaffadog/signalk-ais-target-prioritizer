@@ -27,6 +27,8 @@ export const CHECK_ONLINE_INTERVAL = 30_000; // every 30 seconds
 export const CHECK_ONLINE_TIMEOUT = 3_000; // 3 seconds
 export const PROBE_URL = "https://www.google.com/generate_204";
 
+export const DEFAULT_ZOOM = 10;
+
 export const COLOR_MAP = {
   gray: "#8a8a8a",
   orange: "#f97316",

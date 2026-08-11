@@ -24,6 +24,7 @@
   import {
     COLOR_MAP,
     DATA_REFRESH_INTERVAL,
+    DEFAULT_ZOOM,
     SHOW_ALARMS_INTERVAL,
     WARM_UP_TIME,
   } from "../../engine/constants";
@@ -56,11 +57,17 @@
   import settingsSvg from "lucide-static/icons/settings.svg?raw";
   import { addSharedSources as addSources } from "../sources";
   import { addSharedLayers as addLayers } from "../layers";
+  import { getStored, setStored } from "../utils/storage";
 
   export const VESSEL_ICON_LAYERS = [
     "vessels-icons-viewport",
     "vessels-icons-map",
   ];
+
+  function storedZoom(): number | undefined {
+    const zoom = Number(getStored("zoom"));
+    return Number.isFinite(zoom) && zoom > 0 ? zoom : undefined;
+  }
 
   // allow 5 second warm up before reporting errors
   let startTime = performance.now();
@@ -120,7 +127,7 @@
       style: style,
       attributionControl: false,
       center: [myVessel?.longitude ?? 0, myVessel?.latitude ?? 0],
-      zoom: 10,
+      zoom: storedZoom() ?? DEFAULT_ZOOM,
     });
 
     map.once("load", () => {
@@ -305,6 +312,7 @@
 
     // update range rings after zooming
     map.on("zoomend", () => {
+      setStored("zoom", String(map.getZoom()));
       updateRangeRingsFeatures();
     });
 
