@@ -22,6 +22,10 @@ export default defineConfig({
 
   resolve: {
     alias: {},
+    // component tests mount into jsdom, so svelte has to resolve to its client
+    // build rather than the server one. scoped to vitest so the app build and the
+    // dev server are unaffected.
+    ...(process.env.VITEST ? { conditions: ["browser"] } : {}),
   },
   optimizeDeps: {
     // maplibre-gl v6 loads its worker as a separate .mjs file; Vite's esbuild
