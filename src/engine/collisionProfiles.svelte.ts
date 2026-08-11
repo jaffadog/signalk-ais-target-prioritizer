@@ -70,8 +70,11 @@ const defaultCollisionProfiles: CollisionProfiles = {
   },
 };
 
+// $state proxies the object it is handed, so it gets a copy. sharing the object
+// would make every edit to the store an edit to the defaults as well, leaving
+// resetCollisionProfiles with nothing original to restore.
 export const collisionProfiles = $state<CollisionProfiles>(
-  defaultCollisionProfiles,
+  structuredClone(defaultCollisionProfiles),
 );
 
 export function setCollisionProfiles(data: CollisionProfiles) {
@@ -80,7 +83,7 @@ export function setCollisionProfiles(data: CollisionProfiles) {
 
 export function resetCollisionProfiles() {
   console.warn("resetting collision profiles");
-  setCollisionProfiles(defaultCollisionProfiles);
+  setCollisionProfiles(structuredClone(defaultCollisionProfiles));
 }
 
 export function getActiveCollisionProfileName(): string {
