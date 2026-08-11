@@ -13,6 +13,7 @@ export const mapState = $state<{
   basemapId: string;
   styleId: string | null;
   openSeaMap: boolean;
+  trails: boolean;
   // undefined while we are still asking the server
   protomapsFontsAvailable: boolean | undefined;
   fontsDownloading: boolean;
@@ -22,6 +23,8 @@ export const mapState = $state<{
   basemapId: getStored("basemap") ?? DEFAULT_BASEMAP,
   styleId: null,
   openSeaMap: getStored("openseamap") === "true",
+  // on unless explicitly turned off, so the feature is visible by default
+  trails: getStored("trails") !== "false",
   // authoritative value comes from the server (checkFontsAvailable) - it reflects
   // what is on the server's file system, so it can't be cached client-side
   protomapsFontsAvailable: undefined,

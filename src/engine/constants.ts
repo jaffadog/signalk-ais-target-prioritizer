@@ -29,6 +29,26 @@ export const PROBE_URL = "https://www.google.com/generate_204";
 
 export const DEFAULT_ZOOM = 10;
 
+// how often we re-read the tracks api. the tracks plugin only adds a point per
+// its own configured resolution (60s by default), so polling faster than this
+// just re-fetches identical data.
+export const TRACKS_REFRESH_INTERVAL = 30_000; // every 30 seconds
+
+// used when the tracks plugin config cannot be read - matches the plugin default
+export const DEFAULT_TRACK_RESOLUTION = 60_000; // milliseconds per track point
+
+// time-spaced dots crowd into a solid line as you zoom out, so we drop every Nth
+// dot to hold a roughly constant on-screen spacing. N is derived from a single
+// reference speed rather than each vessel's own speed, so the time step stays
+// identical across all targets - only the interval widens, by a whole multiple.
+export const TRAIL_DOT_REFERENCE_SPEED = 10; // knots
+export const TRAIL_DOT_SPACING = 25; // target pixels between dots
+
+// how much past track to draw. the tracks plugin is shared across signal k, so its
+// retention is set for whatever else consumes it (24h at 60s x 1440, say) - that is
+// far more than a collision avoidance plot wants, so we window it here.
+export const TRAIL_LENGTH = 60; // minutes of past positions to show
+
 export const COLOR_MAP = {
   gray: "#8a8a8a",
   orange: "#f97316",

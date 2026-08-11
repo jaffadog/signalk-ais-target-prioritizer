@@ -25,7 +25,11 @@
     COLOR_MAP,
     DATA_REFRESH_INTERVAL,
     DEFAULT_ZOOM,
+    METERS_PER_NM,
     SHOW_ALARMS_INTERVAL,
+    TRAIL_DOT_REFERENCE_SPEED,
+    TRAIL_DOT_SPACING,
+    TRAIL_LENGTH,
     WARM_UP_TIME,
   } from "../../engine/constants";
   import { formatVesselLabel } from "../utils/formatUtils";
@@ -49,7 +53,8 @@
   import { toaster } from "../utils/toaster";
   import { buildStyle } from "../resolveMapConfig";
   import { isValidNumber } from "../../engine/calculations";
-  import type { Vessel } from "../../types";
+  import type { Position, Tracks, Vessel } from "../../types";
+  import type { Context } from "@signalk/server-api";
   import type { Coord } from "@turf/helpers";
   import locateFixedSvg from "lucide-static/icons/locate-fixed.svg?raw";
   import layersSvg from "lucide-static/icons/layers.svg?raw";
@@ -58,6 +63,11 @@
   import { addSharedSources as addSources } from "../sources";
   import { addSharedLayers as addLayers } from "../layers";
   import { getStored, setStored } from "../utils/storage";
+  import {
+    startTracksLoop,
+    stopTracksLoop,
+    tracksState,
+  } from "../tracks.svelte";
 
   export const VESSEL_ICON_LAYERS = [
     "vessels-icons-viewport",
@@ -172,10 +182,7 @@
     });
 
     // button: zoom and rotation
-    map.addControl(
-      new NavigationControl({ showCompass: false }),
-      "top-left",
-    );
+    map.addControl(new NavigationControl({ showCompass: false }), "top-left");
 
     // button: north up or course up toggle
     // rotate icon with map
@@ -319,6 +326,7 @@
     return () => {
       console.warn("EXIT map");
       stopUpdateMapLoop();
+      stopTracksLoop();
       mapState.instance = null;
       mapState.loaded = false;
       map.remove();
@@ -380,6 +388,16 @@
     });
   }); // end effect
 
+  // only poll the tracks api while trails are switched on - no point pulling
+  // history over a boat network for something we are not drawing
+  $effect(() => {
+    if (mapState.trails) {
+      startTracksLoop();
+    } else {
+      stopTracksLoop();
+    }
+  });
+
   //  basemap or dark mode changes - re-evaluate maplibre styles
   $effect(() => {
     // subscribe:
@@ -427,6 +445,7 @@
     updateVessels();
 
     updateRangeRingsFeatures();
+    updateTrailFeatures();
     updateVesselFeatures();
     updatePredictorFeatures();
     updateCamera();
@@ -471,6 +490,127 @@
       });
 
     // console.log("EXIT updateVesselFeatures");
+  }
+
+  // past positions from the tracks plugin. own ship is drawn as the MultiLineString
+  // the api returns, so gaps between track segments stay as gaps rather than being
+  // joined by a straight line. every other vessel contributes its points as dots.
+  function updateTrailFeatures() {
+    if (!mapState.instance || !mapState.loaded) return;
+
+    const ownFeatures: Feature<Geometry, GeoJsonProperties>[] = [];
+    const targetFeatures: Feature<Geometry, GeoJsonProperties>[] = [];
+    // when trails are off we still fall through, so the sources get emptied
+    const tracks = mapState.trails ? tracksState.tracks : {};
+    const stride = dotStride();
+    const maxPoints = Math.ceil(
+      (TRAIL_LENGTH * 60_000) / tracksState.resolution,
+    );
+
+    for (const [context, geometry] of Object.entries(tracks) as [
+      Context,
+      Tracks[Context],
+    ][]) {
+      const segments = geometry?.coordinates;
+      if (!segments?.length) continue;
+
+      // only draw trails for vessels we are tracking - the api is not filtered
+      const vessel = vessels[context];
+      if (!vessel) continue;
+
+      const recent = takeRecent(segments, maxPoints);
+
+      if (context === vesselsState.myVesselContext) {
+        ownFeatures.push({
+          type: "Feature",
+          geometry: { type: "MultiLineString", coordinates: recent },
+          properties: { context },
+        });
+        continue;
+      }
+
+      const coordinates = thinDots(recent.flat(), stride);
+      if (!coordinates.length) continue;
+
+      targetFeatures.push({
+        type: "Feature",
+        geometry: { type: "MultiPoint", coordinates },
+        properties: { context, color: trailColor(vessel) },
+      });
+    }
+
+    const ownSource = mapState.instance.getSource("own-trail") as GeoJSONSource;
+    if (ownSource)
+      ownSource.setData({ type: "FeatureCollection", features: ownFeatures });
+
+    const targetSource = mapState.instance.getSource(
+      "target-trails",
+    ) as GeoJSONSource;
+    if (targetSource)
+      targetSource.setData({
+        type: "FeatureCollection",
+        features: targetFeatures,
+      });
+  }
+
+  // how many dots to skip so that a vessel doing TRAIL_DOT_REFERENCE_SPEED shows
+  // dots roughly TRAIL_DOT_SPACING pixels apart, whatever the zoom. one stride for
+  // every target keeps their time step identical - it just widens by a whole
+  // multiple as you zoom out, so the dots stay equally spaced by time.
+  function dotStride(): number {
+    const map = mapState.instance;
+    if (!map) return 1;
+
+    // metres per pixel measured off the live projection, so latitude is accounted for
+    const center = map.getCenter();
+    const point = map.project(center);
+    const metersPerPixel =
+      center.distanceTo(map.unproject([point.x + 64, point.y])) / 64;
+    if (!metersPerPixel) return 1;
+
+    const metersPerDot =
+      ((TRAIL_DOT_REFERENCE_SPEED * METERS_PER_NM) / 3600) *
+      (tracksState.resolution / 1000);
+    const pixelsPerDot = metersPerDot / metersPerPixel;
+    if (!pixelsPerDot) return 1;
+
+    return Math.max(1, Math.round(TRAIL_DOT_SPACING / pixelsPerDot));
+  }
+
+  // the newest maxPoints positions, keeping the api's segment boundaries so a gap
+  // in the track stays a gap. own ship is the case that needs this: it is always
+  // present, so it accumulates the plugin's full retention, unlike AIS targets
+  // which VHF range limits to a few hours anyway.
+  function takeRecent(segments: Position[][], maxPoints: number): Position[][] {
+    const recent: Position[][] = [];
+    let remaining = maxPoints;
+    for (let i = segments.length - 1; i >= 0 && remaining > 0; i--) {
+      const segment = segments[i];
+      const take = Math.min(segment.length, remaining);
+      recent.unshift(segment.slice(segment.length - take));
+      remaining -= take;
+    }
+    return recent;
+  }
+
+  // keep every stride-th dot, counting back from the newest so the trail always
+  // stays attached to the vessel rather than drifting behind it
+  function thinDots(coordinates: Position[], stride: number): Position[] {
+    if (stride <= 1) return coordinates;
+    const thinned: Position[] = [];
+    for (let i = coordinates.length - 1; i >= 0; i -= stride) {
+      thinned.push(coordinates[i]);
+    }
+    return thinned;
+  }
+
+  // trails take the colour of the target they belong to
+  function trailColor(vessel: Vessel): string {
+    if (vessel.context === vesselsState.selectedVesselContext)
+      return COLOR_MAP["blue"];
+    if (vessel.alarmState === "danger") return COLOR_MAP["red"];
+    if (vessel.alarmState === "warning") return COLOR_MAP["orange"];
+    return COLOR_MAP["gray"];
   }
 
   function vesselToFeature(
@@ -862,7 +1002,7 @@
   }
 </script>
 
-<div bind:this={container} class="w-full h-full"></div>
+<div bind:this={container} class="h-full w-full"></div>
 
 {#if ui.layersMenu.visible}
   <LayersMenu />

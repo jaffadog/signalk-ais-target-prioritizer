@@ -291,6 +291,11 @@
     console.log("EFFECT openseamap changed", mapState.openSeaMap);
     setStored("openseamap", String(mapState.openSeaMap));
   });
+
+  $effect(() => {
+    console.log("EFFECT trails changed", mapState.trails);
+    setStored("trails", String(mapState.trails));
+  });
 </script>
 
 <svelte:document bind:visibilityState={ui.documentVisibilityState} />
@@ -323,11 +328,11 @@
 
 {#if ui.loading.visible}
   <div
-    class="bg-white dark:bg-gray-900 p-8 pt-7 fixed inset-0 z-50 flex flex-col items-center justify-center"
+    class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white p-8 pt-7 dark:bg-gray-900"
     out:fade={{ duration: FADE_DURATION }}
   >
     <div
-      class="flex flex-col items-center bg-white dark:bg-gray-800 rounded-lg w-full sm:w-sm max-h-[90dvh] overflow-y-auto gap-6 px-6 py-8 ring shadow-xl ring-gray-900/5"
+      class="flex max-h-[90dvh] w-full flex-col items-center gap-6 overflow-y-auto rounded-lg bg-white px-6 py-8 shadow-xl ring ring-gray-900/5 sm:w-sm dark:bg-gray-800"
     >
       <div>
         <img
@@ -360,14 +365,14 @@
       {#if hasErrors}
         <div class="flex flex-col items-center gap-3">
           {#if authRequired}
-            <p class="text-sm text-surface-400 text-center max-w-xs">
+            <p class="max-w-xs text-center text-sm text-surface-400">
               Authentication required to use this app.
             </p>
             <a href="/admin/#/login" class="btn preset-filled-primary-500">
               Log In to Signal K
             </a>
           {:else}
-            <p class="text-sm text-warning-500 text-center max-w-xs">
+            <p class="max-w-xs text-center text-sm text-warning-500">
               Some initialization steps failed. The app may not function
               correctly.
             </p>

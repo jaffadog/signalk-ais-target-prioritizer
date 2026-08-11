@@ -75,6 +75,35 @@ export function addSharedLayers() {
     });
   }
 
+  // past positions, per IMO SN.1/Circ.243 Rev.2: own ship is a "thick line"
+  // (matching the width of its projected track), targets are "dots, equally
+  // spaced by time". added ahead of the vessel icons so trails draw underneath.
+  if (!map.getLayer("own-trail")) {
+    map.addLayer({
+      id: "own-trail",
+      type: "line",
+      source: "own-trail",
+      paint: {
+        "line-color": COLOR_MAP["gray"],
+        "line-width": 2,
+        "line-opacity": 0.7,
+      },
+    });
+  }
+
+  if (!map.getLayer("target-trails")) {
+    map.addLayer({
+      id: "target-trails",
+      type: "circle",
+      source: "target-trails",
+      paint: {
+        "circle-radius": 1.5,
+        "circle-color": ["get", "color"],
+        "circle-opacity": 0.7,
+      },
+    });
+  }
+
   // layer for moving targets - which are rotated according to HDG or COG
   if (!map.getLayer("vessels-icons-map")) {
     map.addLayer({

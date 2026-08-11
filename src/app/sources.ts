@@ -18,6 +18,20 @@ export function addSharedSources() {
     });
   }
 
+  if (!map.getSource("own-trail")) {
+    map.addSource("own-trail", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+  }
+
+  if (!map.getSource("target-trails")) {
+    map.addSource("target-trails", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+  }
+
   if (!map.getSource("range-rings")) {
     map.addSource("range-rings", {
       type: "geojson",

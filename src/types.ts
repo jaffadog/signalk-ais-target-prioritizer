@@ -93,6 +93,14 @@ export interface CustomButtonControlOptions {
 
 export type Position = [number, number];
 
+// past positions from the @signalk/tracks-plugin track api, keyed by context.
+// the plugin accumulates one point per configured time resolution, so points
+// within a track are already equally spaced by time.
+export type Tracks = Record<
+  Context,
+  { type: "MultiLineString"; coordinates: Position[][] }
+>;
+
 export type ThemeMode = "light" | "dark" | "system";
 
 export interface InitStep {

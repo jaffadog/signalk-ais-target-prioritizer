@@ -93,9 +93,9 @@
     />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="flex flex-col h-dvh card bg-surface-100-900 w-full sm:w-md gap-4 p-4 shadow-xl {animModal}"
+        class="flex h-dvh w-full flex-col gap-4 card bg-surface-100-900 p-4 shadow-xl sm:w-md {animModal}"
       >
-        <header class="flex justify-between items-center">
+        <header class="flex items-center justify-between">
           <Dialog.Title class="text-lg font-bold">Settings</Dialog.Title>
           <Dialog.CloseTrigger class="btn-icon hover:preset-tonal">
             <XIcon class="size-4" />
@@ -103,7 +103,7 @@
         </header>
 
         <!-- body -->
-        <Dialog.Description class="flex-1 overflow-y-auto flex flex-col gap-4">
+        <Dialog.Description class="flex flex-1 flex-col gap-4 overflow-y-auto">
           <!-- active profile -->
           <label class="label">
             <span class="label-text">Active Profile</span>
@@ -164,35 +164,48 @@
             </Switch.Control>
           </Switch>
 
+          <!-- past position trails -->
+          <Switch
+            class="flex justify-between p-2"
+            onCheckedChange={(e) => (mapState.trails = e.checked)}
+            checked={mapState.trails}
+          >
+            <Switch.Label class="text-sm">Show Vessel Trails</Switch.Label>
+            <Switch.HiddenInput />
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+          </Switch>
+
           <!-- map labels / font pack -->
           {#if mapState.protomapsFontsAvailable === undefined}
             <div class="flex items-center gap-2 p-2">
               <span class="text-sm">Checking map labels...</span>
             </div>
           {:else if mapState.protomapsFontsAvailable}
-            <div class="flex justify-between items-center p-2">
+            <div class="flex items-center justify-between p-2">
               <span class="text-sm">Map Labels Installed</span>
               <button
                 type="button"
-                class="btn btn-sm preset-outlined-error-500"
+                class="btn preset-outlined-error-500 btn-sm"
                 onclick={handleRemoveFonts}>Remove</button
               >
             </div>
           {:else}
-            <div class="flex justify-between items-center p-2">
+            <div class="flex items-center justify-between p-2">
               <div class="flex flex-col">
                 <div class="flex align-middle">
                   <span class="text-sm">Map Labels</span>
                   <Popover>
                     <Popover.Trigger
                       ><Info
-                        class="size-4 ml-1 stroke-primary-500"
+                        class="ml-1 size-4 stroke-primary-500"
                       /></Popover.Trigger
                     >
                     <Portal>
                       <Popover.Positioner class="z-50!">
                         <Popover.Content
-                          class="card sm:max-w-sm max-w-[90dvw] p-4 bg-surface-100-900 shadow-xl"
+                          class="max-w-[90dvw] card bg-surface-100-900 p-4 shadow-xl sm:max-w-sm"
                         >
                           <Popover.Description
                             >If using <a
@@ -204,7 +217,7 @@
                             other map types.</Popover.Description
                           >
                           <Popover.Arrow
-                            class="[--arrow-size:--spacing(2)] [--arrow-background:var(--color-surface-100-900)]"
+                            class="[--arrow-background:var(--color-surface-100-900)] [--arrow-size:--spacing(2)]"
                           >
                             <Popover.ArrowTip />
                           </Popover.Arrow>
@@ -217,7 +230,7 @@
               </div>
               <button
                 type="button"
-                class="btn btn-sm preset-filled-primary-500"
+                class="btn preset-filled-primary-500 btn-sm"
                 onclick={handleDownloadFonts}
                 disabled={mapState.fontsDownloading}
               >

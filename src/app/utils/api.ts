@@ -1,6 +1,6 @@
 import ky from "ky";
 import { name as PLUGIN_ID } from "../../../package.json";
-import type { Chart, CollisionProfiles, Vessel } from "../../types";
+import type { Chart, CollisionProfiles, Tracks, Vessel } from "../../types";
 import { isValidCollisionProfiles } from "../../engine/validateCollisionProfiles";
 import type { Context } from "@signalk/server-api";
 
@@ -60,6 +60,29 @@ export async function getSelf() {
     credentials: "include",
   }).json();
   return data;
+}
+
+// past positions from the optional @signalk/tracks-plugin. no radius/bbox filter:
+// the plugin's own maxRadius config governs how much it returns, and we only draw
+// tracks for vessels we already know about. rejects with a 404 when not enabled.
+export async function getTracks() {
+  const data: Tracks = await ky("/signalk/v1/api/tracks", {
+    credentials: "include",
+  }).json();
+  return data;
+}
+
+// the tracks plugin's configured milliseconds-per-point. we need it to know how
+// far a vessel travels between dots, and reading it means the trail thinning
+// follows whatever the plugin is actually set to.
+export async function getTrackResolution() {
+  const plugins: {
+    id: string;
+    data?: { configuration?: { resolution?: number } };
+  }[] = await ky("/skServer/plugins", { credentials: "include" }).json();
+  const resolution = plugins.find((p) => p.id === "tracks")?.data?.configuration
+    ?.resolution;
+  return typeof resolution === "number" ? resolution : undefined;
 }
 
 export async function getVessels() {

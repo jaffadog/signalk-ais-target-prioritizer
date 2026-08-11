@@ -22,7 +22,8 @@
     ],
     "recommends": [
       "@signalk/charts-plugin",
-      "signalk-pmtiles-plugin"
+      "signalk-pmtiles-plugin",
+      "@signalk/tracks-plugin"
     ]
   },
   "engines": {
