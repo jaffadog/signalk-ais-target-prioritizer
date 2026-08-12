@@ -1,4 +1,4 @@
-import { COLOR_MAP } from "../engine/constants";
+import { COLOR_MAP, TRAIL_DOT_RADIUS } from "../engine/constants";
 import { BUILTIN_SATELLITE } from "./basemaps.svelte";
 import { mapState } from "./map.svelte";
 import { ui } from "./ui.svelte";
@@ -97,7 +97,7 @@ export function addSharedLayers() {
       type: "circle",
       source: "target-trails",
       paint: {
-        "circle-radius": 1.5,
+        "circle-radius": TRAIL_DOT_RADIUS,
         "circle-color": ["get", "color"],
         "circle-opacity": 0.7,
       },

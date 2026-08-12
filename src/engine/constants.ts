@@ -43,6 +43,7 @@ export const DEFAULT_TRACK_RESOLUTION = 60_000; // milliseconds per track point
 // identical across all targets - only the interval widens, by a whole multiple.
 export const TRAIL_DOT_REFERENCE_SPEED = 10; // knots
 export const TRAIL_DOT_SPACING = 25; // target pixels between dots
+export const TRAIL_DOT_RADIUS = 2; // pixels
 
 // how much past track to draw. the tracks plugin is shared across signal k, so its
 // retention is set for whatever else consumes it (24h at 60s x 1440, say) - that is
