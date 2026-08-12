@@ -32,6 +32,7 @@
 - try test against pr script (d245793)
 
 ### 📦 Other
+
 - Bumps the minor-and-patch group with 9 updates: (8eb0860)
 - | Package | From | To | (8eb0860)
 - | --- | --- | --- | (8eb0860)

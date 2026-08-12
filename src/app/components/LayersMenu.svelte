@@ -31,10 +31,10 @@
     />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="flex flex-col h-dvh card bg-surface-100-900 w-2xs p-4 shadow-xl {animModal}"
+        class="flex h-dvh w-2xs flex-col card bg-surface-100-900 p-4 shadow-xl {animModal}"
       >
         <!-- header -->
-        <header class="flex justify-between items-center mb-4">
+        <header class="mb-4 flex items-center justify-between">
           <Dialog.Title class="text-lg font-bold">Layers</Dialog.Title>
           <Dialog.CloseTrigger class="btn-icon preset-tonal">
             <XIcon />
@@ -45,14 +45,14 @@
         <div class="grow overflow-y-auto">
           {#each Object.values(basemaps) as basemap, i (basemap.identifier)}
             <button
-              class="flex items-center gap-4 w-full ps-6 pe-4 py-2 hover:preset-tonal text-left {connectivity.online ===
+              class="flex w-full items-center gap-4 py-2 ps-6 pe-4 text-left hover:preset-tonal {connectivity.online ===
                 false && basemap.online
-                ? 'opacity-40 pointer-events-none'
+                ? 'pointer-events-none opacity-40'
                 : ''}"
               onclick={() => selectBasemap(basemap.identifier)}
             >
               {#if basemap.identifier === mapState.basemapId}
-                <CheckIcon class="size-4 text-primary" />
+                <CheckIcon class="text-primary size-4" />
               {:else}
                 <div class="size-4"></div>
               {/if}
@@ -63,7 +63,7 @@
               <!-- open sea map button -->
               <Switch
                 class="flex p-2 {connectivity.online === false
-                  ? 'opacity-40 pointer-events-none'
+                  ? 'pointer-events-none opacity-40'
                   : ''}"
                 onCheckedChange={(e) => {
                   mapState.openSeaMap = e.checked;
@@ -74,7 +74,7 @@
                 <Switch.Control>
                   <Switch.Thumb />
                 </Switch.Control>
-                <Switch.Label class="text-sm font-normal justify-self-start"
+                <Switch.Label class="justify-self-start text-sm font-normal"
                   >Open Sea Map</Switch.Label
                 >
                 <Switch.HiddenInput />

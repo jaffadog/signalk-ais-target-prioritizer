@@ -15,12 +15,12 @@
   <Portal>
     <Dialog.Backdrop class="fixed inset-0 z-50 bg-error-50-950/50" />
     <Dialog.Positioner
-      class="fixed inset-0 z-50 flex justify-center items-center p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
       <Dialog.Content
-        class="card preset-filled-error-500 w-md p-4 space-y-2 shadow-xl"
+        class="w-md space-y-2 card preset-filled-error-500 p-4 shadow-xl"
       >
-        <Dialog.Title class="text-xl font-semibold flex items-center gap-2"
+        <Dialog.Title class="flex items-center gap-2 text-xl font-semibold"
           ><CircleX />{notificationState.title}</Dialog.Title
         >
         <Dialog.Description>

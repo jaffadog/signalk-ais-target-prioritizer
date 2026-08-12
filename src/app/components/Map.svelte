@@ -9,10 +9,20 @@
     LngLatBounds,
     Map,
     NavigationControl,
+    setWorkerUrl,
     type EaseToOptions,
     type LngLatLike,
   } from "maplibre-gl";
   import "maplibre-gl/dist/maplibre-gl.css";
+
+  // maplibre v6 loads its worker from a url it computes at runtime from its own
+  // script url, which rollup cannot see, so the file is never emitted and the
+  // worker 404s - leaving a map that shows its controls but never renders.
+  // Importing it as a worker makes vite bundle and emit it (resolving the shared
+  // chunk it imports), and setWorkerUrl points maplibre at the emitted file.
+  import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+
+  setWorkerUrl(maplibreWorkerUrl);
 
   import { Protocol } from "pmtiles";
 

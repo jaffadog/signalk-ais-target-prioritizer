@@ -55,7 +55,8 @@
   "homepage": "https://github.com/jaffadog/signalk-ais-target-prioritizer",
   "scripts": {
     "dev": "vite",
-    "build:web": "vite build",
+    "build:web": "vite build && npm run verify:build",
+    "verify:build": "node scripts/verify-build.mjs",
     "build:plugin": "rollup -c",
     "build:plugin:node18": "cross-env SKIP_VISUALIZER=1 NODE_OPTIONS=--experimental-global-webcrypto rollup -c",
     "build": "npm run build:web && npm run build:plugin",

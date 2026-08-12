@@ -17,13 +17,13 @@
 
 <div class="flex items-center justify-between gap-2 p-2">
   <span class="label-text text-sm">Theme</span>
-  <div class="inline-flex rounded-full bg-surface-200-800 p-0.75 gap-0.5">
+  <div class="inline-flex gap-0.5 rounded-full bg-surface-200-800 p-0.75">
     {#each options as { mode, icon: Icon, label } (mode)}
       <button
         type="button"
         class="flex items-center justify-center rounded-full p-1.5 transition-colors
           {ui.themeMode === mode
-          ? 'bg-surface-50-950 shadow-sm text-primary-500'
+          ? 'bg-surface-50-950 text-primary-500 shadow-sm'
           : 'text-surface-400 hover:text-surface-600-400'}"
         onclick={() => handleThemeChange(mode)}
         aria-label={label}

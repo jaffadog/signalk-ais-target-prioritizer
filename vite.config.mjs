@@ -16,6 +16,12 @@ export default defineConfig({
 
   publicDir: "src/app/public",
 
+  // maplibre creates its worker with { type: "module" }, so the emitted worker
+  // has to be an es module rather than vite's default iife
+  worker: {
+    format: "es",
+  },
+
   // build: {
   //   outDir: "dist/app",
   // },
@@ -51,6 +57,20 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: true,
+    proxy: {
+      "/plugins": "http://127.0.0.1:3000",
+      "/skServer": "http://127.0.0.1:3000",
+      "/signalk": {
+        target: "http://127.0.0.1:3000",
+        ws: true,
+      },
+    },
+  },
+  // the same proxy for `vite preview`, so the built output can be checked against
+  // a real signal k server. without it preview cannot get past the loading screen,
+  // and a production-only failure (the maplibre worker not being emitted) looks
+  // indistinguishable from "no backend data".
+  preview: {
     proxy: {
       "/plugins": "http://127.0.0.1:3000",
       "/skServer": "http://127.0.0.1:3000",

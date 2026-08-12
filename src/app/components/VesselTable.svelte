@@ -109,10 +109,10 @@
     />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="flex flex-col h-dvh card bg-surface-100-900 w-full md:w-3xl  p-4 space-y-4 shadow-xl {animModal}"
+        class="flex h-dvh w-full flex-col space-y-4 card bg-surface-100-900  p-4 shadow-xl md:w-3xl {animModal}"
       >
         <!-- header -->
-        <header class="flex justify-between items-center">
+        <header class="flex items-center justify-between">
           <Dialog.Title class="text-lg font-bold"
             >AIS Targets ({sortedVessels.length})</Dialog.Title
           >
@@ -146,31 +146,31 @@
             <thead>
               <tr class="z-20">
                 <th
-                  class="sticky top-0 left-0 z-30 w-auto font-semibold bg-surface-100-900 ps-4!"
+                  class="sticky top-0 left-0 z-30 w-auto bg-surface-100-900 ps-4! font-semibold"
                 >
                   NAME
                 </th>
                 <th
-                  class="sticky top-0 min-w-5 font-semibold bg-surface-100-900 text-right!"
+                  class="sticky top-0 min-w-5 bg-surface-100-900 text-right! font-semibold"
                 ></th>
                 <th
-                  class="sticky top-0 min-w-16 font-semibold bg-surface-100-900 text-right!"
+                  class="sticky top-0 min-w-16 bg-surface-100-900 text-right! font-semibold"
                   >BRG</th
                 >
                 <th
-                  class="sticky top-0 min-w-24 font-semibold bg-surface-100-900 text-right!"
+                  class="sticky top-0 min-w-24 bg-surface-100-900 text-right! font-semibold"
                   >RNG</th
                 >
                 <th
-                  class="sticky top-0 min-w-20 font-semibold bg-surface-100-900 text-right!"
+                  class="sticky top-0 min-w-20 bg-surface-100-900 text-right! font-semibold"
                   >SOG</th
                 >
                 <th
-                  class="sticky top-0 min-w-24 font-semibold bg-surface-100-900 text-right!"
+                  class="sticky top-0 min-w-24 bg-surface-100-900 text-right! font-semibold"
                   >CPA</th
                 >
                 <th
-                  class="sticky top-0 min-w-24 font-semibold bg-surface-100-900 text-right! pe-4!"
+                  class="sticky top-0 min-w-24 bg-surface-100-900 pe-4! text-right! font-semibold"
                   >TCPA</th
                 >
               </tr>
@@ -179,11 +179,11 @@
             <tbody>
               {#each sortedVessels as vessel (vessel.context)}
                 <tr
-                  class={`z-10 cursor-pointer group hover:preset-tonal-primary! ${getVesselColor(vessel)}`}
+                  class={`group z-10 cursor-pointer hover:preset-tonal-primary! ${getVesselColor(vessel)}`}
                   onclick={() => handleClickRow(vessel.context)}
                 >
                   <td
-                    class={`sticky left-0 z-20 flex items-center text-left group-hover:preset-tonal-primary!  ${getVesselColor(vessel)} border-b-0 px-3 py-0.5 font-medium ps-4!`}
+                    class={`sticky left-0 z-20 flex items-center text-left group-hover:preset-tonal-primary!  ${getVesselColor(vessel)} border-b-0 px-3 py-0.5 ps-4! font-medium`}
                   >
                     <span
                       class="me-2 inline-flex h-10 w-10 items-center justify-center [&>svg]:h-full [&>svg]:w-full"
@@ -214,7 +214,7 @@
                   <td class="text-right!">
                     {formatCpa(vessel.cpa, vessel.tcpa)}
                   </td>
-                  <td class="text-right! pe-4!">
+                  <td class="pe-4! text-right!">
                     {formatTcpa(vessel.tcpa)}
                   </td>
                   <!-- <td>{vessel.order}</td> -->

@@ -55,18 +55,18 @@
   <Portal>
     <Dialog.Backdrop class="fixed inset-0 z-50 bg-error-50-950/50" />
     <Dialog.Positioner
-      class="fixed inset-0 z-50 flex justify-center items-center p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
       <Dialog.Content
-        class="flex flex-col card preset-filled-error-500 w-md p-4 space-y-2 shadow-xl max-h-[90dvh]"
+        class="flex max-h-[90dvh] w-md flex-col space-y-2 card preset-filled-error-500 p-4 shadow-xl"
       >
-        <Dialog.Title class="text-xl font-semibold flex items-center gap-2"
+        <Dialog.Title class="flex items-center gap-2 text-xl font-semibold"
           ><TriangleAlert />Alarms</Dialog.Title
         >
         <Dialog.Description class="flex-1 overflow-y-auto">
           {#each alarmVessels as alarmVessel (alarmVessel.context)}
             <button
-              class="w-full text-left hover:preset-tonal-error rounded px-2 py-1 uppercase"
+              class="w-full rounded px-2 py-1 text-left uppercase hover:preset-tonal-error"
               onclick={() => handleClick(alarmVessel.context)}
             >
               {formatName(alarmVessel)} -
@@ -76,7 +76,7 @@
             </button>
           {:else}
             <p
-              class="w-full text-left hover:preset-tonal-error rounded px-2 py-1"
+              class="w-full rounded px-2 py-1 text-left hover:preset-tonal-error"
             >
               No current alarms.
             </p>

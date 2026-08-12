@@ -94,16 +94,16 @@
       -->
       <Dialog.Backdrop class="fixed inset-0 z-50 bg-black/50" />
       <Dialog.Positioner
-        class="fixed inset-0 z-50 flex justify-center items-center p-4"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <Dialog.Content
-          class="flex flex-col card bg-surface-100-900 w-full sm:w-md p-4 space-y-4 shadow-xl {animation} max-h-[90dvh] {modalPosition}"
+          class="flex w-full flex-col space-y-4 card bg-surface-100-900 p-4 shadow-xl sm:w-md {animation} max-h-[90dvh] {modalPosition}"
         >
           <!-- header -->
-          <header class="flex justify-between items-center">
+          <header class="flex items-center justify-between">
             {#if selectedVessel.context !== vesselsState.myVesselContext}
               <button
-                class="btn btn-icon p-0 preset-filled-primary-500 inline-flex h-10 w-10 items-center justify-center rounded-full text-lg font-semibold"
+                class="btn btn-icon inline-flex h-10 w-10 items-center justify-center rounded-full preset-filled-primary-500 p-0 text-lg font-semibold"
                 type="button"
                 title="Toggle alarm mute"
                 onclick={handleToggleMute}
@@ -125,7 +125,7 @@
 
           <!-- alarms -->
           {#if alertMessage}
-            <div class="card p-4 preset-tonal-primary flex items-center gap-2">
+            <div class="flex items-center gap-2 card preset-tonal-primary p-4">
               <Info />
               <span class="flex-1">{alertMessage}</span>
               <button
@@ -139,14 +139,14 @@
 
           {#if selectedVessel.alarmState}
             <div
-              class={`card p-4 flex items-center justify-center gap-2 ${
+              class={`flex items-center justify-center gap-2 card p-4 ${
                 selectedVessel.alarmState === "danger"
                   ? "preset-tonal-error"
                   : "preset-tonal-warning"
               }`}
             >
               <TriangleAlert />
-              <span class="uppercase font-semibold">
+              <span class="font-semibold uppercase">
                 {selectedVessel.alarmType}
                 {selectedVessel.alarmState}
               </span>
@@ -274,14 +274,14 @@
                     <Portal>
                       <Popover.Positioner class="z-50!">
                         <Popover.Content
-                          class="card max-w-md p-2.5 bg-surface-950-50 text-surface-50-950 shadow-xl"
+                          class="max-w-md card bg-surface-950-50 p-2.5 text-surface-50-950 shadow-xl"
                         >
                           <Popover.Description
                             >{getCountryFromMMSI(selectedVessel.mmsi)
                               ?.country ?? "---"}</Popover.Description
                           >
                           <Popover.Arrow
-                            class="[--arrow-size:--spacing(2)] [--arrow-background:var(--color-surface-950-50)]"
+                            class="[--arrow-background:var(--color-surface-950-50)] [--arrow-size:--spacing(2)]"
                           >
                             <Popover.ArrowTip />
                           </Popover.Arrow>

@@ -60,10 +60,10 @@
     />
     <Dialog.Positioner class="fixed inset-0 z-50 flex justify-start">
       <Dialog.Content
-        class="flex flex-col h-dvh card bg-surface-100-900 w-full md:w-xl gap-4 p-4 shadow-xl {animModal}"
+        class="flex h-dvh w-full flex-col gap-4 card bg-surface-100-900 p-4 shadow-xl md:w-xl {animModal}"
       >
         <!-- header -->
-        <header class="flex justify-between items-center">
+        <header class="flex items-center justify-between">
           <Dialog.Title class="text-lg font-bold">Edit Profiles</Dialog.Title>
           <Dialog.CloseTrigger class="btn-icon hover:preset-tonal">
             <XIcon class="size-4" />
@@ -72,7 +72,7 @@
 
         <!-- body -->
         <div
-          class="flex-1 overflow-y-scroll card w-full h-full preset-outlined-surface-500 border border-surface-200-800 divide-surface-200-800 block divide-y"
+          class="block h-full w-full flex-1 divide-y divide-surface-200-800 overflow-y-scroll card border preset-outlined-surface-500 border-surface-200-800"
         >
           <!-- buttons -->
           <div class="flex items-end gap-4 p-4">
@@ -94,7 +94,7 @@
             <!-- restore defaults -->
             <button
               type="button"
-              class="btn preset-filled-warning-500 basis-1/2"
+              class="btn basis-1/2 preset-filled-warning-500"
               onclick={handleRestoreDefaults}>Restore Defaults</button
             >
           </div>
@@ -104,15 +104,15 @@
             <!-- tab list -->
             <Tabs.List class="flex">
               <Tabs.Trigger
-                class="flex-1 whitespace-normal text-wrap"
+                class="flex-1 text-wrap whitespace-normal"
                 value="collisionWarning">Collision Warning</Tabs.Trigger
               >
               <Tabs.Trigger
-                class="flex-1 whitespace-normal text-wrap"
+                class="flex-1 text-wrap whitespace-normal"
                 value="collisionAlarm">Collision Alarm</Tabs.Trigger
               >
               <Tabs.Trigger
-                class="flex-1 whitespace-normal text-wrap"
+                class="flex-1 text-wrap whitespace-normal"
                 value="guardAlarm">Guard Alarm</Tabs.Trigger
               >
               <Tabs.Indicator />
@@ -123,7 +123,7 @@
               <p>
                 Targets that meet all three of the conditions below will be set
                 to a warning state and shown in <span
-                  class="text-warning-700 font-bold">orange</span
+                  class="font-bold text-warning-700">orange</span
                 > in the plotter.
               </p>
 
@@ -135,7 +135,7 @@
               <p>
                 Targets that meet all three of the conditions below will be set
                 to a danger state and shown in <span
-                  class="text-error-600 font-bold">red</span
+                  class="font-bold text-error-600">red</span
                 > in the plotter.
               </p>
 
@@ -146,7 +146,7 @@
             <Tabs.Content value="guardAlarm" class="flex flex-col gap-4">
               <p>
                 Targets that meet both of the conditions below will be set to a
-                danger state and shown in <span class="text-error-600 font-bold"
+                danger state and shown in <span class="font-bold text-error-600"
                   >red</span
                 > in the plotter.
               </p>
