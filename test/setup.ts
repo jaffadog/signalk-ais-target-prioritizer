@@ -23,3 +23,24 @@ globalThis.localStorage ??= localStorageStub;
 globalThis.window ??= {
   location: { origin: "http://localhost:3000" },
 } as Window & typeof globalThis;
+
+// jsdom has no ResizeObserver, and the zag slider behind the alarm threshold
+// controls measures its thumb with one. A no-op is enough: nothing under test
+// depends on being told about a resize.
+class ResizeObserverStub implements ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+globalThis.ResizeObserver ??= ResizeObserverStub;
+
+// jsdom has no CSS object; zag builds id selectors with CSS.escape
+globalThis.CSS ??= {
+  escape: (value: string) => String(value).replace(/([^\w-])/g, "\\$1"),
+} as typeof CSS;
+if (typeof globalThis.window === "object" && globalThis.window !== null) {
+  (
+    globalThis.window as { ResizeObserver?: typeof ResizeObserver }
+  ).ResizeObserver ??= ResizeObserverStub;
+}
