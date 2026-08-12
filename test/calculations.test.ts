@@ -19,9 +19,14 @@ import {
 } from "../src/engine/calculations";
 import {
   COURSE_PROJECTION_MINUTES,
+  CPA_CEILING_NM,
   KNOTS_PER_M_PER_S,
   LOST_VESSEL_WARNING_AGE,
   METERS_PER_NM,
+  ORDER_BAND,
+  ORDER_OPENING,
+  RANGE_CEILING_NM,
+  TCPA_CEILING,
 } from "../src/engine/constants";
 import type { CollisionProfile, Vessel } from "../src/types";
 
@@ -531,23 +536,60 @@ describe("calcAlarms", () => {
       expect(near.order!).toBeLessThan(far.order!);
     });
 
-    it("sinks targets with no range below targets within working range", () => {
+    it("sinks targets with no range below any target of known range", () => {
       const without = alarms({ range: undefined });
-      for (const nm of [0.1, 1, 10, 50, 99]) {
+      // past the range ceiling too - unknown range must always sort last. this used
+      // to cross over around 100 NM, where a real target started sorting lower.
+      for (const nm of [0.1, 1, 10, 50, 99, 101, 500, 5000]) {
         expect(without.order!).toBeGreaterThan(
           alarms({ range: nm * METERS_PER_NM }).order!,
         );
       }
     });
 
-    // the no-range penalty is a flat 99999 while range accrues 1000 per NM, so the
-    // two cross over at about 100 NM and a very distant target sorts below a target
-    // of unknown range. beyond DEFAULT_MAXIMUM_TARGET_RANGE (50 NM) in practice.
-    it("known limitation: past ~100 NM a ranged target outsinks an unranged one", () => {
-      const without = alarms({ range: undefined });
-      expect(without.order!).toBeLessThan(
-        alarms({ range: 101 * METERS_PER_NM }).order!,
-      );
+    it("stops ordering by range past the ceiling rather than growing unbounded", () => {
+      const at = alarms({ range: RANGE_CEILING_NM * METERS_PER_NM });
+      const beyond = alarms({ range: 10 * RANGE_CEILING_NM * METERS_PER_NM });
+      expect(beyond.order!).toBe(at.order!);
+    });
+  });
+
+  // a tie breaker that can grow as large as the gap between bands stops being a tie
+  // breaker - it silently promotes or demotes targets across severities. range used
+  // to add 1000 per NM against bands 100000 apart, so 100 NM was a whole band.
+  describe("priority bands survive the tie breakers", () => {
+    const distress = "970123456"; // sart - alarms on mmsi prefix, at any range
+
+    it("keeps a distant distress target ahead of a close collision warning", () => {
+      const sartFarOut = alarms({ range: 150 * METERS_PER_NM, mmsi: distress });
+      const warningClose = alarms({
+        range: 1 * METERS_PER_NM,
+        cpa: 3 * METERS_PER_NM,
+        tcpa: 5 * 60,
+      });
+      expect(sartFarOut.alarmState).toBe("danger");
+      expect(warningClose.alarmState).toBe("warning");
+      expect(sartFarOut.order!).toBeLessThan(warningClose.order!);
+    });
+
+    it("never lets the tie breakers add up to a whole band", () => {
+      // worst case: unknown range, plus both other tie breakers well past their ceilings
+      const worst = alarms({
+        range: undefined,
+        cpa: 10 * CPA_CEILING_NM * METERS_PER_NM,
+        tcpa: 10 * TCPA_CEILING,
+      });
+      expect(worst.order!).toBeLessThan(ORDER_OPENING + ORDER_BAND);
+    });
+
+    it("keeps order inside the range the symbol sort key is derived from", () => {
+      // vessels render with `999999 - order`, which has to stay positive
+      const worst = alarms({
+        range: 20_000 * METERS_PER_NM,
+        cpa: 10 * CPA_CEILING_NM * METERS_PER_NM,
+        tcpa: 10 * TCPA_CEILING,
+      });
+      expect(worst.order!).toBeLessThan(999999);
     });
   });
 });

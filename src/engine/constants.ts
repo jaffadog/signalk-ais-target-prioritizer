@@ -50,6 +50,29 @@ export const TRAIL_DOT_RADIUS = 2; // pixels
 // far more than a collision avoidance plot wants, so we window it here.
 export const TRAIL_LENGTH = 60; // minutes of past positions to show
 
+// ---- priority sort key (see calcAlarms) ----
+// targets drop into a band by severity, then sort within that band by the tie
+// breakers below. the invariant is that every tie breaker is clamped so their sum
+// can never reach a full band width - otherwise a merely distant target climbs into
+// a band it does not belong in.
+export const ORDER_BAND = 100_000;
+export const ORDER_DANGER = 1 * ORDER_BAND;
+export const ORDER_WARNING = 2 * ORDER_BAND;
+export const ORDER_CLOSING = 3 * ORDER_BAND;
+export const ORDER_OPENING = 4 * ORDER_BAND;
+
+// the most any single tie breaker can contribute. the worst case is two of them
+// plus the no-range penalty, which stays under two thirds of a band.
+export const TIEBREAK_MAX = ORDER_BAND / 5;
+
+// at or beyond these, values all score TIEBREAK_MAX - they are already far enough
+// out that ordering between them does not matter. tcpa and cpa match the largest a
+// collision profile can specify (60 min, 10 NM); the range ceiling is just a chosen
+// horizon, since maximumTargetRange has no configured upper bound.
+export const TCPA_CEILING = 60 * 60; // seconds
+export const CPA_CEILING_NM = 10;
+export const RANGE_CEILING_NM = 100;
+
 export const COLOR_MAP = {
   gray: "#8a8a8a",
   orange: "#f97316",

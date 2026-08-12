@@ -5,7 +5,15 @@ import destination from "@turf/destination";
 import { KNOTS_PER_M_PER_S, METERS_PER_NM, R } from "./constants";
 import {
   COURSE_PROJECTION_MINUTES,
+  CPA_CEILING_NM,
   LOST_VESSEL_WARNING_AGE,
+  ORDER_CLOSING,
+  ORDER_DANGER,
+  ORDER_OPENING,
+  ORDER_WARNING,
+  RANGE_CEILING_NM,
+  TCPA_CEILING,
+  TIEBREAK_MAX,
 } from "./constants";
 import type { Position, Vessel } from "../types";
 import type { Vector2D } from "../types";
@@ -153,6 +161,17 @@ export function calcIsValid(v: Vessel): boolean {
   return isValidNumber(v.latitude) && isValidNumber(v.longitude);
 }
 
+/**
+ * Scale a value onto 0..TIEBREAK_MAX, flattening at `ceiling`. Clamping is the
+ * point: it keeps a tie breaker from growing large enough to push a target out of
+ * its own priority band.
+ */
+export function tiebreak(value: number, ceiling: number): number {
+  if (!(ceiling > 0)) return 0;
+  const clamped = Math.min(Math.max(value, 0), ceiling);
+  return (TIEBREAK_MAX * clamped) / ceiling;
+}
+
 export function calcAlarms(
   activeCollisionProfile: CollisionProfile,
   range: number | undefined,
@@ -233,62 +252,52 @@ export function calcAlarms(
       alarms.epirbAlarm
     ) {
       alarms.alarmState = "danger";
-      alarms.order = 100000;
+      alarms.order = ORDER_DANGER;
     }
     // warning
     else if (alarms.collisionWarning) {
       alarms.alarmState = "warning";
-      alarms.order = 200000;
+      alarms.order = ORDER_WARNING;
     }
     // no alarm/warning - but has positive tcpa (closing)
     else if (isValidNumber(tcpa) && tcpa > 0) {
       alarms.alarmState = null;
-      alarms.order = 300000;
+      alarms.order = ORDER_CLOSING;
     }
     // no alarm/warning and moving away)
     else {
       alarms.alarmState = null;
-      alarms.order = 400000;
+      alarms.order = ORDER_OPENING;
     }
 
     // ============ ADJUSTMENTS TO ALARM PRIORITY ORDERING ============
+    //
+    // These only break ties within a band, so together they must stay well inside
+    // one band width. They used to be unbounded: range alone added 1000 per NM and
+    // so reached a whole band at 100 NM, which sorted an AIS-SART 150 NM out
+    // (danger, 250000) below a routine collision warning 1 NM away (204999). It
+    // also pushed a very distant target past the 999999 the symbol sort key is
+    // derived from. Each term is now scaled into 0..TIEBREAK_MAX instead.
 
     // sort sooner tcpa vessels to top
     if (isValidNumber(tcpa) && tcpa > 0) {
-      // tcpa of 0 seconds increases order by 0
-      // tcpa of 300 seconds (5 mins) increases order by 1000
-      // tcpa of 3600 seconds (1 hour) increases order by 12000
-      const factor = 3.333; // 1000 / 300;
-      // weight (points/s) * tcpa (s)
-      alarms.order += factor * tcpa;
+      alarms.order += tiebreak(tcpa, TCPA_CEILING);
     }
 
     // sort closer cpa vessels to top
     if (isValidNumber(cpa) && cpa > 0) {
-      // cpa of 0 nm increases order by 0
-      // cpa of 1 nm increases order by 1000
-      // cpa of 5 nm increases order by 5000
-      // cpa of 10 nm increases order by 10000
-      const factor = 1000; // 1000 / 1;
-      alarms.order += (factor * cpa) / METERS_PER_NM;
-    }
-
-    // sort closer vessels to top
-    if (isValidNumber(range) && range > 0) {
-      // range of 0 nm increases order by 0
-      // range of 1 nm increases order by 1000
-      // range of 5 nm increases order by 5000
-      // range of 10 nm increases order by 10000
-      const factor = 1000; // 1000/1
-      alarms.order += (factor * range) / METERS_PER_NM;
+      alarms.order += tiebreak(cpa / METERS_PER_NM, CPA_CEILING_NM);
     }
 
     // TODO might be interesting to calculate rate of closure
     // high positive rate of closure decreases order
 
-    // sort vessels with no range to bottom
-    if (!isValidNumber(range)) {
-      alarms.order += 99999;
+    // sort closer vessels to top, and vessels with no range at all to the bottom -
+    // strictly behind even the most distant known range
+    if (isValidNumber(range) && range > 0) {
+      alarms.order += tiebreak(range / METERS_PER_NM, RANGE_CEILING_NM);
+    } else if (!isValidNumber(range)) {
+      alarms.order += TIEBREAK_MAX + 1;
     }
   } catch (err: unknown) {
     console.error("error in evaluateAlarms", err);
