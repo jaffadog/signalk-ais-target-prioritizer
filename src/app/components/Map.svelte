@@ -69,7 +69,7 @@
   import { addSharedSources as addSources } from "../sources";
   import { addSharedLayers as addLayers } from "../layers";
   import { getStored, setStored } from "../utils/storage";
-  import { takeRecent, trailPointLimit } from "../utils/trails";
+  import { attachToVessel, takeRecent, trailPointLimit } from "../utils/trails";
   import {
     startTracksLoop,
     stopTracksLoop,
@@ -525,7 +525,15 @@
 
       // shorter tracks are kept whole - a vessel just come into range shows every point
       // it has, never trimmed for being new
-      const recent = takeRecent(segments, maxPoints);
+      //
+      // then run the trail up to the vessel's live position: the tracks api is polled and
+      // coarse, positions are streamed, so without this the trail lags behind the icon
+      const recent = attachToVessel(
+        takeRecent(segments, maxPoints),
+        isValidNumber(vessel.longitude) && isValidNumber(vessel.latitude)
+          ? [vessel.longitude, vessel.latitude]
+          : undefined,
+      );
 
       // both are lines, so a break between track segments stays a break rather than
       // being joined by a straight leg the vessel never sailed. own ship gets the thick

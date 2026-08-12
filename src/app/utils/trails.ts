@@ -40,3 +40,30 @@ export function takeRecent(
   }
   return recent;
 }
+
+/**
+ * Extends a track so it ends at the vessel's live position.
+ *
+ * Track points arrive on a poll, and only as often as the tracks plugin's resolution -
+ * which can be minutes - while positions arrive on the delta stream and are redrawn every
+ * tick. Without this the trail ends at the last polled point, so the vessel sails away
+ * from its own trail and leaves it visibly detached and lagging behind.
+ */
+export function attachToVessel(
+  segments: Position[][],
+  position: Position | undefined,
+): Position[][] {
+  if (!position) return segments;
+  const [lon, lat] = position;
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return segments;
+  if (!segments.length) return [[position]];
+
+  // extend the newest segment rather than starting a new one: a reception gap is behind
+  // us, and the vessel did sail from that last known point to where it is now
+  const last = segments[segments.length - 1];
+  const newest = last[last.length - 1];
+  // the poll may already have caught up, and repeating a point draws a doubled dot
+  if (newest && newest[0] === lon && newest[1] === lat) return segments;
+
+  return [...segments.slice(0, -1), [...last, position]];
+}

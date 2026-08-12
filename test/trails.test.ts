@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 
-import { takeRecent, trailPointLimit } from "../src/app/utils/trails";
+import {
+  attachToVessel,
+  takeRecent,
+  trailPointLimit,
+} from "../src/app/utils/trails";
 import { TRAIL_LENGTH } from "../src/engine/constants";
 import type { Position } from "../src/types";
 
@@ -97,6 +101,58 @@ describe("takeRecent", () => {
 
   it("handles an empty track", () => {
     expect(takeRecent([], 10)).toEqual([]);
+  });
+});
+
+describe("attachToVessel", () => {
+  it("ends the trail at the vessel, not at the last polled point", () => {
+    const result = attachToVessel([run(3)], [0, 99]);
+    expect(result.at(-1)!.at(-1)).toEqual([0, 99]);
+  });
+
+  it("extends the newest segment rather than starting a new one", () => {
+    // a new segment would render as a detached fragment instead of a joined leg
+    const result = attachToVessel([run(3), run(3, 100)], [0, 200]);
+    expect(result).toHaveLength(2);
+    expect(result[1]).toHaveLength(4);
+    expect(result[0]).toHaveLength(3);
+  });
+
+  it("does not repeat a point the poll has already caught up to", () => {
+    const segments = [run(3)];
+    // [0, 2] is already the newest point
+    expect(attachToVessel(segments, [0, 2])).toEqual(segments);
+  });
+
+  it("leaves the track alone when the position is missing or nonsense", () => {
+    const segments = [run(3)];
+    expect(attachToVessel(segments, undefined)).toEqual(segments);
+    expect(attachToVessel(segments, [NaN, 5])).toEqual(segments);
+    expect(attachToVessel(segments, [5, NaN])).toEqual(segments);
+    expect(attachToVessel(segments, [Infinity, 5])).toEqual(segments);
+  });
+
+  it("starts a trail from the vessel when there is no track yet", () => {
+    // one segment holding the single live position
+    expect(attachToVessel([], [1, 2])).toEqual([[[1, 2]]]);
+  });
+
+  it("does not mutate the track it was given", () => {
+    const segments = [run(3)];
+    const before = structuredClone(segments);
+    attachToVessel(segments, [0, 50]);
+    expect(segments).toEqual(before);
+  });
+
+  it("keeps the trail attached across repeated ticks between polls", () => {
+    // the vessel moves every tick while the track stays put, which is the whole bug
+    const polled = [run(3)];
+    for (const lat of [10, 11, 12, 13]) {
+      const drawn = attachToVessel(polled, [0, lat]);
+      expect(drawn.at(-1)!.at(-1)).toEqual([0, lat]);
+      // and the live leg never accumulates - one point per tick, not one per tick ever
+      expect(drawn.flat()).toHaveLength(4);
+    }
   });
 });
 
