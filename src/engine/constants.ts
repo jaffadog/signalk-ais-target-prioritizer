@@ -34,16 +34,25 @@ export const DEFAULT_ZOOM = 10;
 // just re-fetches identical data.
 export const TRACKS_REFRESH_INTERVAL = 30_000; // every 30 seconds
 
-// used when the tracks plugin config cannot be read - matches the plugin default
+// used when the tracks plugin config cannot be read (a non-admin session cannot see it)
+// - matches the plugin default. note this is a floor on the interval between points,
+// not the interval itself, and installs set it anywhere from a second to minutes.
 export const DEFAULT_TRACK_RESOLUTION = 60_000; // milliseconds per track point
 
-// time-spaced dots crowd into a solid line as you zoom out, so we drop every Nth
-// dot to hold a roughly constant on-screen spacing. N is derived from a single
-// reference speed rather than each vessel's own speed, so the time step stays
-// identical across all targets - only the interval widens, by a whole multiple.
-export const TRAIL_DOT_REFERENCE_SPEED = 10; // knots
-export const TRAIL_DOT_SPACING = 25; // target pixels between dots
-export const TRAIL_DOT_RADIUS = 2; // pixels
+// a target's past track is drawn as a polyline with a dotted texture, at one fixed
+// spacing for every vessel.
+//
+// SN.1/Circ.243 asks for "dots, equally spaced by time", and plotting the api's own
+// points looks like it delivers that - but it cannot. The api carries no timestamps, the
+// plugin's resolution is only a floor, AIS reporting rates vary per ship, and reception
+// is lossy, so the real interval is unknown, uneven, and different for every target.
+// Dots on those points imply a cadence that is not real. A dash pattern is spaced in
+// screen space instead: uniform at every zoom, for every target, and claiming nothing
+// about time we cannot back up. The speed cue time-spaced dots would have given is
+// already carried, better, by the course projection line, whose length scales with speed.
+export const TRAIL_DOT_WIDTH = 3; // pixels - the dot diameter
+export const TRAIL_DOT_SPACING = 9; // pixels between dot centres
+export const TRAIL_OPACITY = 1;
 
 // how much past track to draw. the tracks plugin is shared across signal k, so its
 // retention is set for whatever else consumes it (24h at 60s x 1440, say) - that is

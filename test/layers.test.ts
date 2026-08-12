@@ -162,10 +162,24 @@ describe("addSharedLayers", () => {
   });
 
   describe("layer types", () => {
-    it("draws own ship's past track as a line and targets' as circles", () => {
+    it("draws both past tracks as lines - own ship solid, targets dotted", () => {
       const byId = (id: string) => map._layers.find((l) => l.id === id)!;
       expect(byId("own-trail").type).toBe("line");
-      expect(byId("target-trails").type).toBe("circle");
+
+      // targets are a dotted line rather than a dot per reported position: the api
+      // carries no timestamps, so real "dots equally spaced by time" is not available.
+      // a zero length dash with a round cap draws a round dot.
+      const targets = byId("target-trails");
+      expect(targets.type).toBe("line");
+      expect(targets.layout?.["line-cap"]).toBe("round");
+      const [dash, gap] = targets.paint?.["line-dasharray"] as number[];
+      expect(dash).toBe(0);
+      expect(gap).toBeGreaterThan(0);
+    });
+
+    it("keeps own ship's trail solid, so it stays distinguishable from a target's", () => {
+      const byId = (id: string) => map._layers.find((l) => l.id === id)!;
+      expect(byId("own-trail").paint?.["line-dasharray"]).toBeUndefined();
     });
 
     // IMO SN.1/Circ.243: a thick line for own ship, matching its projected track

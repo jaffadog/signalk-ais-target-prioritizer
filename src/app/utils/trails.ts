@@ -1,17 +1,18 @@
 // pure geometry helpers for drawing past positions - see IMO SN.1/Circ.243/Rev.2
 
-import {
-  METERS_PER_NM,
-  TRAIL_DOT_REFERENCE_SPEED,
-  TRAIL_DOT_SPACING,
-  TRAIL_LENGTH,
-} from "../../engine/constants";
+import { TRAIL_LENGTH } from "../../engine/constants";
 import type { Position } from "../../types";
 
 /**
- * How many track points make up TRAIL_LENGTH at the tracks plugin's configured
- * resolution. The plugin's own retention is set for whatever else consumes it,
- * which is far more than a collision avoidance plot wants.
+ * How many track points make up TRAIL_LENGTH at the plugin's configured resolution. The
+ * plugin's own retention is set for whatever else consumes it - measured at nearly five
+ * hours on a live server - which is far more than a collision avoidance plot wants.
+ *
+ * The resolution is a floor on the real interval, not the interval itself: the plugin
+ * adds a point when a position arrives *and* the resolution has elapsed, and AIS
+ * reception is lossy, so points really arrive further apart than configured. That makes
+ * this an over-estimate of the points needed, which is the safe direction - a trail can
+ * come out longer than TRAIL_LENGTH, but data inside the window is never trimmed away.
  */
 export function trailPointLimit(resolutionMs: number): number {
   if (!Number.isFinite(resolutionMs) || resolutionMs <= 0) return 1;
@@ -19,33 +20,10 @@ export function trailPointLimit(resolutionMs: number): number {
 }
 
 /**
- * How many dots to skip so a vessel making TRAIL_DOT_REFERENCE_SPEED shows dots
- * roughly TRAIL_DOT_SPACING pixels apart, whatever the zoom.
- *
- * Deliberately keyed off one reference speed rather than each vessel's own, so
- * every target shares a stride: the time step stays identical across targets and
- * relative speed stays readable, the interval just widens by a whole multiple.
- */
-export function dotStride(
-  metersPerPixel: number,
-  resolutionMs: number,
-): number {
-  if (!Number.isFinite(metersPerPixel) || metersPerPixel <= 0) return 1;
-  if (!Number.isFinite(resolutionMs) || resolutionMs <= 0) return 1;
-
-  const metersPerDot =
-    ((TRAIL_DOT_REFERENCE_SPEED * METERS_PER_NM) / 3600) *
-    (resolutionMs / 1000);
-  const pixelsPerDot = metersPerDot / metersPerPixel;
-  if (!pixelsPerDot) return 1;
-
-  return Math.max(1, Math.round(TRAIL_DOT_SPACING / pixelsPerDot));
-}
-
-/**
- * The newest maxPoints positions, keeping the api's segment boundaries so a gap
- * in the track stays a gap rather than being closed by a line the vessel never
- * sailed.
+ * The newest maxPoints positions, keeping the api's segment boundaries so a gap in the
+ * track stays a gap rather than being closed by a line the vessel never sailed. A track
+ * shorter than the window is kept whole, so a vessel just come into range shows every
+ * point it has.
  */
 export function takeRecent(
   segments: Position[][],
@@ -61,17 +39,4 @@ export function takeRecent(
     remaining -= take;
   }
   return recent;
-}
-
-/**
- * Keep every stride-th dot, counting back from the newest so the trail stays
- * attached to the vessel rather than drifting behind it.
- */
-export function thinDots(coordinates: Position[], stride: number): Position[] {
-  if (stride <= 1) return coordinates;
-  const thinned: Position[] = [];
-  for (let i = coordinates.length - 1; i >= 0; i -= stride) {
-    thinned.push(coordinates[i]);
-  }
-  return thinned;
 }

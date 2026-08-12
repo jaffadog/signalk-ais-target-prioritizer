@@ -69,12 +69,7 @@
   import { addSharedSources as addSources } from "../sources";
   import { addSharedLayers as addLayers } from "../layers";
   import { getStored, setStored } from "../utils/storage";
-  import {
-    dotStride,
-    takeRecent,
-    thinDots,
-    trailPointLimit,
-  } from "../utils/trails";
+  import { takeRecent, trailPointLimit } from "../utils/trails";
   import {
     startTracksLoop,
     stopTracksLoop,
@@ -514,7 +509,7 @@
     const targetFeatures: Feature<Geometry, GeoJsonProperties>[] = [];
     // when trails are off we still fall through, so the sources get emptied
     const tracks = mapState.trails ? tracksState.tracks : {};
-    const stride = dotStride(metersPerPixel(), tracksState.resolution);
+
     const maxPoints = trailPointLimit(tracksState.resolution);
 
     for (const [context, geometry] of Object.entries(tracks) as [
@@ -528,23 +523,19 @@
       const vessel = vessels[context];
       if (!vessel) continue;
 
+      // shorter tracks are kept whole - a vessel just come into range shows every point
+      // it has, never trimmed for being new
       const recent = takeRecent(segments, maxPoints);
 
-      if (context === vesselsState.myVesselContext) {
-        ownFeatures.push({
-          type: "Feature",
-          geometry: { type: "MultiLineString", coordinates: recent },
-          properties: { context },
-        });
-        continue;
-      }
-
-      const coordinates = thinDots(recent.flat(), stride);
-      if (!coordinates.length) continue;
-
-      targetFeatures.push({
+      // both are lines, so a break between track segments stays a break rather than
+      // being joined by a straight leg the vessel never sailed. own ship gets the thick
+      // solid line the standard asks for, targets a dotted one.
+      (context === vesselsState.myVesselContext
+        ? ownFeatures
+        : targetFeatures
+      ).push({
         type: "Feature",
-        geometry: { type: "MultiPoint", coordinates },
+        geometry: { type: "MultiLineString", coordinates: recent },
         properties: { context, color: trailColor(vessel) },
       });
     }
@@ -561,15 +552,6 @@
         type: "FeatureCollection",
         features: targetFeatures,
       });
-  }
-
-  // measured off the live projection, so latitude and projection are accounted for
-  function metersPerPixel(): number {
-    const map = mapState.instance;
-    if (!map) return 0;
-    const center = map.getCenter();
-    const point = map.project(center);
-    return center.distanceTo(map.unproject([point.x + 64, point.y])) / 64;
   }
 
   // trails take the colour of the target they belong to

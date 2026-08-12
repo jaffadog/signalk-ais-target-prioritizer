@@ -1,4 +1,9 @@
-import { COLOR_MAP, TRAIL_DOT_RADIUS } from "../engine/constants";
+import {
+  COLOR_MAP,
+  TRAIL_DOT_SPACING,
+  TRAIL_DOT_WIDTH,
+  TRAIL_OPACITY,
+} from "../engine/constants";
 import { BUILTIN_SATELLITE } from "./basemaps.svelte";
 import { mapState } from "./map.svelte";
 import { ui } from "./ui.svelte";
@@ -86,20 +91,28 @@ export function addSharedLayers() {
       paint: {
         "line-color": COLOR_MAP["gray"],
         "line-width": 2,
-        "line-opacity": 0.7,
+        "line-opacity": TRAIL_OPACITY,
       },
     });
   }
 
+  // a dotted line: a zero length dash with a round cap renders as a round dot, and the
+  // dash pattern is measured in screen space so the spacing holds at every zoom
   if (!map.getLayer("target-trails")) {
     map.addLayer({
       id: "target-trails",
-      type: "circle",
+      type: "line",
       source: "target-trails",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
       paint: {
-        "circle-radius": TRAIL_DOT_RADIUS,
-        "circle-color": ["get", "color"],
-        "circle-opacity": 0.7,
+        "line-color": ["get", "color"],
+        "line-width": TRAIL_DOT_WIDTH,
+        // dash lengths are multiples of the line width, so convert from pixels
+        "line-dasharray": [0, TRAIL_DOT_SPACING / TRAIL_DOT_WIDTH],
+        "line-opacity": TRAIL_OPACITY,
       },
     });
   }
