@@ -5,6 +5,7 @@ import { addSharedLayers, getLabelColor } from "../src/app/layers";
 import { mapState } from "../src/app/map.svelte";
 import { BUILTIN_SATELLITE, BUILTIN_STREET } from "../src/app/basemaps.svelte";
 import { ui } from "../src/app/ui.svelte";
+import { TRAIL_OWN_WIDTH } from "../src/engine/constants";
 import type { Map } from "maplibre-gl";
 
 type LayerSpec = { id: string; type: string; source: string };
@@ -182,16 +183,18 @@ describe("addSharedLayers", () => {
       expect(byId("own-trail").paint?.["line-dasharray"]).toBeUndefined();
     });
 
-    // IMO SN.1/Circ.243: a thick line for own ship, matching its projected track
-    it("gives own ship's trail the same width as the predictor lines", () => {
+    // IMO SN.1/Circ.243 asks for a thin line for own ship's past track when the
+    // position comes from a secondary source, which a Signal K feed is
+    it("draws own ship's past track thinner than its projected course", () => {
       const paint = (id: string) =>
         (
           map._layers.find((l) => l.id === id) as unknown as {
             paint: Record<string, unknown>;
           }
         ).paint;
-      expect(paint("own-trail")["line-width"]).toBe(
-        paint("predictors")["line-width"],
+      expect(paint("own-trail")["line-width"]).toBe(TRAIL_OWN_WIDTH);
+      expect(paint("own-trail")["line-width"] as number).toBeLessThan(
+        paint("predictors")["line-width"] as number,
       );
     });
   });

@@ -3,6 +3,7 @@ import {
   TRAIL_DOT_SPACING,
   TRAIL_DOT_WIDTH,
   TRAIL_OPACITY,
+  TRAIL_OWN_WIDTH,
 } from "../engine/constants";
 import { BUILTIN_SATELLITE } from "./basemaps.svelte";
 import { mapState } from "./map.svelte";
@@ -80,9 +81,9 @@ export function addSharedLayers() {
     });
   }
 
-  // past positions, per IMO SN.1/Circ.243 Rev.2: own ship is a "thick line"
-  // (matching the width of its projected track), targets are "dots, equally
-  // spaced by time". added ahead of the vessel icons so trails draw underneath.
+  // past positions, per IMO SN.1/Circ.243 Rev.2: own ship gets a plain thin line,
+  // targets get "dots, equally spaced by time" - the dotted texture is what marks a
+  // track as a target's. added ahead of the vessel icons so trails draw underneath.
   if (!map.getLayer("own-trail")) {
     map.addLayer({
       id: "own-trail",
@@ -90,7 +91,7 @@ export function addSharedLayers() {
       source: "own-trail",
       paint: {
         "line-color": COLOR_MAP["gray"],
-        "line-width": 2,
+        "line-width": TRAIL_OWN_WIDTH,
         "line-opacity": TRAIL_OPACITY,
       },
     });

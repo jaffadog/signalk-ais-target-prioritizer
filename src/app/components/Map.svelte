@@ -536,8 +536,8 @@
       );
 
       // both are lines, so a break between track segments stays a break rather than
-      // being joined by a straight leg the vessel never sailed. own ship gets the thick
-      // solid line the standard asks for, targets a dotted one.
+      // being joined by a straight leg the vessel never sailed. own ship gets a plain
+      // thin line, targets the dotted one that marks a track out as a target's.
       (context === vesselsState.myVesselContext
         ? ownFeatures
         : targetFeatures

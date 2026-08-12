@@ -99,10 +99,15 @@ marks the standard permits on own ship, needs timestamps added upstream.
   collide with the server admin UI and other webapps. Validate anything read back —
   persisted values are attacker-or-past-you controlled and may be garbage.
 - **Presentation follows IMO SN.1/Circ.243/Rev.2** (linked in `notes/STANDARDS.md`):
-  own-ship past track is a thick line, target past positions are "dots, equally spaced
-  by time". Check the standard before changing symbology. The one knowing deviation is
-  that the dots are spaced evenly on screen rather than in time, because the tracks api
-  gives us no timestamps to space them by — see the trap above.
+  own-ship past track is a plain line — the standard's own-ship row asks for a thick line
+  from a primary position source and a thin one from a secondary, and a position arriving
+  over Signal K is not this vessel's primary navigation source, so it is drawn thin.
+  Target past positions are "dots, equally spaced by time", and **the dotted texture is
+  what distinguishes a target's track from own ship's** — do not give own ship dots.
+  Check the standard before changing symbology; note its tables are published as images,
+  so they cannot be grepped or fetched as text. The one knowing deviation is that the dots
+  are spaced evenly on screen rather than in time, because the tracks api gives us no
+  timestamps to space them by — see the trap above.
 - Reactive state modules use the `.svelte.ts` suffix (`map.svelte.ts`, `ui.svelte.ts`).
 - Pull logic out of `.svelte` components into plain `.ts` when it needs testing —
   `src/app/utils/trails.ts` exists for exactly that reason.

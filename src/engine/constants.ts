@@ -54,6 +54,14 @@ export const TRAIL_DOT_WIDTH = 3; // pixels - the dot diameter
 export const TRAIL_DOT_SPACING = 9; // pixels between dot centres
 export const TRAIL_OPACITY = 1;
 
+// own ship's past track is a plain line, not a dotted one - the dots are what mark a
+// track out as a target's. The standard's own-ship row asks for a thick line when the
+// position comes from the primary source and a thin one for a secondary source; a
+// position arriving over Signal K is not this vessel's primary navigation source, so
+// thin is the honest choice. It is also deliberately thinner than the projected course
+// line, so where the vessel has been reads as less emphatic than where it is going.
+export const TRAIL_OWN_WIDTH = 1; // pixels
+
 // how much past track to draw. the tracks plugin is shared across signal k, so its
 // retention is set for whatever else consumes it (24h at 60s x 1440, say) - that is
 // far more than a collision avoidance plot wants, so we window it here.
