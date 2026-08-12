@@ -1,5 +1,57 @@
 # Changelog
 
+## [0.4.17] - 2026-08-12
+
+### ✨ Features
+
+- bump the target trail dot radius to 2px (374b5e0)
+- draw own ship and target past positions (eed7e01)
+- remember the map zoom across reloads (ead4f8f)
+
+### 🐛 Fixes
+
+- keep commit message prose out of the changelog (8604c52)
+- draw own ship's past track as a thin line (57409db)
+- run each trail up to its vessel's live position (1ee3262)
+- keep priority tie breakers inside their alarm band (37fa127)
+- ship maplibre's worker, so the production build renders (d038014)
+- make Restore Defaults actually restore the shipped defaults (2667eea)
+- report the map label check status while it is running (e931e1f)
+- namespace localStorage keys and validate the stored theme mode (e9a95f6)
+
+### ♻️ Refactors
+
+- draw target trails with a fixed dot texture (e620a32)
+
+### 📝 Docs
+
+- add AGENTS.md (7aa4998)
+
+### 🧪 Tests
+
+- cover the Settings dialog and the vessel trails toggle (09c939f)
+- cover the Edit Profiles dialog (1d7c347)
+- add component tests, starting with the alarm dialog (1b3a109)
+- cover the style swap guard and chart discovery (f0ed558)
+- cover the vessel silhouettes and the ui theme state (ad71cf3)
+- cover the map sources and layers (b336c8c)
+- cover basemap resolution and the tracks polling (5b02914)
+- cover the per-tick vessel update pipeline (d8272eb)
+- cover the signal k delta parser (033a9e2)
+- add a coverage report over the source (e4f230e)
+- cover the engine calculations and pure utilities (3ec19fe)
+
+### 🧹 Chores
+
+- update dependencies within existing ranges (a010577)
+- bump @skeletonlabs/skeleton and skeleton-svelte to 5.0.0 (fdfa057)
+- bump maplibre-gl from 5.24.0 to 6.2.0 (b3238f3)
+- bump the minor-and-patch group across 1 directory with 16 updates (572c00c)
+
+### 🏗️ Build
+
+- typecheck the svelte components with svelte-check (ca9c0d8)
+
 ## [0.4.16] - 2026-07-26
 
 ### ✨ Features
