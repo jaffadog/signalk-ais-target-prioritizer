@@ -41,12 +41,20 @@ const commits = raw
     return { hash, body: bodyParts.join(FIELD_SEP) };
   });
 
-// Flatten: every line of every commit body becomes its own entry,
-// tagged with that commit's hash. This matches the habit of bundling
-// multiple conventional-commit-style lines into one commit message.
+// A conventional-commit prefix: type, optional (scope), colon, description.
 const PREFIX_PATTERN = /^([a-zA-Z]+)(\([^)]*\))?:\s*(.+)$/;
 
-const KNOWN_TYPES = ["feat", "fix", "refactor", "docs", "perf", "chore", "ci"];
+const KNOWN_TYPES = [
+  "feat",
+  "fix",
+  "refactor",
+  "docs",
+  "perf",
+  "chore",
+  "ci",
+  "test",
+  "build",
+];
 
 // Minimal edit-distance check, so typos like "refector" still match "refactor".
 // Only corrects typos within a known type, never invents matches across types.
@@ -85,19 +93,32 @@ function resolveType(rawType) {
   return best; // null if nothing close enough -> falls through to Other
 }
 
+// The subject line always produces an entry, so a commit can never go missing - even
+// if its subject carries no recognised prefix, in which case it lands in Other.
+//
+// Body lines only produce an entry when they carry a recognised prefix. That keeps the
+// habit of bundling several conventional-commit lines into one message working, while
+// discarding ordinary explanatory prose. Collecting unprefixed body lines too, as this
+// once did, turned a handful of commits with written-out reasoning into hundreds of
+// sentence fragments in Other.
 const entries = [];
 for (const { hash, body } of commits) {
-  for (const line of body.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    const match = trimmed.match(PREFIX_PATTERN);
-    if (match) {
-      const [, rawType, , description] = match;
-      const type = resolveType(rawType);
-      entries.push({ type, description, hash });
-    } else {
-      entries.push({ type: null, description: trimmed, hash });
-    }
+  const [subject, ...rest] = body.split("\n");
+
+  const subjectMatch = subject.trim().match(PREFIX_PATTERN);
+  if (subjectMatch) {
+    const [, rawType, , description] = subjectMatch;
+    entries.push({ type: resolveType(rawType), description, hash });
+  } else if (subject.trim()) {
+    entries.push({ type: null, description: subject.trim(), hash });
+  }
+
+  for (const line of rest) {
+    const match = line.trim().match(PREFIX_PATTERN);
+    if (!match) continue;
+    const [, rawType, , description] = match;
+    const type = resolveType(rawType);
+    if (type) entries.push({ type, description, hash });
   }
 }
 
@@ -116,13 +137,17 @@ changelogEntry += section("🐛 Fixes", "fix");
 changelogEntry += section("♻️ Refactors", "refactor");
 changelogEntry += section("📝 Docs", "docs");
 changelogEntry += section("⚡ Performance", "perf");
+changelogEntry += section("🧪 Tests", "test");
 changelogEntry += section("🧹 Chores", "chore");
 changelogEntry += section("🔧 CI", "ci");
+changelogEntry += section("🏗️ Build", "build");
 
 const other = entries.filter((e) => !e.type || !KNOWN_TYPES.includes(e.type));
 if (other.length > 0) {
   const body = other.map((e) => `- ${e.description} (${e.hash})`).join("\n");
-  changelogEntry += `### 📦 Other\n${body}\n\n`;
+  // blank line after the heading, to match section() - without it prettier rewrites
+  // the file and the next format:check fails on a changelog nobody hand-edited
+  changelogEntry += `### 📦 Other\n\n${body}\n\n`;
 }
 
 const changelogPath = join(__dirname, "../CHANGELOG.md");

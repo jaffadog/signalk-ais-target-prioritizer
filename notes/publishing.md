@@ -21,15 +21,21 @@
 
 ### Commit:
 
-Commit all pending changes with appropriate comments. Prefix each line as appropriate (multiple prefixed lines in one commit message are fine — the changelog generator parses each line independently). e.g.:
+Commit all pending changes with appropriate comments. Prefix the subject as appropriate (multiple prefixed lines in one commit message are fine — each becomes its own changelog entry). e.g.:
 
 - **feat** — `feat: add dark mode toggle to settings panel`
 - **fix** — `fix: prevent crash when MMSI is null`
 - **refactor** — `refactor: extract style builders into separate module`
 - **docs** — `docs: update README with PMTiles setup instructions`
 - **perf** — `perf: debounce vessel position updates to reduce re-renders`
+- **test** — `test: cover the signal k delta parser`
 - **chore** — `chore: bump rollup to v4.62`
 - **ci** — `ci: add changelog generation to release workflow`
+
+Only the **subject** line and any **prefixed** body lines become changelog entries.
+Unprefixed body lines are ignored, so a commit message can carry as much explanatory
+prose as it needs without leaking into the release notes. A subject with no recognised
+prefix still appears, under "Other", so nothing goes missing silently.
 
 ### Increment version
 
