@@ -519,9 +519,12 @@
       const segments = geometry?.coordinates;
       if (!segments?.length) continue;
 
-      // only draw trails for vessels we are tracking - the api is not filtered
+      // only draw trails for vessels we are tracking - the api is not filtered.
+      // a lost vessel keeps its last known position forever with nothing updating
+      // it, so its trail would otherwise sit frozen on the map indefinitely instead
+      // of aging off along with the vessel.
       const vessel = vessels[context];
-      if (!vessel) continue;
+      if (!vessel || vessel.isLost) continue;
 
       // shorter tracks are kept whole - a vessel just come into range shows every point
       // it has, never trimmed for being new
