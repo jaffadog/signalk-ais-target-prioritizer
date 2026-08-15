@@ -519,12 +519,12 @@
       const segments = geometry?.coordinates;
       if (!segments?.length) continue;
 
-      // only draw trails for vessels we are tracking - the api is not filtered.
-      // a lost vessel keeps its last known position forever with nothing updating
-      // it, so its trail would otherwise sit frozen on the map indefinitely instead
-      // of aging off along with the vessel.
+      // only draw trails for vessels we are tracking - the api is not filtered. a
+      // lost vessel (isLost) is still on the map with its red X, so its track stays
+      // too; only a vessel actually removed from `vessels` (aged out after 30
+      // minutes silent, see TARGET_MAX_AGE) drops out of this loop entirely.
       const vessel = vessels[context];
-      if (!vessel || vessel.isLost) continue;
+      if (!vessel) continue;
 
       // shorter tracks are kept whole - a vessel just come into range shows every point
       // it has, never trimmed for being new
