@@ -523,8 +523,14 @@
       // lost vessel (isLost) is still on the map with its red X, so its track stays
       // too; only a vessel actually removed from `vessels` (aged out after 30
       // minutes silent, see TARGET_MAX_AGE) drops out of this loop entirely.
+      //
+      // isValid is required too, matching vesselToFeature's own criterion below - a
+      // vessel we've only ever heard static data from (name, mmsi) has no position to
+      // draw an icon at, but the tracks api can still hold old points for that same
+      // context. Without this check the trail draws from those stale points alone,
+      // with no live position to attach to: a track with no vessel at either end.
       const vessel = vessels[context];
-      if (!vessel) continue;
+      if (!vessel || !vessel.isValid) continue;
 
       // shorter tracks are kept whole - a vessel just come into range shows every point
       // it has, never trimmed for being new
