@@ -56,8 +56,8 @@ afterEach(() => {
 });
 
 const trailsSwitch = () =>
-  screen.getByText("Show Vessel Trails").closest("label") ??
-  screen.getByText("Show Vessel Trails").parentElement!;
+  screen.getByText("Show Vessel Tracks").closest("label") ??
+  screen.getByText("Show Vessel Tracks").parentElement!;
 
 describe("Settings", () => {
   it("shows the active profile and the other choices", () => {
@@ -102,7 +102,7 @@ describe("Settings", () => {
     it("is offered, and reflects that trails are on by default", () => {
       render(Settings);
 
-      expect(screen.getByText("Show Vessel Trails")).toBeTruthy();
+      expect(screen.getByText("Show Vessel Tracks")).toBeTruthy();
       expect(trailsSwitch().getAttribute("data-state")).toBe("checked");
     });
 

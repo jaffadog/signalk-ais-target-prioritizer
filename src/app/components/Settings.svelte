@@ -164,13 +164,13 @@
             </Switch.Control>
           </Switch>
 
-          <!-- past position trails -->
+          <!-- past position tracks -->
           <Switch
             class="flex justify-between p-2"
             onCheckedChange={(e) => (mapState.trails = e.checked)}
             checked={mapState.trails}
           >
-            <Switch.Label class="text-sm">Show Vessel Trails</Switch.Label>
+            <Switch.Label class="text-sm">Show Vessel Tracks</Switch.Label>
             <Switch.HiddenInput />
             <Switch.Control>
               <Switch.Thumb />
