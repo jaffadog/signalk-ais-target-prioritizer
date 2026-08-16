@@ -134,3 +134,4 @@ jobs:
       enable-signalk-integration: ${{ inputs.enable-signalk-integration }}
       signalk-server-versions: ${{ inputs.signalk-server-versions }}
 # trigger CI re-test against plugin-ci.yml fixes (2026-08-15T04:56:20Z)
+# retest trigger: plugin-ci.yml schema-defaults activation + fail-on-warning verification
